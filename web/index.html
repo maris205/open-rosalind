@@ -41,7 +41,17 @@ MUT: p.R175H</option>
   <section class="results" id="results" hidden>
     <div class="card">
       <h2>Summary <span class="muted" id="meta"></span></h2>
+      <div id="confidence-row" class="confidence-row" hidden>
+        <span class="conf-label">confidence</span>
+        <div class="conf-bar"><div id="conf-fill" class="conf-fill"></div></div>
+        <span id="conf-value" class="conf-value"></span>
+      </div>
+      <div id="notes" class="notes" hidden></div>
       <div id="summary" class="markdown"></div>
+    </div>
+    <div class="card" id="annotation-card" hidden>
+      <h2>Annotation</h2>
+      <div id="annotation"></div>
     </div>
     <div class="card">
       <h2>Evidence</h2>

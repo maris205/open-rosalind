@@ -1,5 +1,35 @@
 const $ = (sel) => document.querySelector(sel);
 
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderAnnotation(ann) {
+  const rows = [];
+  const kv = (k, v) => rows.push(`<div class="k">${escapeHtml(k)}</div><div class="v">${v == null || v === "" ? "—" : escapeHtml(String(v))}</div>`);
+  if (ann.kind === "protein") {
+    kv("Name", ann.name);
+    kv("Accession", ann.accession);
+    kv("Organism", ann.organism);
+    kv("Length", ann.length);
+    kv("Function", ann.function);
+  } else if (ann.kind === "literature") {
+    kv("Hits", ann.n_hits);
+    kv("Query used", ann.query_used);
+    kv("Top PMIDs", (ann.top_pmids || []).join(", "));
+  } else if (ann.kind === "mutation") {
+    kv("Differences", ann.n_differences);
+    kv("Assessment", ann.overall_assessment);
+    kv("Notable flags", (ann.notable_flags || []).join(" · "));
+  }
+  let html = `<div class="kv">${rows.join("")}</div>`;
+  if (ann.homology_hint && ann.homology_hint.length) {
+    const items = ann.homology_hint.map(h => `<code>${escapeHtml(h.accession || "?")}</code>${h.organism ? " <em>(" + escapeHtml(h.organism) + ")</em>" : ""}`).join("&nbsp;&nbsp;");
+    html += `<div class="homology">homology hint: ${items}</div>`;
+  }
+  return html;
+}
+
 function renderMarkdown(md) {
   if (!md) return "";
   let h = md
@@ -45,6 +75,36 @@ $("#run").addEventListener("click", async () => {
     }
     const data = await r.json();
     $("#meta").textContent = `· skill: ${data.skill} · session: ${data.session_id}`;
+
+    // confidence bar
+    if (typeof data.confidence === "number") {
+      $("#confidence-row").hidden = false;
+      const pct = Math.max(0, Math.min(1, data.confidence)) * 100;
+      $("#conf-fill").style.width = pct + "%";
+      $("#conf-value").textContent = data.confidence.toFixed(2);
+    } else {
+      $("#confidence-row").hidden = true;
+    }
+
+    // notes (fallback messages, etc.)
+    const notes = data.notes || [];
+    if (notes.length) {
+      $("#notes").hidden = false;
+      $("#notes").innerHTML = "<ul>" + notes.map(n => `<li>${escapeHtml(n)}</li>`).join("") + "</ul>";
+    } else {
+      $("#notes").hidden = true;
+    }
+
+    // annotation card
+    const ann = data.annotation || {};
+    const annCard = $("#annotation-card");
+    if (ann && ann.kind && ann.kind !== "unknown") {
+      annCard.hidden = false;
+      $("#annotation").innerHTML = renderAnnotation(ann);
+    } else {
+      annCard.hidden = true;
+    }
+
     $("#summary").innerHTML = renderMarkdown(data.summary || "(no summary)");
     $("#evidence").textContent = JSON.stringify(data.evidence, null, 2);
     const ol = $("#trace");

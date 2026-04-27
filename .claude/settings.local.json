@@ -32,7 +32,18 @@
       "Bash(curl -sS -o /dev/null -w \"github via http_proxy: %{http_code}\\\\n\" --max-time 15 -x http://127.0.0.1:7890 https://github.com)",
       "Bash(curl -sS --max-time 15 https://api.github.com/repos/maris205/open-rosalind -x http://127.0.0.1:7890)",
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http://127.0.0.1:7890 push -u origin main)",
+      "Bash(http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 apt-get install -y ncat)",
+      "Bash(ncat --version)",
+      "Bash(ssh -o StrictHostKeyChecking=accept-new -o \"ProxyCommand=ncat --proxy 127.0.0.1:7890 --proxy-type http %h %p\" -i ~/.ssh/id_ed25519 -T git@github.com)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"input\":\"P38398\"}' -o /tmp/r1.json)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"input\":\"asdfgh nonexistent xyzproteinquery\",\"mode\":\"uniprot\"}' -o /tmp/r_fb.json)"
     ]
   }
 }

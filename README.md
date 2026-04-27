@@ -59,18 +59,59 @@ Open `http://127.0.0.1:6006/` and try the demo prompts.
 See [`docs/DEMOS.md`](./docs/DEMOS.md) for fully-worked end-to-end runs of all four demos
 (question → routing → tool calls → evidence → LLM summary).
 
+## API response shape
+
+Every `POST /api/analyze` returns the same five top-level fields, so a UI or
+an evaluator never has to special-case skills:
+
+```json
+{
+  "summary":    "Markdown answer with [UniProt:...] / [PMID:...] inline citations",
+  "annotation": { "kind": "protein|literature|mutation", "...": "..." },
+  "confidence": 0.0,
+  "notes":      ["original query had 0 hits, used token 'BRCA1' (fallback)"],
+  "evidence":   { "...raw tool outputs..." },
+  "trace_steps":[ {"skill": "uniprot.search", "input": {...}, "output": {...}} ]
+}
+```
+
+`notes` is non-empty whenever the pipeline took a non-trivial path (retry,
+fallback, partial failure) — these are surfaced to the user, not hidden.
+
+## Mini BioBench v0
+
+A small but real benchmark (26 tasks across sequence / literature /
+annotation / mutation) ships with the repo:
+
+```bash
+python -m open_rosalind.cli serve &           # start the agent
+python benchmark/run_biobench.py              # score it
+```
+
+Latest run on `google/gemma-4-26b-a4b-it`:
+
+| Metric | Value |
+|---|---|
+| Accuracy (semantic check) | **100%** (26/26) |
+| Skill routed correctly | 100% |
+| Expected tools called | 100% |
+| Has trace / has evidence | 100% / 100% |
+
+Per-task breakdown lives in [`benchmark/results.md`](./benchmark/results.md);
+the raw JSON in `benchmark/results.json`.
+
 ## Backend
 
-Default: OpenRouter `google/gemma-4-26b-a4b-it:free`. Swap by editing
+Default: OpenRouter `google/gemma-4-26b-a4b-it`. Swap by editing
 `configs/default.yaml` — the agent only depends on a `chat(messages)` interface.
 
 ## Trace
 
 Every session writes one JSONL file under `traces/`. One line per event:
-`user_input`, `plan`, `tool_call`, `tool_result`, `evidence`, `model_request`,
-`model_response`. Replaying the trace re-creates the run.
+`user_input`, `plan`, `tool_call`, `tool_result`, `fallback`, `evidence`,
+`model_request`, `model_response`. Replaying the trace re-creates the run.
 
 ## Roadmap
 
 This is **v0.1**. v0.2+ adds BLAST / Foldseek / PDB tools, a code executor,
-LLM-driven planner, OmniGene-4 backend, and the BixBench evaluation harness.
+LLM-driven planner, OmniGene-4 backend, and the full BixBench harness.

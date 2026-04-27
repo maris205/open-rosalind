@@ -77,3 +77,19 @@ pre#evidence {
 #trace .kind { color: var(--accent); font-weight: 600; }
 
 footer { text-align: center; color: var(--muted); padding: 16px; font-size: 12px; border-top: 1px solid var(--border); }
+
+.confidence-row { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: 12px; }
+.conf-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.conf-bar { flex: 0 0 180px; height: 8px; background: #0b0e13; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.conf-fill { height: 100%; background: linear-gradient(90deg, #f87171 0%, #fbbf24 50%, var(--accent) 100%); width: 0; transition: width 0.3s ease; }
+.conf-value { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.notes { background: rgba(251,191,36,0.08); border-left: 3px solid #fbbf24; padding: 8px 10px; border-radius: 4px; font-size: 12px; color: #fde68a; margin-bottom: 10px; }
+.notes ul { margin: 0; padding-left: 18px; }
+
+#annotation { font-size: 13px; }
+#annotation .kv { display: grid; grid-template-columns: 140px 1fr; gap: 4px 12px; }
+#annotation .kv .k { color: var(--muted); }
+#annotation .kv .v { color: var(--text); word-break: break-word; }
+#annotation .homology { margin-top: 8px; font-size: 12px; color: var(--muted); }
+#annotation .homology code { background: #0b0e13; padding: 1px 6px; border-radius: 3px; margin-right: 4px; }

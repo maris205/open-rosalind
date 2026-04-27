@@ -42,6 +42,9 @@ class AnalyzeResponse(BaseModel):
     session_id: str
     skill: str
     summary: str
+    annotation: dict | None = None
+    confidence: float | None = None
+    notes: list[str] = []
     evidence: dict
     trace_path: str
     trace: list[dict]

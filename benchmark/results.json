@@ -1,0 +1,593 @@
+{
+  "meta": {
+    "base_url": "http://127.0.0.1:6006",
+    "n_tasks": 26
+  },
+  "metrics": {
+    "n_tasks": 26,
+    "accuracy": 1.0,
+    "skill_correct_rate": 1.0,
+    "tool_called_rate": 1.0,
+    "has_trace_rate": 1.0,
+    "has_evidence_rate": 1.0,
+    "by_category": {
+      "sequence": {
+        "n": 8,
+        "accuracy": 1.0,
+        "skill_correct_rate": 1.0,
+        "tool_called_rate": 1.0
+      },
+      "literature": {
+        "n": 6,
+        "accuracy": 1.0,
+        "skill_correct_rate": 1.0,
+        "tool_called_rate": 1.0
+      },
+      "annotation": {
+        "n": 6,
+        "accuracy": 1.0,
+        "skill_correct_rate": 1.0,
+        "tool_called_rate": 1.0
+      },
+      "mutation": {
+        "n": 6,
+        "accuracy": 1.0,
+        "skill_correct_rate": 1.0,
+        "tool_called_rate": 1.0
+      }
+    }
+  },
+  "rows": [
+    {
+      "id": "seq-01",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='dna' expected='dna'",
+      "confidence": 0.2,
+      "session_id": "20260427-203306-4dd346",
+      "elapsed_s": 4.83
+    },
+    {
+      "id": "seq-02",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='protein' expected='protein'",
+      "confidence": 0.2,
+      "session_id": "20260427-203311-0ff4b9",
+      "elapsed_s": 3.96
+    },
+    {
+      "id": "seq-03",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=49 expected=49",
+      "confidence": 0.2,
+      "session_id": "20260427-203315-ef30ea",
+      "elapsed_s": 19.34
+    },
+    {
+      "id": "seq-04",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=71.43 approx=71.43 tol=0.5",
+      "confidence": 0.2,
+      "session_id": "20260427-203334-34d23c",
+      "elapsed_s": 4.7
+    },
+    {
+      "id": "seq-05",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='MRT*' starts_with='MRT'",
+      "confidence": 0.2,
+      "session_id": "20260427-203339-aa2bcb",
+      "elapsed_s": 4.16
+    },
+    {
+      "id": "seq-06",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='TTACGTACGCAT' starts_with='TTACGT'",
+      "confidence": 0.2,
+      "session_id": "20260427-203343-ca6aaf",
+      "elapsed_s": 3.12
+    },
+    {
+      "id": "seq-07",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=1 expected=1",
+      "confidence": 0.2,
+      "session_id": "20260427-203346-aa0e31",
+      "elapsed_s": 3.63
+    },
+    {
+      "id": "seq-08",
+      "category": "sequence",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='dna' expected='dna'",
+      "confidence": 0.2,
+      "session_id": "20260427-203350-dad21f",
+      "elapsed_s": 4.08
+    },
+    {
+      "id": "lit-01",
+      "category": "literature",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "confidence": 0.85,
+      "session_id": "20260427-203354-a70fc4",
+      "elapsed_s": 17.43
+    },
+    {
+      "id": "lit-02",
+      "category": "literature",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "confidence": 0.85,
+      "session_id": "20260427-203411-a9a0ac",
+      "elapsed_s": 8.31
+    },
+    {
+      "id": "lit-03",
+      "category": "literature",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "confidence": 0.85,
+      "session_id": "20260427-203420-fe8d94",
+      "elapsed_s": 10.59
+    },
+    {
+      "id": "lit-04",
+      "category": "literature",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "confidence": 0.85,
+      "session_id": "20260427-203430-6c6ab4",
+      "elapsed_s": 8.2
+    },
+    {
+      "id": "lit-05",
+      "category": "literature",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "confidence": 0.85,
+      "session_id": "20260427-203439-f471a4",
+      "elapsed_s": 6.77
+    },
+    {
+      "id": "lit-06",
+      "category": "literature",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "confidence": 0.85,
+      "session_id": "20260427-203445-0197b3",
+      "elapsed_s": 13.78
+    },
+    {
+      "id": "ann-01",
+      "category": "annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='BRCA1_HUMAN' expected='BRCA1_HUMAN'",
+      "confidence": 0.95,
+      "session_id": "20260427-203459-4b40aa",
+      "elapsed_s": 11.16
+    },
+    {
+      "id": "ann-02",
+      "category": "annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='Homo sapiens' expected='Homo sapiens'",
+      "confidence": 0.95,
+      "session_id": "20260427-203510-140a94",
+      "elapsed_s": 7.83
+    },
+    {
+      "id": "ann-03",
+      "category": "annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "summary_len=797 needs=['p53']",
+      "confidence": 0.95,
+      "session_id": "20260427-203518-e4be0c",
+      "elapsed_s": 24.63
+    },
+    {
+      "id": "ann-04",
+      "category": "annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.search"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "summary_len=1198 needs=['hemoglobin']",
+      "confidence": 0.95,
+      "session_id": "20260427-203543-2ae5a2",
+      "elapsed_s": 10.49
+    },
+    {
+      "id": "ann-05",
+      "category": "annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='Cellular tumor antigen p53' contains='p53'",
+      "confidence": 0.95,
+      "session_id": "20260427-203553-0efecb",
+      "elapsed_s": 13.74
+    },
+    {
+      "id": "ann-06",
+      "category": "annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='Homo sapiens' expected='Homo sapiens'",
+      "confidence": 0.95,
+      "session_id": "20260427-203607-6de531",
+      "elapsed_s": 16.2
+    },
+    {
+      "id": "mut-01",
+      "category": "mutation",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=1 expected=1",
+      "confidence": 0.7,
+      "session_id": "20260427-203623-47e017",
+      "elapsed_s": 2.74
+    },
+    {
+      "id": "mut-02",
+      "category": "mutation",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=['class change: hydrophobic → polar_uncharged', 'cysteine gain/loss (disulfide bond)'] contains_any=['cysteine gain/loss (disulfide bond)']",
+      "confidence": 0.85,
+      "session_id": "20260427-203626-6f9aeb",
+      "elapsed_s": 4.45
+    },
+    {
+      "id": "mut-03",
+      "category": "mutation",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=['class change: positive → negative', 'charge reversal'] contains_any=['charge reversal']",
+      "confidence": 0.85,
+      "session_id": "20260427-203630-0d092d",
+      "elapsed_s": 4.43
+    },
+    {
+      "id": "mut-04",
+      "category": "mutation",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got='likely impactful' expected='likely impactful'",
+      "confidence": 0.85,
+      "session_id": "20260427-203635-0de1ab",
+      "elapsed_s": 51.08
+    },
+    {
+      "id": "mut-05",
+      "category": "mutation",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=1 expected=1",
+      "confidence": 0.7,
+      "session_id": "20260427-203726-48e588",
+      "elapsed_s": 4.32
+    },
+    {
+      "id": "mut-06",
+      "category": "mutation",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "has_trace": true,
+      "has_evidence": true,
+      "check_passed": true,
+      "check_reason": "got=0 expected=0",
+      "confidence": 0.5,
+      "session_id": "20260427-203730-d9af53",
+      "elapsed_s": 2.17
+    }
+  ]
+}
