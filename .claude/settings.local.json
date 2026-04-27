@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(pip install *)",
+      "Bash(python -m pytest tests/ -q)",
+      "Bash(python *)",
+      "Bash(curl -sS http://127.0.0.1:6006/api/health)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\"P38398\"}')",
+      "Bash(http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 python *)",
+      "Bash(http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 nohup python -m open_rosalind.cli serve --port 6006)",
+      "Bash(http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 curl -sS -o /dev/null -w \"pubmed: %{http_code} %{time_total}s\\\\n\" --max-time 20 \"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=CRISPR+base+editing&retmode=json&retmax=3\")",
+      "Bash(curl -sS -o /dev/null -w \"pubmed_noproxy: %{http_code} %{time_total}s\\\\n\" --max-time 20 \"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=CRISPR+base+editing&retmode=json&retmax=3\")",
+      "Bash(pkill -f \"open_rosalind.cli serve\")",
+      "Bash(disown sleep *)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\"Find recent papers about CRISPR base editing in 2024\"}')",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\"Find recent papers about CRISPR base editing in 2024\"}' -o /tmp/r.json)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\"Find recent papers about CRISPR base editing in 2024\"}' -o /tmp/r2.json)",
+      "Bash(disown)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\"Find recent papers about CRISPR base editing in 2024\"}' -o /tmp/r3.json)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\"Find recent papers about CRISPR base editing in 2024\"}' -o /tmp/r4.json)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\"What is BRCA1 and where is it located in the cell?\"}' -o /tmp/r5.json)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"question\":\">demo MVKVGVNGFGRIGRLVTRAAFNSGKVDIVAINDPFIDLNYMVYMFQYDSTHGKFHGTVKAENGKLVINGNPITIF\"}' -o /tmp/r6.json)",
+      "Bash(git config *)",
+      "Bash(ssh-keygen -t ed25519 -C \"wangliang.f@gmail.com\" -f ~/.ssh/id_ed25519 -N \"\")",
+      "Bash(chmod 600 ~/.ssh/id_ed25519)",
+      "Bash(chmod 644 ~/.ssh/id_ed25519.pub)",
+      "Bash(cat)",
+      "Bash(chmod 600 ~/.ssh/config)",
+      "Bash(ssh -o StrictHostKeyChecking=accept-new -o ProxyCommand='nc -X connect -x 127.0.0.1:7890 %h %p' -T git@github.com)",
+      "Bash(apt list *)",
+      "Bash(curl -sS -o /dev/null -w \"github via http_proxy: %{http_code}\\\\n\" --max-time 15 -x http://127.0.0.1:7890 https://github.com)",
+      "Bash(curl -sS --max-time 15 https://api.github.com/repos/maris205/open-rosalind -x http://127.0.0.1:7890)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

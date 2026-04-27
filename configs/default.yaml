@@ -1,0 +1,23 @@
+backend:
+  provider: openrouter
+  model: google/gemma-4-26b-a4b-it
+  base_url: https://openrouter.ai/api/v1
+  temperature: 0.2
+  max_tokens: 1024
+  reasoning_enabled: false
+
+tools:
+  uniprot:
+    base_url: https://rest.uniprot.org
+    timeout_s: 20
+  pubmed:
+    base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+    timeout_s: 20
+    max_results: 5
+
+server:
+  host: 0.0.0.0
+  port: 6006
+
+trace:
+  dir: ./traces

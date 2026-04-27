@@ -1,0 +1,23 @@
+[project]
+name = "open-rosalind"
+version = "0.1.0"
+description = "Local-first, tool-driven life-science research agent"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "openai>=1.30",
+    "requests>=2.31",
+    "pydantic>=2.0",
+    "biopython>=1.83",
+]
+
+[project.scripts]
+open-rosalind = "open_rosalind.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["open_rosalind*"]

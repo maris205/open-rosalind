@@ -1,0 +1,37 @@
+# Secrets / local env
+.env
+.env.local
+secrets.local.env
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Run-time output
+traces/
+*.log
+
+# Reference / vendored projects (not part of this repo)
+OpenBioMed/
+
+# Local-only docs containing keys
+openrouter.md

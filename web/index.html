@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Open-Rosalind — MVP1</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<header>
+  <h1>Open-Rosalind <span class="tag">MVP1</span></h1>
+  <p class="sub">Local-first, tool-driven life-science research agent.</p>
+</header>
+
+<main>
+  <section class="panel">
+    <label for="q">Question / Sequence / UniProt accession</label>
+    <textarea id="q" rows="6" placeholder="Try one of the demos →"></textarea>
+    <div class="row">
+      <button id="run">Analyze</button>
+      <select id="mode" title="Force a skill (auto-detect by default)">
+        <option value="auto">mode: auto</option>
+        <option value="sequence">sequence</option>
+        <option value="uniprot">uniprot</option>
+        <option value="literature">literature</option>
+        <option value="mutation">mutation</option>
+      </select>
+      <select id="demo">
+        <option value="">— demo prompts —</option>
+        <option data-mode="uniprot">What is BRCA1 and where is it located in the cell?</option>
+        <option data-mode="literature">Find recent papers about CRISPR base editing in 2024</option>
+        <option data-mode="sequence">>demo
+MVKVGVNGFGRIGRLVTRAAFNSGKVDIVAINDPFIDLNYMVYMFQYDSTHGKFHGTVKAENGKLVINGNPITIFQERDPSKIKWGDAGAEYVVESTGVFTTMEKAGAHLQGGAKRVIISAPSADAPMFVMGVNHEKYDNSLKIISNASCTTNCLAPLAKVIHDNFGIVEGLMTTVHAITATQKTVDGPSGKLWRDGRGALQNIIPASTGAAKAVGKVIPELNGKLTGMAFRVPTANVSVVDLTCRLEKAAKYDDIKKVVKQASEGPLKGILGYTEHQVVSSDFNSDTHSSTFDAGAGIALNDHFVKLISWYDNETGYSNRVVDLMAHMASKE</option>
+        <option data-mode="mutation">WT: MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD
+MUT: p.R175H</option>
+      </select>
+      <span id="status"></span>
+    </div>
+  </section>
+
+  <section class="results" id="results" hidden>
+    <div class="card">
+      <h2>Summary <span class="muted" id="meta"></span></h2>
+      <div id="summary" class="markdown"></div>
+    </div>
+    <div class="card">
+      <h2>Evidence</h2>
+      <pre id="evidence"></pre>
+    </div>
+    <div class="card">
+      <h2>Trace</h2>
+      <ol id="trace"></ol>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <small>OmniGene-4 ↔ Open-Rosalind · backend pluggable · trace-first</small>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
