@@ -80,25 +80,23 @@ fallback, partial failure) — these are surfaced to the user, not hidden.
 
 ## Mini BioBench v0
 
-A small but real benchmark (26 tasks across sequence / literature /
-annotation / mutation) ships with the repo:
+A small but real benchmark (32 tasks across sequence / literature /
+annotation / mutation / protocol-reasoning) ships with the repo, scored by
+the five [gpt4.md](./gpt4.md) metrics:
 
 ```bash
 python -m open_rosalind.cli serve &           # start the agent
-python benchmark/run_biobench.py              # score it
+python benchmark/run_biobench.py --version v0.1
 ```
 
-Latest run on `google/gemma-4-26b-a4b-it`:
+| Version | Task accuracy | Tool correctness | Evidence | Trace | Failure |
+|---|---|---|---|---|---|
+| **v0.1** (`gemma-4-26b-a4b-it`) | **96.9%** | 96.9% | 100% | 100% | 0% |
 
-| Metric | Value |
-|---|---|
-| Accuracy (semantic check) | **100%** (26/26) |
-| Skill routed correctly | 100% |
-| Expected tools called | 100% |
-| Has trace / has evidence | 100% / 100% |
-
-Per-task breakdown lives in [`benchmark/results.md`](./benchmark/results.md);
-the raw JSON in `benchmark/results.json`.
+Per-run details live in [`benchmark/results.md`](./benchmark/results.md);
+the cross-version comparison table in [`benchmark/BENCHMARK.md`](./benchmark/BENCHMARK.md);
+each run also appends one line to `benchmark/history.jsonl` for mechanical
+re-aggregation.
 
 ## Backend
 
