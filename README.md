@@ -51,9 +51,13 @@ Open `http://127.0.0.1:6006/` and try the demo prompts.
 
 | Skill | Triggers | Tools used |
 |---|---|---|
-| `sequence_basic_analysis` | FASTA / raw DNA / protein sequence | `sequence.analyze` (local) |
+| `sequence_basic_analysis` | FASTA / raw DNA / protein sequence | `sequence.analyze` (local) → optional `uniprot.search` probe |
 | `uniprot_lookup` | UniProt accession or generic protein/gene question | `uniprot.fetch`, `uniprot.search` |
 | `literature_search` | "papers / pubmed / literature / cite ..." | `pubmed.search` |
+| `mutation_effect` | `WT: ... / MT: p.R175H` block, or two FASTA records | `mutation.diff` (local rule-based) |
+
+See [`docs/DEMOS.md`](./docs/DEMOS.md) for fully-worked end-to-end runs of all four demos
+(question → routing → tool calls → evidence → LLM summary).
 
 ## Backend
 
