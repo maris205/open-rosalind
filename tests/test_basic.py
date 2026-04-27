@@ -73,8 +73,31 @@ def test_intent_classifier_triggers_on_embedded_sequence():
         needs_llm_classification, has_embedded_sequence, looks_like_natural_language,
     )
     assert needs_llm_classification("Translate this DNA: ATGGCCAAATTAA")
-    assert needs_llm_classification("How long is human insulin (P01308)?") is False  # P01308 not >=8 ACGT
-    assert needs_llm_classification("ATGCGTACGTAA") is False  # pure sequence
-    assert needs_llm_classification("What is BRCA1?") is False  # no embedded seq
+    assert needs_llm_classification("How long is human insulin (P01308)?") is False
+    assert needs_llm_classification("ATGCGTACGTAA") is False
+    assert needs_llm_classification("What is BRCA1?") is False
     assert has_embedded_sequence("Translate this: ATGGCCAAATTAA")
     assert looks_like_natural_language("What is the function of this protein?")
+
+
+def test_skills_registry_shape():
+    from open_rosalind.skills import SKILLS, list_cards, get_skill
+    assert set(SKILLS) == {
+        "sequence_basic_analysis", "uniprot_lookup",
+        "literature_search", "mutation_effect",
+    }
+    cards = list_cards()
+    assert len(cards) == 4
+    for c in cards:
+        assert c["name"] and c["category"] and c["safety_level"]
+        assert isinstance(c["tools_used"], list)
+    sk = get_skill("uniprot_lookup")
+    assert sk is not None
+    full = sk.to_full()
+    assert "input_schema" in full and "output_schema" in full and full["examples"]
+
+
+def test_skill_registry_backward_compat():
+    from open_rosalind.skills import SKILL_REGISTRY
+    assert callable(SKILL_REGISTRY["sequence_basic_analysis"])
+    assert callable(SKILL_REGISTRY["mutation_effect"])

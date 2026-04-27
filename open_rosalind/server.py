@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from .backends import build_backend
 from .config import load_config
 from .orchestrator import Agent
+from .skills import SKILLS, list_cards, get_skill
 
 cfg = load_config()
 backend = build_backend(cfg["backend"])
@@ -57,7 +58,21 @@ def health():
         "ok": True,
         "backend": backend.name,
         "model": cfg["backend"].get("model"),
+        "n_skills": len(SKILLS),
     }
+
+
+@app.get("/api/skills")
+def skills_list():
+    return {"skills": list_cards()}
+
+
+@app.get("/api/skills/{name}")
+def skill_detail(name: str):
+    sk = get_skill(name)
+    if sk is None:
+        raise HTTPException(status_code=404, detail=f"skill not found: {name}")
+    return sk.to_full()
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
