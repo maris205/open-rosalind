@@ -14,7 +14,23 @@ Categories: `sequence_basic` (8) · `literature_search` (6) · `protein_annotati
 
 | Version | Backend | Task accuracy | Tool correctness | Evidence rate | Trace completeness | Failure rate |
 |---|---|---|---|---|---|---|
-| **v0.1** | gemma-4-26b-a4b-it | **96.9%** | 96.9% | 100% | 100% | 0% |
+| **v0.1** | gemma-4-26b-a4b-it | 96.9% | 96.9% | 100% | 100% | 0% |
+| **v0.2** | gemma-4-26b-a4b-it | **100.0%** | **100.0%** | 100% | 100% | 0% |
+
+### v0.1 → v0.2 changes
+
+- **LLM-assisted intent classifier** (`orchestrator/intent_classifier.py`).
+  Rule-based router still handles unambiguous cases (pure FASTA, WT/MT
+  blocks, bare UniProt accessions). For inputs that mix English with an
+  embedded sequence/ID — the previous routing blind spot — the agent now
+  asks the LLM to pick one of four registered skills and extract the
+  payload. Failures fall back to the rule-based router, so the agent never
+  depends on the LLM being healthy.
+- The single v0.1 miss (`pro-05`, "Translate this DNA: ATGGCCAAATTAA")
+  routed to `uniprot_lookup`; in v0.2 it routes to
+  `sequence_basic_analysis` and returns the correct translation `MAKL*`.
+  Trace logs show the routing decision: `llm_classify_overrode → from
+  uniprot_lookup to sequence_basic_analysis`.
 
 ## Metric definitions (per gpt4.md)
 
@@ -47,16 +63,18 @@ miss:
    `sequence_basic_analysis`. That is exactly the kind of issue an LLM-driven
    planner in v0.2 should fix.
 
-## What v0.2+ should improve
+## What v0.2 → v0.3 should improve
 
-- **Routing** — LLM-assisted intent detection for free-text queries that mix
-  English with sequences (the `pro-05`-style failure).
-- **Tool correctness** — make `sequence_basic_analysis` always call
-  `uniprot.search` for proteins ≥25 aa (currently optional, blocks tighter
-  scoring on `seq-*` and `pro-*` rows).
+- **Routing** — already addressed in v0.2 via LLM-assisted intent classifier;
+  pro-05 went from miss → pass.
+- **Tool correctness** — keep at 100%; consider always calling
+  `uniprot.search` for any protein ≥25 aa to densify homology hints.
 - **Recall on mutation flags** — current rule-based heuristic flags charge /
   aromatic / disulfide changes; we will add Grantham distance + AlphaMissense
   lookup in v0.3.
+- **Bench coverage** — current 32 tasks all have unambiguous gold answers.
+  v0.3 should add ~10 open-ended protocol-reasoning tasks scored by
+  pairwise LLM judging.
 
 ## How to reproduce
 

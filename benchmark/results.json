@@ -1,21 +1,21 @@
 {
   "meta": {
-    "version": "v0.1",
-    "date": "2026-04-27T12:52:09+00:00",
-    "git_sha": "45f0664",
+    "version": "v0.2",
+    "date": "2026-04-27T13:22:09+00:00",
+    "git_sha": "dfeb1dc",
     "model": "google/gemma-4-26b-a4b-it",
     "base_url": "http://127.0.0.1:6006",
     "tasks_file": "benchmark/biobench_v0.jsonl",
-    "elapsed_s": 380.2
+    "elapsed_s": 522.1
   },
   "metrics": {
     "n_tasks": 32,
-    "task_accuracy": 0.9688,
-    "tool_correctness": 0.9688,
+    "task_accuracy": 1.0,
+    "tool_correctness": 1.0,
     "evidence_rate": 1.0,
     "trace_completeness": 1.0,
     "failure_rate": 0.0,
-    "skill_correct_rate": 0.9688,
+    "skill_correct_rate": 1.0,
     "by_category": {
       "sequence_basic": {
         "n": 8,
@@ -51,8 +51,8 @@
       },
       "protocol_reasoning": {
         "n": 6,
-        "task_accuracy": 0.8333,
-        "tool_correctness": 0.8333,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
         "evidence_rate": 1.0,
         "trace_completeness": 1.0,
         "failure_rate": 0.0
@@ -84,8 +84,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204549-3f97da",
-      "elapsed_s": 6.01
+      "session_id": "20260427-211326-103d5e",
+      "elapsed_s": 12.04
     },
     {
       "id": "seq-02",
@@ -111,8 +111,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204555-c8035a",
-      "elapsed_s": 6.95
+      "session_id": "20260427-211339-98ed4b",
+      "elapsed_s": 2.91
     },
     {
       "id": "seq-03",
@@ -138,8 +138,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204602-388260",
-      "elapsed_s": 5.93
+      "session_id": "20260427-211341-ba29ac",
+      "elapsed_s": 2.34
     },
     {
       "id": "seq-04",
@@ -165,8 +165,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204608-9df613",
-      "elapsed_s": 6.24
+      "session_id": "20260427-211344-3cdfea",
+      "elapsed_s": 2.31
     },
     {
       "id": "seq-05",
@@ -192,8 +192,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204614-9fa31f",
-      "elapsed_s": 5.07
+      "session_id": "20260427-211346-a210e3",
+      "elapsed_s": 27.0
     },
     {
       "id": "seq-06",
@@ -219,8 +219,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204619-52bc02",
-      "elapsed_s": 5.11
+      "session_id": "20260427-211413-9d7e82",
+      "elapsed_s": 3.05
     },
     {
       "id": "seq-07",
@@ -246,8 +246,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204624-1489a3",
-      "elapsed_s": 3.94
+      "session_id": "20260427-211416-81f2cd",
+      "elapsed_s": 4.47
     },
     {
       "id": "seq-08",
@@ -273,8 +273,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.2,
-      "session_id": "20260427-204628-aa7b88",
-      "elapsed_s": 4.67
+      "session_id": "20260427-211421-ed0757",
+      "elapsed_s": 5.8
     },
     {
       "id": "lit-01",
@@ -300,8 +300,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204633-f229c8",
-      "elapsed_s": 9.69
+      "session_id": "20260427-211426-8ea03a",
+      "elapsed_s": 12.47
     },
     {
       "id": "lit-02",
@@ -327,8 +327,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204643-d5d65c",
-      "elapsed_s": 9.55
+      "session_id": "20260427-211439-ecd933",
+      "elapsed_s": 42.39
     },
     {
       "id": "lit-03",
@@ -354,8 +354,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204652-a3796d",
-      "elapsed_s": 9.39
+      "session_id": "20260427-211521-44fd17",
+      "elapsed_s": 34.01
     },
     {
       "id": "lit-04",
@@ -381,8 +381,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204702-0f2643",
-      "elapsed_s": 9.86
+      "session_id": "20260427-211555-465453",
+      "elapsed_s": 12.56
     },
     {
       "id": "lit-05",
@@ -408,8 +408,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204712-2cad00",
-      "elapsed_s": 13.24
+      "session_id": "20260427-211608-c91e3d",
+      "elapsed_s": 17.97
     },
     {
       "id": "lit-06",
@@ -435,8 +435,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204725-a9d3ae",
-      "elapsed_s": 6.14
+      "session_id": "20260427-211626-42f557",
+      "elapsed_s": 11.27
     },
     {
       "id": "ann-01",
@@ -464,8 +464,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-204731-4d2750",
-      "elapsed_s": 9.75
+      "session_id": "20260427-211637-f1ed5e",
+      "elapsed_s": 90.85
     },
     {
       "id": "ann-02",
@@ -492,8 +492,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-204741-169975",
-      "elapsed_s": 5.35
+      "session_id": "20260427-211808-973ff4",
+      "elapsed_s": 20.2
     },
     {
       "id": "ann-03",
@@ -514,13 +514,13 @@
       "keyword_hit": 2,
       "keyword_total": 2,
       "check_passed": true,
-      "check_reason": "summary_len=707 needs=['p53']",
+      "check_reason": "summary_len=828 needs=['p53']",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-204746-23c822",
-      "elapsed_s": 4.77
+      "session_id": "20260427-211828-bc9d43",
+      "elapsed_s": 5.55
     },
     {
       "id": "ann-04",
@@ -541,13 +541,13 @@
       "keyword_hit": 1,
       "keyword_total": 1,
       "check_passed": true,
-      "check_reason": "summary_len=1192 needs=['hemoglobin']",
+      "check_reason": "summary_len=986 needs=['hemoglobin']",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-204751-3747cb",
-      "elapsed_s": 7.0
+      "session_id": "20260427-211834-e616f0",
+      "elapsed_s": 45.69
     },
     {
       "id": "ann-05",
@@ -574,8 +574,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-204758-981ac1",
-      "elapsed_s": 14.66
+      "session_id": "20260427-211919-998625",
+      "elapsed_s": 9.84
     },
     {
       "id": "ann-06",
@@ -602,8 +602,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-204812-e978ca",
-      "elapsed_s": 9.81
+      "session_id": "20260427-211929-ed24cc",
+      "elapsed_s": 12.72
     },
     {
       "id": "mut-01",
@@ -629,8 +629,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.7,
-      "session_id": "20260427-204822-1ccc84",
-      "elapsed_s": 2.05
+      "session_id": "20260427-211942-24e2eb",
+      "elapsed_s": 11.57
     },
     {
       "id": "mut-02",
@@ -656,8 +656,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204824-eb6217",
-      "elapsed_s": 4.67
+      "session_id": "20260427-211954-96caa6",
+      "elapsed_s": 15.94
     },
     {
       "id": "mut-03",
@@ -683,8 +683,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204829-2875e7",
-      "elapsed_s": 4.23
+      "session_id": "20260427-212009-31dbf0",
+      "elapsed_s": 5.82
     },
     {
       "id": "mut-04",
@@ -710,8 +710,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204833-05b0ab",
-      "elapsed_s": 7.0
+      "session_id": "20260427-212015-370c96",
+      "elapsed_s": 12.45
     },
     {
       "id": "mut-05",
@@ -737,8 +737,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.7,
-      "session_id": "20260427-204840-507ac0",
-      "elapsed_s": 36.43
+      "session_id": "20260427-212028-9eeb83",
+      "elapsed_s": 5.09
     },
     {
       "id": "mut-06",
@@ -764,8 +764,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.5,
-      "session_id": "20260427-204917-452e70",
-      "elapsed_s": 3.43
+      "session_id": "20260427-212033-378fd5",
+      "elapsed_s": 1.9
     },
     {
       "id": "pro-01",
@@ -786,13 +786,13 @@
       "keyword_hit": 3,
       "keyword_total": 3,
       "check_passed": true,
-      "check_reason": "summary_len=699 needs=['p53']",
+      "check_reason": "summary_len=755 needs=['p53']",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-204920-dbffcf",
-      "elapsed_s": 6.41
+      "session_id": "20260427-212035-da5024",
+      "elapsed_s": 9.18
     },
     {
       "id": "pro-02",
@@ -818,8 +818,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-204927-24b020",
-      "elapsed_s": 119.4
+      "session_id": "20260427-212044-07b081",
+      "elapsed_s": 11.41
     },
     {
       "id": "pro-03",
@@ -847,8 +847,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-205126-b43a9e",
-      "elapsed_s": 9.3
+      "session_id": "20260427-212055-14ffae",
+      "elapsed_s": 7.14
     },
     {
       "id": "pro-04",
@@ -876,36 +876,35 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260427-205135-ca95ee",
-      "elapsed_s": 14.17
+      "session_id": "20260427-212102-d943c4",
+      "elapsed_s": 7.41
     },
     {
       "id": "pro-05",
       "category": "protocol_reasoning",
-      "skill_correct": false,
-      "skill_got": "uniprot_lookup",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
       "skill_expected": "sequence_basic_analysis",
-      "tool_called": false,
+      "tool_called": true,
       "tools_got": [
-        "uniprot.search",
-        "uniprot.search"
+        "sequence.analyze"
       ],
       "tools_expected": [
         "sequence.analyze"
       ],
       "evidence_ok": true,
       "trace_ok": true,
-      "keyword_ok": false,
-      "keyword_hit": 0,
+      "keyword_ok": true,
+      "keyword_hit": 1,
       "keyword_total": 1,
-      "check_passed": false,
-      "check_reason": "got=None starts_with='MAK'",
-      "task_passed": false,
+      "check_passed": true,
+      "check_reason": "got='MAKL' starts_with='MAK'",
+      "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.95,
-      "session_id": "20260427-205149-e452ce",
-      "elapsed_s": 8.68
+      "confidence": 0.2,
+      "session_id": "20260427-212110-c32632",
+      "elapsed_s": 14.67
     },
     {
       "id": "pro-06",
@@ -931,8 +930,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260427-205158-8c41f5",
-      "elapsed_s": 11.24
+      "session_id": "20260427-212125-e9fae8",
+      "elapsed_s": 44.05
     }
   ]
 }

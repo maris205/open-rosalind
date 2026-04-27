@@ -1,16 +1,16 @@
-# Mini BioBench — v0.1 run
+# Mini BioBench — v0.2 run
 
-- Date: `2026-04-27T12:52:09+00:00`
+- Date: `2026-04-27T13:22:09+00:00`
 - Backend model: `google/gemma-4-26b-a4b-it`
-- Git SHA: `45f0664`
+- Git SHA: `dfeb1dc`
 - Tasks: **32**
 
 ## Headline metrics
 
 | Metric | Value |
 |---|---|
-| Task accuracy        | **96.9%** |
-| Tool correctness     | **96.9%** |
+| Task accuracy        | **100.0%** |
+| Tool correctness     | **100.0%** |
 | Evidence rate        | **100.0%** |
 | Trace completeness   | **100.0%** |
 | Failure rate         | **0.0%** |
@@ -23,7 +23,7 @@
 | literature_search | 6 | 100% | 100% | 100% | 100% | 0% |
 | protein_annotation | 6 | 100% | 100% | 100% | 100% | 0% |
 | mutation_effect | 6 | 100% | 100% | 100% | 100% | 0% |
-| protocol_reasoning | 6 | 83% | 83% | 100% | 100% | 0% |
+| protocol_reasoning | 6 | 100% | 100% | 100% | 100% | 0% |
 
 ## Per-task detail
 
@@ -45,8 +45,8 @@
 | `lit-06` | literature_search | ✅ | ✓ | ✓ | 1/2 | got=5 min=1 |
 | `ann-01` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='BRCA1_HUMAN' expected='BRCA1_HUMAN' |
 | `ann-02` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='Homo sapiens' expected='Homo sapiens' |
-| `ann-03` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | summary_len=707 needs=['p53'] |
-| `ann-04` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | summary_len=1192 needs=['hemoglobin'] |
+| `ann-03` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | summary_len=828 needs=['p53'] |
+| `ann-04` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | summary_len=986 needs=['hemoglobin'] |
 | `ann-05` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='Cellular tumor antigen p53' contains='p53' |
 | `ann-06` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | got='Homo sapiens' expected='Homo sapiens' |
 | `mut-01` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=1 expected=1 |
@@ -55,9 +55,9 @@
 | `mut-04` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got='likely impactful' expected='likely impactful' |
 | `mut-05` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=1 expected=1 |
 | `mut-06` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=0 expected=0 |
-| `pro-01` | protocol_reasoning | ✅ | ✓ | ✓ | 3/3 | summary_len=699 needs=['p53'] |
+| `pro-01` | protocol_reasoning | ✅ | ✓ | ✓ | 3/3 | summary_len=755 needs=['p53'] |
 | `pro-02` | protocol_reasoning | ✅ | ✓ | ✓ | 2/2 | got=5 min=1 |
 | `pro-03` | protocol_reasoning | ✅ | ✓ | ✓ | 1/1 | got='Homo sapiens' expected='Homo sapiens' |
 | `pro-04` | protocol_reasoning | ✅ | ✓ | ✓ | 2/2 | got=110 expected=110 |
-| `pro-05` | protocol_reasoning | ❌ | ✗ | ✗ | 0/1 | got=None starts_with='MAK' |
+| `pro-05` | protocol_reasoning | ✅ | ✓ | ✓ | 1/1 | got='MAKL' starts_with='MAK' |
 | `pro-06` | protocol_reasoning | ✅ | ✓ | ✓ | 2/2 | got=5 min=1 |

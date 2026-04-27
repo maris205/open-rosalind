@@ -43,7 +43,8 @@
       "Bash(git fetch *)",
       "Bash(git merge *)",
       "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"input\":\"P38398\"}' -o /tmp/r1.json)",
-      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"input\":\"asdfgh nonexistent xyzproteinquery\",\"mode\":\"uniprot\"}' -o /tmp/r_fb.json)"
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"input\":\"asdfgh nonexistent xyzproteinquery\",\"mode\":\"uniprot\"}' -o /tmp/r_fb.json)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/analyze -H 'Content-Type: application/json' -d '{\"input\":\"Translate this DNA: ATGGCCAAATTAA\"}' -o /tmp/pro05.json)"
     ]
   }
 }

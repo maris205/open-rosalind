@@ -5,6 +5,7 @@ from typing import Any
 
 from ..backends import Backend
 from ..skills import SKILL_REGISTRY
+from .intent_classifier import llm_classify, needs_llm_classification
 from .router import detect_intent, Intent
 from .trace import Trace
 
@@ -58,8 +59,30 @@ class Agent:
 
         if mode and mode not in (None, "", "auto"):
             intent = self._intent_from_mode(question, mode)
+            trace.log("router", {"path": "mode-forced", "skill": intent.skill})
         else:
-            intent = detect_intent(question)
+            rule_intent = detect_intent(question)
+            if needs_llm_classification(question):
+                trace.log("router", {"path": "llm_classify_requested",
+                                     "rule_guess": rule_intent.skill,
+                                     "reason": "embedded_sequence_in_natural_language"})
+                llm_intent = llm_classify(question, self.backend)
+                if llm_intent and llm_intent.skill != rule_intent.skill:
+                    trace.log("router", {"path": "llm_classify_overrode",
+                                         "from": rule_intent.skill,
+                                         "to": llm_intent.skill})
+                    intent = llm_intent
+                elif llm_intent:
+                    trace.log("router", {"path": "llm_classify_confirmed",
+                                         "skill": llm_intent.skill})
+                    intent = llm_intent  # use LLM payload (better extraction)
+                else:
+                    trace.log("router", {"path": "llm_classify_failed_fallback",
+                                         "skill": rule_intent.skill})
+                    intent = rule_intent
+            else:
+                trace.log("router", {"path": "rule_based", "skill": rule_intent.skill})
+                intent = rule_intent
         trace.log("plan", {"skill": intent.skill, "payload": intent.payload})
 
         skill_fn = SKILL_REGISTRY[intent.skill]

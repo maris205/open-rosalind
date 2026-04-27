@@ -91,7 +91,8 @@ python benchmark/run_biobench.py --version v0.1
 
 | Version | Task accuracy | Tool correctness | Evidence | Trace | Failure |
 |---|---|---|---|---|---|
-| **v0.1** (`gemma-4-26b-a4b-it`) | **96.9%** | 96.9% | 100% | 100% | 0% |
+| **v0.1** (rule-based router) | 96.9% | 96.9% | 100% | 100% | 0% |
+| **v0.2** (+ LLM intent classifier) | **100.0%** | **100.0%** | 100% | 100% | 0% |
 
 Per-run details live in [`benchmark/results.md`](./benchmark/results.md);
 the cross-version comparison table in [`benchmark/BENCHMARK.md`](./benchmark/BENCHMARK.md);

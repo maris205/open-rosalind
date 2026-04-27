@@ -66,3 +66,15 @@ def test_router_mutation_block():
     intent = detect_intent(text)
     assert intent.skill == "mutation_effect"
     assert intent.payload.get("mutation") == "p.R8H"
+
+
+def test_intent_classifier_triggers_on_embedded_sequence():
+    from open_rosalind.orchestrator.intent_classifier import (
+        needs_llm_classification, has_embedded_sequence, looks_like_natural_language,
+    )
+    assert needs_llm_classification("Translate this DNA: ATGGCCAAATTAA")
+    assert needs_llm_classification("How long is human insulin (P01308)?") is False  # P01308 not >=8 ACGT
+    assert needs_llm_classification("ATGCGTACGTAA") is False  # pure sequence
+    assert needs_llm_classification("What is BRCA1?") is False  # no embedded seq
+    assert has_embedded_sequence("Translate this: ATGGCCAAATTAA")
+    assert looks_like_natural_language("What is the function of this protein?")
