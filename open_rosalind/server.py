@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from .backends import build_backend
 from .config import load_config
+from .harness import AgentAdapter, Task, TaskRunner, TaskTraceStore
 from .orchestrator import Agent
 from .orchestrator.runner import AgentRunner
 from .skills import SKILLS, list_cards, get_skill
@@ -18,6 +19,11 @@ cfg = load_config()
 backend = build_backend(cfg["backend"])
 agent = Agent(backend, trace_dir=cfg.get("trace", {}).get("dir", "./traces"))
 runner = AgentRunner(agent)
+
+# MVP3 harness
+harness_adapter = AgentAdapter(agent)
+harness_runner = TaskRunner(harness_adapter)
+task_trace_store = TaskTraceStore()
 
 app = FastAPI(title="Open-Rosalind", version="0.1.0")
 app.add_middleware(
@@ -115,3 +121,55 @@ if _WEB_DIR.exists():
     @app.get("/")
     def index():
         return FileResponse(str(_WEB_DIR / "index.html"))
+
+
+# ===== MVP3 Task API =====
+
+class TaskRunRequest(BaseModel):
+    goal: str = Field(..., max_length=5000)
+    max_steps: int = Field(5, ge=1, le=10)
+
+
+class TaskRunResponse(BaseModel):
+    task_id: str
+    status: str
+    steps: list[dict]
+    final_report: str | None
+    warnings: list[str]
+
+
+@app.post("/api/task/run", response_model=TaskRunResponse)
+def task_run(req: TaskRunRequest):
+    """Run a multi-step task."""
+    from datetime import datetime
+    task_id = f"task_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:20]}"
+    
+    task = Task(task_id=task_id, user_goal=req.goal, max_steps=req.max_steps)
+    result = harness_runner.run(task)
+    task_trace_store.save(result)
+    
+    return TaskRunResponse(
+        task_id=result.task_id,
+        status=result.status,
+        steps=[
+            {
+                "step_id": s.step_id,
+                "instruction": s.instruction,
+                "status": s.status,
+                "latency_ms": s.latency_ms,
+                "summary": s.agent_result.get("summary", "") if s.agent_result else "",
+            }
+            for s in result.steps
+        ],
+        final_report=result.final_report,
+        warnings=result.warnings,
+    )
+
+
+@app.get("/api/task/{task_id}")
+def task_status(task_id: str):
+    """Get task status and trace."""
+    events = task_trace_store.load(task_id)
+    if not events:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"task_id": task_id, "events": events}
