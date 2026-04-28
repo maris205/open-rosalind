@@ -1,0 +1,27 @@
+{
+  "name": "uniprot_lookup",
+  "description": "Query UniProt database for protein information",
+  "category": "protein-annotation",
+  "version": "1.0.0",
+  "safety_level": "safe",
+  "tools_used": ["uniprot.fetch", "uniprot.search"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string", "description": "Protein name or accession"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "entry": {"type": "object"}
+    }
+  },
+  "examples": [
+    {"input": {"accession": "P38398"}, "expects": "BRCA1_HUMAN"},
+    {"input": {"query": "hemoglobin"}, "expects": "Hemoglobin subunit"}
+  ]
+}

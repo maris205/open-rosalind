@@ -1,0 +1,1 @@
+{"name": "literature_search", "description": "Search PubMed for papers", "category": "knowledge-retrieval", "version": "1.0.0", "safety_level": "safe", "tools_used": ["pubmed.search"], "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}}, "output_schema": {"type": "object"}, "examples": [{"input": {"query": "CRISPR"}, "expects": "papers"}]}

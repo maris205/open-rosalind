@@ -14,6 +14,7 @@ from .harness import AgentAdapter, Task, TaskRunner, TaskTraceStore
 from .orchestrator import Agent
 from .orchestrator.runner import AgentRunner
 from .skills import SKILLS, list_cards, get_skill
+from .skills_v2 import SKILLS_V2  # MVP3.1 modular skills
 
 cfg = load_config()
 backend = build_backend(cfg["backend"])
@@ -74,6 +75,24 @@ def health():
 @app.get("/api/skills")
 def skills_list():
     return {"skills": list_cards()}
+
+
+@app.get("/api/skillsv2")
+def list_skills_v2():
+    """List all auto-discovered skills from skills_v2/."""
+    return {
+        "skills": [
+            {
+                "name": skill.name,
+                "description": skill.description,
+                "category": skill.category,
+                "safety_level": skill.safety_level,
+                "tools_used": skill.tools_used,
+            }
+            for skill in SKILLS_V2.values()
+        ],
+        "count": len(SKILLS_V2),
+    }
 
 
 @app.get("/api/skills/{name}")
