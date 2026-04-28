@@ -1,8 +1,8 @@
-# Mini BioBench — v1-final run
+# Mini BioBench — mvp3-v1-check run
 
-- Date: `2026-04-28T09:48:13+00:00`
+- Date: `2026-04-28T11:53:53+00:00`
 - Backend model: `google/gemma-4-26b-a4b-it`
-- Git SHA: `b519650`
+- Git SHA: `2a79fd7`
 - Tasks: **49**
 
 ## Headline metrics
@@ -49,8 +49,8 @@
 | `lit-06` | literature_search | ✅ | ✓ | ✓ | 1/2 | got=5 min=1 |
 | `ann-01` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='BRCA1_HUMAN' expected='BRCA1_HUMAN' |
 | `ann-02` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='Homo sapiens' expected='Homo sapiens' |
-| `ann-03` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | summary_len=663 needs=['p53'] |
-| `ann-04` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | summary_len=1215 needs=['hemoglobin'] |
+| `ann-03` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | summary_len=668 needs=['p53'] |
+| `ann-04` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | summary_len=1157 needs=['hemoglobin'] |
 | `ann-05` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='Cellular tumor antigen p53' contains='p53' |
 | `ann-06` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | got='Homo sapiens' expected='Homo sapiens' |
 | `mut-01` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=1 expected=1 |
@@ -59,7 +59,7 @@
 | `mut-04` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got='likely impactful' expected='likely impactful' |
 | `mut-05` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=1 expected=1 |
 | `mut-06` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=0 expected=0 |
-| `pro-01` | protocol_reasoning | ✅ | ✓ | ✓ | 3/3 | summary_len=763 needs=['p53'] |
+| `pro-01` | protocol_reasoning | ✅ | ✓ | ✓ | 3/3 | summary_len=745 needs=['p53'] |
 | `pro-02` | protocol_reasoning | ✅ | ✓ | ✓ | 2/2 | got=5 min=1 |
 | `pro-03` | protocol_reasoning | ✅ | ✓ | ✓ | 1/1 | got='Homo sapiens' expected='Homo sapiens' |
 | `pro-04` | protocol_reasoning | ✅ | ✓ | ✓ | 2/2 | got=110 expected=110 |
@@ -76,9 +76,9 @@
 | `edge-03` | edge_case | ✅ | ✓ | ✓ | 0/0 | got='P0DJN6' min_length=1 |
 | `edge-04` | edge_case | ✅ | ✓ | ✓ | 0/0 | got=5 min=0 |
 | `followup-01-step1` | follow_up | ✅ | ✓ | ✓ | 1/1 | got='BRCA1_HUMAN' expected='BRCA1_HUMAN' |
-| `followup-01-step2` | follow_up | ❌ | ✓ | ✓ | 0/1 | summary_len=770 needs=['BRCA1'] |
+| `followup-01-step2` | follow_up | ❌ | ✓ | ✓ | 0/1 | summary_len=837 needs=['BRCA1'] |
 | `followup-02-step1` | follow_up | ✅ | ✓ | ✓ | 2/2 | got='protein' expected='protein' |
-| `followup-02-step2` | follow_up | ❌ | ✓ | ✓ | 0/0 | summary_len=520 needs=['organism', 'species'] |
+| `followup-02-step2` | follow_up | ❌ | ✓ | ✓ | 0/0 | summary_len=510 needs=['organism', 'species'] |
 | `stress-01` | stress | ✅ | ✓ | ✓ | 1/1 | got=[{'header': 'seq1', 'length': 12, 'type': 'dna', 'composition': {'A': 4, 'T' |
 | `stress-02` | stress | ✅ | ✓ | ✓ | 1/1 | got='Cellular tumor antigen p53' contains='p53' |
 | `stress-03` | stress | ✅ | ✓ | ✓ | 1/1 | got=5 min=1 |
