@@ -108,9 +108,9 @@ def analyze(req: AnalyzeRequest):
     return AnalyzeResponse(**result)
 
 
-_WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+_WEB_DIR = Path(__file__).resolve().parent.parent / "web" / "dist"
 if _WEB_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(_WEB_DIR / "static")), name="static")
+    app.mount("/assets", StaticFiles(directory=str(_WEB_DIR / "assets")), name="assets")
 
     @app.get("/")
     def index():
