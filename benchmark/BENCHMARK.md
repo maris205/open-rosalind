@@ -15,22 +15,23 @@ Categories: `sequence_basic` (8) · `literature_search` (6) · `protein_annotati
 | Version | Backend | Task accuracy | Tool correctness | Evidence rate | Trace completeness | Failure rate |
 |---|---|---|---|---|---|---|
 | **v0.1** | gemma-4-26b-a4b-it | 96.9% | 96.9% | 100% | 100% | 0% |
-| **v0.2** | gemma-4-26b-a4b-it | **100.0%** | **100.0%** | 100% | 100% | 0% |
+| **v0.2** | gemma-4-26b-a4b-it | 100.0% | 100.0% | 100% | 100% | 0% |
+| **mvp2** | gemma-4-26b-a4b-it | **100.0%** | **100.0%** | 100% | 100% | 0% |
 
-### v0.1 → v0.2 changes
+### v0.2 → mvp2 changes
 
-- **LLM-assisted intent classifier** (`orchestrator/intent_classifier.py`).
-  Rule-based router still handles unambiguous cases (pure FASTA, WT/MT
-  blocks, bare UniProt accessions). For inputs that mix English with an
-  embedded sequence/ID — the previous routing blind spot — the agent now
-  asks the LLM to pick one of four registered skills and extract the
-  payload. Failures fall back to the rule-based router, so the agent never
-  depends on the LLM being healthy.
-- The single v0.1 miss (`pro-05`, "Translate this DNA: ATGGCCAAATTAA")
-  routed to `uniprot_lookup`; in v0.2 it routes to
-  `sequence_basic_analysis` and returns the correct translation `MAKL*`.
-  Trace logs show the routing decision: `llm_classify_overrode → from
-  uniprot_lookup to sequence_basic_analysis`.
+- **Standardization** (mvp2-rec2.md): Trace now includes `latency_ms` + `status`
+  per tool call; three specification documents added (`docs/DESIGN_PRINCIPLES.md`,
+  `docs/SKILL_SPEC.md`, `docs/EXECUTION_PROTOCOL.md`) that formalize the
+  architecture for reproducibility and extensibility.
+- **React UI**: Session sidebar, collapsible trace, human-readable evidence view,
+  confidence bar, follow-up support.
+- **AgentRunner**: Follow-up queries can reference prior session evidence.
+- **SessionMemory**: JSONL-backed session store with event stream.
+- **Skills Registry**: All 4 skills now declare full metadata (schema, examples,
+  safety_level, tools_used) and are exposed via `/api/skills` + CLI.
+
+Zero regression: all 32 tasks pass with 100% across all 5 metrics.
 
 ## Metric definitions (per gpt4.md)
 

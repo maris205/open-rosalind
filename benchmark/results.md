@@ -1,8 +1,8 @@
-# Mini BioBench — v0.2 run
+# Mini BioBench — mvp2-test run
 
-- Date: `2026-04-27T13:22:09+00:00`
+- Date: `2026-04-28T08:18:27+00:00`
 - Backend model: `google/gemma-4-26b-a4b-it`
-- Git SHA: `dfeb1dc`
+- Git SHA: `ce4dc04`
 - Tasks: **32**
 
 ## Headline metrics
@@ -45,8 +45,8 @@
 | `lit-06` | literature_search | ✅ | ✓ | ✓ | 1/2 | got=5 min=1 |
 | `ann-01` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='BRCA1_HUMAN' expected='BRCA1_HUMAN' |
 | `ann-02` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='Homo sapiens' expected='Homo sapiens' |
-| `ann-03` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | summary_len=828 needs=['p53'] |
-| `ann-04` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | summary_len=986 needs=['hemoglobin'] |
+| `ann-03` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | summary_len=705 needs=['p53'] |
+| `ann-04` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | summary_len=1241 needs=['hemoglobin'] |
 | `ann-05` | protein_annotation | ✅ | ✓ | ✓ | 2/2 | got='Cellular tumor antigen p53' contains='p53' |
 | `ann-06` | protein_annotation | ✅ | ✓ | ✓ | 1/1 | got='Homo sapiens' expected='Homo sapiens' |
 | `mut-01` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=1 expected=1 |
@@ -55,7 +55,7 @@
 | `mut-04` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got='likely impactful' expected='likely impactful' |
 | `mut-05` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=1 expected=1 |
 | `mut-06` | mutation_effect | ✅ | ✓ | ✓ | 2/2 | got=0 expected=0 |
-| `pro-01` | protocol_reasoning | ✅ | ✓ | ✓ | 3/3 | summary_len=755 needs=['p53'] |
+| `pro-01` | protocol_reasoning | ✅ | ✓ | ✓ | 3/3 | summary_len=793 needs=['p53'] |
 | `pro-02` | protocol_reasoning | ✅ | ✓ | ✓ | 2/2 | got=5 min=1 |
 | `pro-03` | protocol_reasoning | ✅ | ✓ | ✓ | 1/1 | got='Homo sapiens' expected='Homo sapiens' |
 | `pro-04` | protocol_reasoning | ✅ | ✓ | ✓ | 2/2 | got=110 expected=110 |
