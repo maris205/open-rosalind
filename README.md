@@ -1,53 +1,67 @@
 # Open-Rosalind
 
-> Local-first, tool-driven life-science research agent.
-> Model layer is **OmniGene-4** (default); agent is **model-agnostic** — any
-> OpenAI-compatible chat endpoint works.
+> **Local-first, tool-driven bioinformatics agent**
 
-This repository hosts the **MVP1** of Open-Rosalind: a hosted web demo with
-three biology skills, a trace logger, and a pluggable backend. See
-[`open-rosalind.md`](./open-rosalind.md) for the full design doc and
-[`gpt1.md`](./gpt1.md) for the MVP1 scope.
+A standardized bio-agent framework that prioritizes reproducibility, extensibility, and scientific rigor. Built on tool-first architecture with evidence-grounded outputs and complete execution traces.
+
+**Current release**: MVP2 (tag `mvp2`)
 
 ```
-MVP1 = Hosted Web Demo + 3 Bio Skills + Trace + Demo Pipeline
+MVP2 = Skills Registry + React UI + SessionMemory + AgentRunner + Standardization
 ```
 
-## Layout
+## Features
+
+- **4 Bio Skills**: sequence analysis, UniProt lookup, PubMed search, mutation effect
+- **Skills Registry**: Uniform interface (schema, examples, safety_level) for extensibility
+- **React UI**: Session sidebar, collapsible trace, human-readable evidence, confidence bar
+- **Session Memory**: JSONL-backed history with follow-up support
+- **Trace-First**: Every tool call logged with latency + status for reproducibility
+- **Evidence-Grounded**: LLM summary must cite tool outputs (`[UniProt:P38398]`, `[PMID:12345]`)
+- **Pluggable Backend**: OpenRouter (default), any OpenAI-compatible endpoint
+- **BioBench**: 49-task evaluation suite (93.9% accuracy on MVP2)
+
+## Quick Start
+
+```bash
+# 1. Install deps
+pip install fastapi uvicorn openai requests pydantic biopython pyyaml
+
+# 2. Set OpenRouter key
+export OPENROUTER_API_KEY=sk-or-v1-...
+
+# 3. Run web demo (React UI on port 6006)
+python -m open_rosalind.cli serve
+
+# 4. Or one-shot CLI
+python -m open_rosalind.cli ask "What is BRCA1?"
+
+# 5. List skills
+python -m open_rosalind.cli skills list
+```
+
+Open `http://127.0.0.1:6006/` — try the demo prompts in the dropdown.
+
+## Architecture
 
 ```
 open_rosalind/
-├── orchestrator/   # rule-based router, agent loop, JSONL trace
-├── tools/          # sequence (local), uniprot, pubmed
-├── skills/         # sequence_basic_analysis, uniprot_lookup, literature_search
-├── backends/       # openrouter (default; pluggable)
+├── orchestrator/   # Router, AgentRunner, trace, intent classifier
+├── tools/          # Atomic tools (sequence, uniprot, pubmed, mutation)
+├── skills/         # Pipelines with fallback (4 registered skills)
+├── backends/       # OpenRouter (default), pluggable
+├── session.py      # JSONL session store
 ├── server.py       # FastAPI app
-└── cli.py          # `open-rosalind serve | ask`
-web/                # plain HTML/JS frontend
-configs/default.yaml
-prompts/
-traces/             # JSONL traces, one file per session
+└── cli.py          # CLI (serve | ask | skills list/inspect)
+web-react/          # Vite + React 18 frontend
+web/dist/           # Production build (served by FastAPI)
+docs/               # DESIGN_PRINCIPLES, SKILL_SPEC, EXECUTION_PROTOCOL
+benchmark/          # BioBench v0 (32 tasks) + v1 (49 tasks)
+traces/             # JSONL traces (one per session)
+sessions/           # JSONL session events
 ```
 
-## Quick start
-
-```bash
-# 1. install deps (no requirements.txt by design — install manually)
-pip install fastapi uvicorn openai requests pydantic biopython pyyaml
-
-# 2. set the OpenRouter key (or copy .env.example → .env)
-export OPENROUTER_API_KEY=sk-or-v1-...
-
-# 3. run the web demo on port 6006
-python -m open_rosalind.cli serve
-
-# 4. or one-shot CLI
-python -m open_rosalind.cli ask "What is BRCA1 and where is it located?"
-```
-
-Open `http://127.0.0.1:6006/` and try the demo prompts.
-
-## Skills (MVP1)
+## Skills (MVP2)
 
 | Skill | Triggers | Tools used |
 |---|---|---|
@@ -78,21 +92,28 @@ an evaluator never has to special-case skills:
 `notes` is non-empty whenever the pipeline took a non-trivial path (retry,
 fallback, partial failure) — these are surfaced to the user, not hidden.
 
-## Mini BioBench v0
+## Evaluation
 
-A small but real benchmark (32 tasks across sequence / literature /
-annotation / mutation / protocol-reasoning) ships with the repo, scored by
-the five [gpt4.md](./gpt4.md) metrics:
+**BioBench v0** (Mini BioBench, 32 tasks):
 
 ```bash
-python -m open_rosalind.cli serve &           # start the agent
-python benchmark/run_biobench.py --version v0.1
+python -m open_rosalind.cli serve &
+python benchmark/run_biobench.py --version mvp2
 ```
 
 | Version | Task accuracy | Tool correctness | Evidence | Trace | Failure |
 |---|---|---|---|---|---|
-| **v0.1** (rule-based router) | 96.9% | 96.9% | 100% | 100% | 0% |
-| **v0.2** (+ LLM intent classifier) | **100.0%** | **100.0%** | 100% | 100% | 0% |
+| v0.1 (rule router) | 96.9% | 96.9% | 100% | 100% | 0% |
+| v0.2 (+ LLM classifier) | 100.0% | 100.0% | 100% | 100% | 0% |
+| **mvp2** (standardized) | **100.0%** | **100.0%** | 100% | 100% | 0% |
+
+**BioBench v1** (49 tasks, workflow + fallback + edge cases):
+
+| Version | Task accuracy | Tool correctness | Evidence | Trace | Failure |
+|---|---|---|---|---|---|
+| **mvp2** | **93.9%** (46/49) | 100.0% | 100.0% | 100.0% | 0.0% |
+
+See [`benchmark/BENCHMARK.md`](./benchmark/BENCHMARK.md) and [`benchmark/BIOBENCH_V1_DESIGN.md`](./benchmark/BIOBENCH_V1_DESIGN.md).
 
 Per-run details live in [`benchmark/results.md`](./benchmark/results.md);
 the cross-version comparison table in [`benchmark/BENCHMARK.md`](./benchmark/BENCHMARK.md);
@@ -114,3 +135,33 @@ Every session writes one JSONL file under `traces/`. One line per event:
 
 This is **v0.1**. v0.2+ adds BLAST / Foldseek / PDB tools, a code executor,
 LLM-driven planner, OmniGene-4 backend, and the full BixBench harness.
+
+---
+
+## Documentation
+
+- [`docs/DESIGN_PRINCIPLES.md`](./docs/DESIGN_PRINCIPLES.md) — 8 core principles (tool-first, evidence-grounded, traceable, workflow-constrained, ...)
+- [`docs/SKILL_SPEC.md`](./docs/SKILL_SPEC.md) — Standard skill interface (schema, examples, safety_level, handler contract)
+- [`docs/EXECUTION_PROTOCOL.md`](./docs/EXECUTION_PROTOCOL.md) — MCP-inspired workflow (route → plan → execute → observe → summarize → return)
+- [`benchmark/BIOBENCH_V1_DESIGN.md`](./benchmark/BIOBENCH_V1_DESIGN.md) — BioBench v1 specification (workflow verification, multi-step, fallback)
+
+---
+
+## Releases
+
+- **mvp1** (tag `mvp1`) — Baseline: 4 skills + trace + Mini BioBench v0.2 (100%)
+- **mvp2** (tag `mvp2`) — Standardized framework: Skills Registry + React UI + SessionMemory + AgentRunner + BioBench v1 (93.9%)
+
+---
+
+## Citation
+
+```bibtex
+@software{open_rosalind_2026,
+  title = {Open-Rosalind: A Standardized Bio-Agent Framework},
+  author = {Wang, Liang},
+  year = {2026},
+  url = {https://github.com/maris205/open-rosalind},
+  note = {Tool-first, evidence-grounded, traceable bio-agent with 100\% on Mini BioBench}
+}
+```
