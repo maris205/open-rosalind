@@ -1,0 +1,1 @@
+{"version": "mvp3-baseline", "n_tasks": 10, "metrics": {"task_accuracy": 0.9, "task_completion_rate": 1.0, "workflow_success_rate": 1.0, "evidence_aggregation_rate": 1.0}}

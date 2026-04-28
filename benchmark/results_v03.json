@@ -1,0 +1,634 @@
+{
+  "results": [
+    {
+      "task": {
+        "id": "harness-protein-01",
+        "category": "harness_protein_research",
+        "mode": "task",
+        "input": "Analyze this protein and find papers: MVKVGVNGFGRIGRLVTRA",
+        "max_steps": 3,
+        "expected_steps": 3,
+        "expected_keywords": [
+          "protein",
+          "papers"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 2,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184225",
+        "user_goal": "Analyze this protein and find papers: MVKVGVNGFGRIGRLVTRA",
+        "status": "completed",
+        "max_steps": 3,
+        "created_at": 1777372945.471696,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Analyze the provided protein sequence.",
+            "expected_workflow": "sequence_basic_analysis",
+            "status": "success",
+            "latency_ms": 6552,
+            "error": null
+          },
+          {
+            "step_id": "step_002",
+            "instruction": "Search protein annotation using UniProt for {protein_name}.",
+            "expected_workflow": "uniprot_lookup",
+            "status": "success",
+            "latency_ms": 12978,
+            "error": null
+          },
+          {
+            "step_id": "step_003",
+            "instruction": "Find related literature for {protein_name}.",
+            "expected_workflow": "literature_search",
+            "status": "success",
+            "latency_ms": 3969,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 3,
+          "known_entities": {
+            "uniprot_accession": "Q9H3P7",
+            "protein_name": "Golgi resident protein GCP60",
+            "organism": "Homo sapiens",
+            "pmids": [
+              "20043945"
+            ]
+          },
+          "n_evidence": 3,
+          "n_traces": 3
+        },
+        "final_report": "# Task Report: Analyze this protein and find papers: MVKVGVNGFGRIGRLVTRA\n\n## Steps Executed\n\n\u2705 **step_001**: Analyze the provided protein sequence.\n   - The provided sequence corresponds to dipeptidyl-peptidase IV from *Ascodesmis nigricans* [UniProt:A0A4V6RHE8].\n\n### Protein Analysis\nThe sequence is identified as **dipeptidyl-peptidase IV** [UniProt:...\n\n\u2705 **step_002**: Search protein annotation using UniProt for {protein_name}.\n   - The UniProt search for \"dipeptidyl-peptidase IV\" did not return any direct matches; the provided evidence contains results for a fallback query \"protein\".\n\n### Search Results\nThe search returned sever...\n\n\u2705 **step_003**: Find related literature for {protein_name}.\n   - Literature regarding the Golgi resident protein GCP60 identifies it as an emerging signaling molecule also known as Acyl-coenzyme A binding domain containing 3 (ACBD3) or PAP7 [PMID:20043945].\n\n### Li...\n\n## Key Entities\n\n- **uniprot_accession**: Q9H3P7\n- **protein_name**: Golgi resident protein GCP60\n- **organism**: Homo sapiens\n- **pmids**: ['20043945']\n\n## Evidence\n\n- Total evidence records: 3\n- Trace references: 3\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-protein-02",
+        "category": "harness_protein_research",
+        "mode": "task",
+        "input": "What is this protein sequence and what research has been done on it? ATGGCCAAATTAA",
+        "max_steps": 3,
+        "expected_steps": 3,
+        "expected_keywords": [
+          "protein",
+          "research"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 2,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184250",
+        "user_goal": "What is this protein sequence and what research has been done on it? ATGGCCAAATTAA",
+        "status": "completed",
+        "max_steps": 3,
+        "created_at": 1777372970.7781,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Analyze the provided protein sequence.",
+            "expected_workflow": "sequence_basic_analysis",
+            "status": "success",
+            "latency_ms": 12974,
+            "error": null
+          },
+          {
+            "step_id": "step_002",
+            "instruction": "Search protein annotation using UniProt for {protein_name}.",
+            "expected_workflow": "uniprot_lookup",
+            "status": "success",
+            "latency_ms": 10053,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 2,
+          "known_entities": {
+            "uniprot_accession": "Q9H3P7",
+            "protein_name": "Golgi resident protein GCP60",
+            "organism": "Homo sapiens"
+          },
+          "n_evidence": 2,
+          "n_traces": 2
+        },
+        "final_report": "# Task Report: What is this protein sequence and what research has been done on it? ATGGCCAAATTAA\n\n## Steps Executed\n\n\u2705 **step_001**: Analyze the provided protein sequence.\n   - The provided sequence corresponds to dipeptidyl-peptidase IV from *Ascodesmis nigricans* [UniProt:A0A4V6RHE8].\n\n### Protein Analysis\nThe identified protein is **dipeptidyl-peptidase IV** [UniProt:A0A4...\n\n\u2705 **step_002**: Search protein annotation using UniProt for {protein_name}.\n   - The UniProt search for \"dipeptidyl-peptidase IV\" did not return any direct matches; the provided evidence contains results for a fallback query \"protein\".\n\n### Search Results\nThe search results provid...\n\n## Key Entities\n\n- **uniprot_accession**: Q9H3P7\n- **protein_name**: Golgi resident protein GCP60\n- **organism**: Homo sapiens\n\n## Evidence\n\n- Total evidence records: 2\n- Trace references: 2\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-protein-03",
+        "category": "harness_protein_research",
+        "mode": "task",
+        "input": "Analyze P38398 and find related literature",
+        "max_steps": 2,
+        "expected_steps": 2,
+        "expected_keywords": [
+          "BRCA1",
+          "literature"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 2,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184315",
+        "user_goal": "Analyze P38398 and find related literature",
+        "status": "completed",
+        "max_steps": 2,
+        "created_at": 1777372995.582371,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Analyze the provided protein sequence.",
+            "expected_workflow": "sequence_basic_analysis",
+            "status": "success",
+            "latency_ms": 6907,
+            "error": null
+          },
+          {
+            "step_id": "step_002",
+            "instruction": "Search protein annotation using UniProt for {protein_name}.",
+            "expected_workflow": "uniprot_lookup",
+            "status": "success",
+            "latency_ms": 15352,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 2,
+          "known_entities": {
+            "uniprot_accession": "Q9H3P7",
+            "protein_name": "Golgi resident protein GCP60",
+            "organism": "Homo sapiens"
+          },
+          "n_evidence": 2,
+          "n_traces": 2
+        },
+        "final_report": "# Task Report: Analyze P38398 and find related literature\n\n## Steps Executed\n\n\u2705 **step_001**: Analyze the provided protein sequence.\n   - The provided sequence corresponds to dipeptidyl-peptidase IV from *Ascodesmis nigricans* [UniProt:A0A4V6RHE8].\n\n### Protein Analysis\nThe protein is identified as **dipeptidyl-peptidase IV** [UniProt:A...\n\n\u2705 **step_002**: Search protein annotation using UniProt for {protein_name}.\n   - The UniProt search for \"dipeptidyl-peptidase IV\" did not return any direct matches; instead, a fallback search using the token \"protein\" was performed.\n\nThe fallback search returned several proteins, ...\n\n## Key Entities\n\n- **uniprot_accession**: Q9H3P7\n- **protein_name**: Golgi resident protein GCP60\n- **organism**: Homo sapiens\n\n## Evidence\n\n- Total evidence records: 2\n- Trace references: 2\n",
+        "warnings": []
+      },
+      "passed": false,
+      "message": "missing keyword: BRCA1"
+    },
+    {
+      "task": {
+        "id": "harness-protein-04",
+        "category": "harness_protein_research",
+        "mode": "task",
+        "input": "Study this sequence: MKVLWAALLVTFLAGCQAKV",
+        "max_steps": 2,
+        "expected_steps": 2,
+        "expected_keywords": [
+          "protein",
+          "sequence"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 1,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184339",
+        "user_goal": "Study this sequence: MKVLWAALLVTFLAGCQAKV",
+        "status": "completed",
+        "max_steps": 2,
+        "created_at": 1777373019.584056,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Analyze the provided protein sequence.",
+            "expected_workflow": "sequence_basic_analysis",
+            "status": "success",
+            "latency_ms": 6253,
+            "error": null
+          },
+          {
+            "step_id": "step_002",
+            "instruction": "Search protein annotation using UniProt for {protein_name}.",
+            "expected_workflow": "uniprot_lookup",
+            "status": "success",
+            "latency_ms": 13614,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 2,
+          "known_entities": {
+            "uniprot_accession": "Q9H3P7",
+            "protein_name": "Golgi resident protein GCP60",
+            "organism": "Homo sapiens"
+          },
+          "n_evidence": 2,
+          "n_traces": 2
+        },
+        "final_report": "# Task Report: Study this sequence: MKVLWAALLVTFLAGCQAKV\n\n## Steps Executed\n\n\u2705 **step_001**: Analyze the provided protein sequence.\n   - The provided sequence corresponds to dipeptidyl-peptidase IV from *Ascodesmis nigricans* [UniProt:A0A4V6RHE8].\n\n### Protein Analysis\nThe identified protein is **dipeptidyl-peptidase IV** [UniProt:A0A4...\n\n\u2705 **step_002**: Search protein annotation using UniProt for {protein_name}.\n   - The UniProt search for \"dipeptidyl-peptidase IV\" did not return any direct matches; the provided results reflect a fallback search using the token \"protein\".\n\n### Search Results\nThe search returned se...\n\n## Key Entities\n\n- **uniprot_accession**: Q9H3P7\n- **protein_name**: Golgi resident protein GCP60\n- **organism**: Homo sapiens\n\n## Evidence\n\n- Total evidence records: 2\n- Trace references: 2\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-lit-01",
+        "category": "harness_literature_review",
+        "mode": "task",
+        "input": "Find papers about CRISPR base editing",
+        "max_steps": 1,
+        "expected_steps": 1,
+        "expected_keywords": [
+          "CRISPR",
+          "papers"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 1,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184401",
+        "user_goal": "Find papers about CRISPR base editing",
+        "status": "completed",
+        "max_steps": 1,
+        "created_at": 1777373041.381421,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Search PubMed for papers on the given topic.",
+            "expected_workflow": "literature_search",
+            "status": "success",
+            "latency_ms": 8306,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 1,
+          "known_entities": {
+            "pmids": [
+              "37358228",
+              "38341569",
+              "38274871",
+              "27620683",
+              "33710392"
+            ]
+          },
+          "n_evidence": 1,
+          "n_traces": 1
+        },
+        "final_report": "# Task Report: Find papers about CRISPR base editing\n\n## Steps Executed\n\n\u2705 **step_001**: Search PubMed for papers on the given topic.\n   - The PubMed search for \"PubMed given topic\" returned 5 results covering diverse medical subjects including asthma, Achilles tendon management, neurosyphilis, systematic review quality, and colorectal p...\n\n## Key Entities\n\n- **pmids**: ['37358228', '38341569', '38274871', '27620683', '33710392']\n\n## Evidence\n\n- Total evidence records: 1\n- Trace references: 1\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-lit-02",
+        "category": "harness_literature_review",
+        "mode": "task",
+        "input": "Review recent literature on AlphaFold3",
+        "max_steps": 1,
+        "expected_steps": 1,
+        "expected_keywords": [
+          "AlphaFold",
+          "literature"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 1,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184411",
+        "user_goal": "Review recent literature on AlphaFold3",
+        "status": "completed",
+        "max_steps": 1,
+        "created_at": 1777373051.485408,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Search PubMed for papers on the given topic.",
+            "expected_workflow": "literature_search",
+            "status": "success",
+            "latency_ms": 8802,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 1,
+          "known_entities": {
+            "pmids": [
+              "37358228",
+              "38341569",
+              "38274871",
+              "27620683",
+              "33710392"
+            ]
+          },
+          "n_evidence": 1,
+          "n_traces": 1
+        },
+        "final_report": "# Task Report: Review recent literature on AlphaFold3\n\n## Steps Executed\n\n\u2705 **step_001**: Search PubMed for papers on the given topic.\n   - The PubMed search for \"PubMed given topic\" returned 5 results covering diverse medical subjects including asthma, Achilles tendon management, neurosyphilis, systematic review quality, and colorectal p...\n\n## Key Entities\n\n- **pmids**: ['37358228', '38341569', '38274871', '27620683', '33710392']\n\n## Evidence\n\n- Total evidence records: 1\n- Trace references: 1\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-lit-03",
+        "category": "harness_literature_review",
+        "mode": "task",
+        "input": "Find papers on protein structure prediction",
+        "max_steps": 1,
+        "expected_steps": 1,
+        "expected_keywords": [
+          "protein",
+          "structure"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 1,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184422",
+        "user_goal": "Find papers on protein structure prediction",
+        "status": "completed",
+        "max_steps": 1,
+        "created_at": 1777373062.074505,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Analyze the provided protein sequence.",
+            "expected_workflow": "sequence_basic_analysis",
+            "status": "success",
+            "latency_ms": 9358,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 1,
+          "known_entities": {
+            "uniprot_accession": "A0A4V6RHE8",
+            "protein_name": "dipeptidyl-peptidase IV",
+            "organism": "Ascodesmis nigricans"
+          },
+          "n_evidence": 1,
+          "n_traces": 1
+        },
+        "final_report": "# Task Report: Find papers on protein structure prediction\n\n## Steps Executed\n\n\u2705 **step_001**: Analyze the provided protein sequence.\n   - The provided sequence matches dipeptidyl-peptidase IV from *Ascodesmis nigricans* [UniProt:A0A4V6RHE8].\n\n### Protein Analysis\nThe sequence corresponds to the protein **dipeptidyl-peptidase IV** [UniPr...\n\n## Key Entities\n\n- **uniprot_accession**: A0A4V6RHE8\n- **protein_name**: dipeptidyl-peptidase IV\n- **organism**: Ascodesmis nigricans\n\n## Evidence\n\n- Total evidence records: 1\n- Trace references: 1\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-mut-01",
+        "category": "harness_mutation_assessment",
+        "mode": "task",
+        "input": "Assess this mutation and find literature: WT: MEEPQ MT: p.R175H",
+        "max_steps": 3,
+        "expected_steps": 3,
+        "expected_keywords": [
+          "mutation",
+          "literature"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 2,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184433",
+        "user_goal": "Assess this mutation and find literature: WT: MEEPQ MT: p.R175H",
+        "status": "completed",
+        "max_steps": 3,
+        "created_at": 1777373073.181759,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Compute mutation differences between WT and MT.",
+            "expected_workflow": "mutation_effect",
+            "status": "success",
+            "latency_ms": 8703,
+            "error": null
+          },
+          {
+            "step_id": "step_002",
+            "instruction": "Look up protein annotation for the mutated protein.",
+            "expected_workflow": "uniprot_lookup",
+            "status": "success",
+            "latency_ms": 6478,
+            "error": null
+          },
+          {
+            "step_id": "step_003",
+            "instruction": "Find literature on the mutation and its pathogenicity.",
+            "expected_workflow": "literature_search",
+            "status": "success",
+            "latency_ms": 18030,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 3,
+          "known_entities": {
+            "uniprot_accession": "P19525",
+            "protein_name": "Interferon-induced, double-stranded RNA-activated protein kinase",
+            "organism": "Homo sapiens",
+            "pmids": [
+              "41422038",
+              "37708888",
+              "40715782",
+              "40237499",
+              "34452525"
+            ]
+          },
+          "n_evidence": 3,
+          "n_traces": 3
+        },
+        "final_report": "# Task Report: Assess this mutation and find literature: WT: MEEPQ MT: p.R175H\n\n## Steps Executed\n\n\u2705 **step_001**: Compute mutation differences between WT and MT.\n   - The provided evidence does not specify the sequences or mutation details for the Wild Type (WT) and Mutant (MT) requested.\n\nThe available evidence contains a search result for the term \"mutation\" whic...\n\n\u2705 **step_002**: Look up protein annotation for the mutated protein.\n   - The mutated protein is identified as Interferon-induced, double-stranded RNA-activated protein kinase [UniProt:P19525].\n\n### Protein Annotation\nThe protein, also known as E2AK2_HUMAN, is a 551 amino a...\n\n\u2705 **step_003**: Find literature on the mutation and its pathogenicity.\n   - Literature regarding mutations and pathogenicity covers diverse biological systems, including influenza viruses, fungal pathogens, and bacterial evolution.\n\nThe provided literature highlights several ...\n\n## Key Entities\n\n- **uniprot_accession**: P19525\n- **protein_name**: Interferon-induced, double-stranded RNA-activated protein kinase\n- **organism**: Homo sapiens\n- **pmids**: ['41422038', '37708888', '40715782', '40237499', '34452525']\n\n## Evidence\n\n- Total evidence records: 3\n- Trace references: 3\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-mut-02",
+        "category": "harness_mutation_assessment",
+        "mode": "task",
+        "input": "Analyze mutation WT: ATCG MT: ATGG",
+        "max_steps": 2,
+        "expected_steps": 2,
+        "expected_keywords": [
+          "mutation"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 1,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184508",
+        "user_goal": "Analyze mutation WT: ATCG MT: ATGG",
+        "status": "completed",
+        "max_steps": 2,
+        "created_at": 1777373108.278591,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Analyze the provided protein sequence.",
+            "expected_workflow": "sequence_basic_analysis",
+            "status": "success",
+            "latency_ms": 7717,
+            "error": null
+          },
+          {
+            "step_id": "step_002",
+            "instruction": "Search protein annotation using UniProt for {protein_name}.",
+            "expected_workflow": "uniprot_lookup",
+            "status": "success",
+            "latency_ms": 11352,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 2,
+          "known_entities": {
+            "uniprot_accession": "Q9H3P7",
+            "protein_name": "Golgi resident protein GCP60",
+            "organism": "Homo sapiens"
+          },
+          "n_evidence": 2,
+          "n_traces": 2
+        },
+        "final_report": "# Task Report: Analyze mutation WT: ATCG MT: ATGG\n\n## Steps Executed\n\n\u2705 **step_001**: Analyze the provided protein sequence.\n   - The provided sequence corresponds to dipeptidyl-peptidase IV from *Ascodesmis nigricans* [UniProt:A0A4V6RHE8].\n\n### Protein Analysis\nThe protein is identified as **dipeptidyl-peptidase IV** [UniProt:A...\n\n\u2705 **step_002**: Search protein annotation using UniProt for {protein_name}.\n   - The UniProt search for \"dipeptidyl-peptidase IV\" did not return any direct matches; the provided evidence contains results for a fallback query using the token \"protein\".\n\n### Search Results\nThe searc...\n\n## Key Entities\n\n- **uniprot_accession**: Q9H3P7\n- **protein_name**: Golgi resident protein GCP60\n- **organism**: Homo sapiens\n\n## Evidence\n\n- Total evidence records: 2\n- Trace references: 2\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    },
+    {
+      "task": {
+        "id": "harness-mut-03",
+        "category": "harness_mutation_assessment",
+        "mode": "task",
+        "input": "What is the impact of p.V600E in BRAF?",
+        "max_steps": 3,
+        "expected_steps": 3,
+        "expected_keywords": [
+          "mutation",
+          "BRAF"
+        ],
+        "must_have_evidence": true,
+        "must_have_trace": true,
+        "checks": {
+          "task_status": "completed",
+          "min_steps": 2,
+          "evidence_pool_min": 1
+        }
+      },
+      "result": {
+        "task_id": "task_20260428_184529",
+        "user_goal": "What is the impact of p.V600E in BRAF?",
+        "status": "completed",
+        "max_steps": 3,
+        "created_at": 1777373129.167151,
+        "steps": [
+          {
+            "step_id": "step_001",
+            "instruction": "Compute mutation differences between WT and MT.",
+            "expected_workflow": "mutation_effect",
+            "status": "success",
+            "latency_ms": 13218,
+            "error": null
+          },
+          {
+            "step_id": "step_002",
+            "instruction": "Look up protein annotation for the mutated protein.",
+            "expected_workflow": "uniprot_lookup",
+            "status": "success",
+            "latency_ms": 9949,
+            "error": null
+          },
+          {
+            "step_id": "step_003",
+            "instruction": "Find literature on the mutation and its pathogenicity.",
+            "expected_workflow": "literature_search",
+            "status": "success",
+            "latency_ms": 12860,
+            "error": null
+          }
+        ],
+        "state": {
+          "current_step": 3,
+          "known_entities": {
+            "uniprot_accession": "P19525",
+            "protein_name": "Interferon-induced, double-stranded RNA-activated protein kinase",
+            "organism": "Homo sapiens",
+            "pmids": [
+              "41422038",
+              "37708888",
+              "40715782",
+              "40237499",
+              "34452525"
+            ]
+          },
+          "n_evidence": 3,
+          "n_traces": 3
+        },
+        "final_report": "# Task Report: What is the impact of p.V600E in BRAF?\n\n## Steps Executed\n\n\u2705 **step_001**: Compute mutation differences between WT and MT.\n   - The provided evidence does not specify the sequences or mutation details for a Wild Type (WT) and Mutant (MT) comparison.\n\nThe evidence contains search results for the term \"mutation\" in UniProt, whic...\n\n\u2705 **step_002**: Look up protein annotation for the mutated protein.\n   - The mutated protein is identified as Interferon-induced, double-stranded RNA-activated protein kinase [UniProt:P19525].\n\n### Protein Annotation\nThe protein, also known as E2AK2_HUMAN, is a 551 amino a...\n\n\u2705 **step_003**: Find literature on the mutation and its pathogenicity.\n   - Literature regarding mutations and pathogenicity covers diverse biological systems, including influenza viruses, fungi, bacteria, and coronaviruses.\n\nThe provided evidence highlights several specific ...\n\n## Key Entities\n\n- **uniprot_accession**: P19525\n- **protein_name**: Interferon-induced, double-stranded RNA-activated protein kinase\n- **organism**: Homo sapiens\n- **pmids**: ['41422038', '37708888', '40715782', '40237499', '34452525']\n\n## Evidence\n\n- Total evidence records: 3\n- Trace references: 3\n",
+        "warnings": []
+      },
+      "passed": true,
+      "message": "ok"
+    }
+  ],
+  "metrics": {
+    "task_accuracy": 0.9,
+    "task_completion_rate": 1.0,
+    "workflow_success_rate": 1.0,
+    "evidence_aggregation_rate": 1.0
+  }
+}
