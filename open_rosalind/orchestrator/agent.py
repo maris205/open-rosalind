@@ -149,8 +149,8 @@ class Agent:
 
 
 def _structured_trace(events: list[dict]) -> list[dict]:
-    """Reduce the JSONL event log to the gpt2.md-style steps:
-    [{skill, input, output}, ...] — one entry per tool invocation, in order.
+    """Reduce the JSONL event log to structured steps with latency + status.
+    [{skill, input, output, latency_ms, status}, ...] — one entry per tool invocation.
     """
     pending: list[dict] = []
     steps: list[dict] = []
@@ -159,6 +159,8 @@ def _structured_trace(events: list[dict]) -> list[dict]:
             pending.append({"skill": ev.get("tool"), "input": ev.get("args", {})})
         elif ev["kind"] == "tool_result" and pending:
             step = pending.pop(0)
-            step["output"] = ev.get("result") if ev.get("ok", True) else {"error": ev.get("error")}
+            step["status"] = ev.get("status", "unknown")
+            step["latency_ms"] = ev.get("latency_ms")
+            step["output"] = ev.get("result") if ev.get("status") == "success" else {"error": ev.get("error")}
             steps.append(step)
     return steps

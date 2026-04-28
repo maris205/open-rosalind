@@ -59,15 +59,19 @@ def _extract_seq_for_probe(text: str) -> str:
 def _run(name: str, trace, **kwargs) -> Any:
     """Call a tool. Always returns a dict; never raises. On failure, returns
     {'error': {...}} so pipelines can detect it and fall back / continue."""
+    import time
     spec = REGISTRY[name]
     trace.log("tool_call", {"tool": name, "args": kwargs})
+    t0 = time.time()
     try:
         result = spec.handler(**kwargs)
-        trace.log("tool_result", {"tool": name, "ok": True, "result": result})
+        latency_ms = int((time.time() - t0) * 1000)
+        trace.log("tool_result", {"tool": name, "status": "success", "latency_ms": latency_ms, "result": result})
         return result
     except Exception as e:
+        latency_ms = int((time.time() - t0) * 1000)
         err = {"error": type(e).__name__, "message": str(e)}
-        trace.log("tool_result", {"tool": name, "ok": False, "error": err})
+        trace.log("tool_result", {"tool": name, "status": "error", "latency_ms": latency_ms, "error": err})
         return {"error": err}
 
 
