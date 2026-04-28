@@ -68,6 +68,11 @@ def evaluate_check(check: dict, response: dict) -> tuple[bool, str]:
         val = get_path(response.get("annotation"), check["annotation_path"])
     elif "summary_contains" in check:
         val = response.get("summary") or ""
+    elif "notes_contains" in check:
+        notes = response.get("notes") or []
+        val = " ".join(notes) if isinstance(notes, list) else str(notes)
+        # Rewrite as contains check
+        check = {**check, "contains": check["notes_contains"]}
     else:
         return False, f"unknown check shape: {check}"
 
@@ -98,6 +103,12 @@ def evaluate_check(check: dict, response: dict) -> tuple[bool, str]:
         except (TypeError, ValueError):
             ok = False
         return ok, f"got={val!r} min={check['min']}"
+    if "min_length" in check:
+        try:
+            ok = len(val) >= int(check["min_length"])
+        except (TypeError, ValueError):
+            ok = False
+        return ok, f"got={val!r} min_length={check['min_length']}"
     if "summary_contains" in check:
         s = norm(val)
         ok = all(norm(t) in s for t in check["summary_contains"])

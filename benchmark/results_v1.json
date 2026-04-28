@@ -1,0 +1,1424 @@
+{
+  "meta": {
+    "version": "v1-final",
+    "date": "2026-04-28T09:48:13+00:00",
+    "git_sha": "b519650",
+    "model": "google/gemma-4-26b-a4b-it",
+    "base_url": "http://127.0.0.1:6006",
+    "tasks_file": "benchmark/biobench_v1.jsonl",
+    "elapsed_s": 514.6
+  },
+  "metrics": {
+    "n_tasks": 49,
+    "task_accuracy": 0.9388,
+    "tool_correctness": 1.0,
+    "evidence_rate": 1.0,
+    "trace_completeness": 1.0,
+    "failure_rate": 0.0,
+    "skill_correct_rate": 1.0,
+    "by_category": {
+      "sequence_basic": {
+        "n": 8,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "literature_search": {
+        "n": 6,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "protein_annotation": {
+        "n": 6,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "mutation_effect": {
+        "n": 6,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "protocol_reasoning": {
+        "n": 6,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "workflow": {
+        "n": 6,
+        "task_accuracy": 0.8333,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "edge_case": {
+        "n": 4,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "follow_up": {
+        "n": 4,
+        "task_accuracy": 0.5,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      },
+      "stress": {
+        "n": 3,
+        "task_accuracy": 1.0,
+        "tool_correctness": 1.0,
+        "evidence_rate": 1.0,
+        "trace_completeness": 1.0,
+        "failure_rate": 0.0
+      }
+    }
+  },
+  "rows": [
+    {
+      "id": "seq-01",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='dna' expected='dna'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-173938-7005f9",
+      "elapsed_s": 12.37
+    },
+    {
+      "id": "seq-02",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='protein' expected='protein'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-173950-bd8011",
+      "elapsed_s": 21.93
+    },
+    {
+      "id": "seq-03",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=49 expected=49",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174012-658ff6",
+      "elapsed_s": 3.72
+    },
+    {
+      "id": "seq-04",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=71.43 approx=71.43 tol=0.5",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174016-7107b7",
+      "elapsed_s": 3.32
+    },
+    {
+      "id": "seq-05",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got='MRT*' starts_with='MRT'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174019-85ec21",
+      "elapsed_s": 1.86
+    },
+    {
+      "id": "seq-06",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got='TTACGTACGCAT' starts_with='TTACGT'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174021-d4ae7a",
+      "elapsed_s": 4.21
+    },
+    {
+      "id": "seq-07",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=1 expected=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174025-7cf81a",
+      "elapsed_s": 2.82
+    },
+    {
+      "id": "seq-08",
+      "category": "sequence_basic",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='dna' expected='dna'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174028-5d4c42",
+      "elapsed_s": 4.22
+    },
+    {
+      "id": "lit-01",
+      "category": "literature_search",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174032-65fca5",
+      "elapsed_s": 19.11
+    },
+    {
+      "id": "lit-02",
+      "category": "literature_search",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174052-3e079a",
+      "elapsed_s": 22.09
+    },
+    {
+      "id": "lit-03",
+      "category": "literature_search",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174114-22475c",
+      "elapsed_s": 20.66
+    },
+    {
+      "id": "lit-04",
+      "category": "literature_search",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174134-fc4fdf",
+      "elapsed_s": 15.52
+    },
+    {
+      "id": "lit-05",
+      "category": "literature_search",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174150-109087",
+      "elapsed_s": 5.48
+    },
+    {
+      "id": "lit-06",
+      "category": "literature_search",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174155-3ab699",
+      "elapsed_s": 11.91
+    },
+    {
+      "id": "ann-01",
+      "category": "protein_annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='BRCA1_HUMAN' expected='BRCA1_HUMAN'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174207-99b9a1",
+      "elapsed_s": 17.41
+    },
+    {
+      "id": "ann-02",
+      "category": "protein_annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='Homo sapiens' expected='Homo sapiens'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174225-716a48",
+      "elapsed_s": 7.45
+    },
+    {
+      "id": "ann-03",
+      "category": "protein_annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "summary_len=663 needs=['p53']",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174232-881b38",
+      "elapsed_s": 5.08
+    },
+    {
+      "id": "ann-04",
+      "category": "protein_annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "summary_len=1215 needs=['hemoglobin']",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174237-7435af",
+      "elapsed_s": 9.22
+    },
+    {
+      "id": "ann-05",
+      "category": "protein_annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='Cellular tumor antigen p53' contains='p53'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174246-5be684",
+      "elapsed_s": 10.81
+    },
+    {
+      "id": "ann-06",
+      "category": "protein_annotation",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got='Homo sapiens' expected='Homo sapiens'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174257-0af5dc",
+      "elapsed_s": 24.84
+    },
+    {
+      "id": "mut-01",
+      "category": "mutation_effect",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=1 expected=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.7,
+      "session_id": "20260428-174322-019570",
+      "elapsed_s": 1.77
+    },
+    {
+      "id": "mut-02",
+      "category": "mutation_effect",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=['class change: hydrophobic → polar_uncharged', 'cysteine gain/loss (disulfide bond)'] contains_any=['cysteine gain/loss (disulfide bond)']",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174324-2df01f",
+      "elapsed_s": 4.63
+    },
+    {
+      "id": "mut-03",
+      "category": "mutation_effect",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=['class change: positive → negative', 'charge reversal'] contains_any=['charge reversal']",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174328-ccd75f",
+      "elapsed_s": 6.2
+    },
+    {
+      "id": "mut-04",
+      "category": "mutation_effect",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='likely impactful' expected='likely impactful'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174335-0186f4",
+      "elapsed_s": 10.73
+    },
+    {
+      "id": "mut-05",
+      "category": "mutation_effect",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=1 expected=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.7,
+      "session_id": "20260428-174345-df33cf",
+      "elapsed_s": 6.23
+    },
+    {
+      "id": "mut-06",
+      "category": "mutation_effect",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [
+        "mutation.diff"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=0 expected=0",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.5,
+      "session_id": "20260428-174352-d5a052",
+      "elapsed_s": 2.84
+    },
+    {
+      "id": "pro-01",
+      "category": "protocol_reasoning",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 3,
+      "keyword_total": 3,
+      "check_passed": true,
+      "check_reason": "summary_len=763 needs=['p53']",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174354-8e5429",
+      "elapsed_s": 3.79
+    },
+    {
+      "id": "pro-02",
+      "category": "protocol_reasoning",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174358-199f6b",
+      "elapsed_s": 9.63
+    },
+    {
+      "id": "pro-03",
+      "category": "protocol_reasoning",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got='Homo sapiens' expected='Homo sapiens'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174408-803b2c",
+      "elapsed_s": 5.74
+    },
+    {
+      "id": "pro-04",
+      "category": "protocol_reasoning",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=110 expected=110",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174414-ba7f3e",
+      "elapsed_s": 6.97
+    },
+    {
+      "id": "pro-05",
+      "category": "protocol_reasoning",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got='MAKL' starts_with='MAK'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174421-18bbe2",
+      "elapsed_s": 5.28
+    },
+    {
+      "id": "pro-06",
+      "category": "protocol_reasoning",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174426-d950d0",
+      "elapsed_s": 38.46
+    },
+    {
+      "id": "wf-01",
+      "category": "workflow",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze",
+        "uniprot.search",
+        "uniprot.search",
+        "uniprot.search"
+      ],
+      "tools_expected": [],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=[] min_length=0",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174504-7de8ba",
+      "elapsed_s": 26.55
+    },
+    {
+      "id": "wf-02",
+      "category": "workflow",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 0,
+      "keyword_total": 0,
+      "check_passed": false,
+      "check_reason": "got='' contains='fallback'",
+      "task_passed": false,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.0,
+      "session_id": "20260428-174531-a4e40a",
+      "elapsed_s": 2.49
+    },
+    {
+      "id": "wf-03",
+      "category": "workflow",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search",
+        "uniprot.search",
+        "uniprot.search"
+      ],
+      "tools_expected": [],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 0,
+      "keyword_total": 0,
+      "check_passed": true,
+      "check_reason": "got=\"original query had 0 hits, used token 'nonexistent' (fallback)\" contains='token'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.55,
+      "session_id": "20260428-174533-6dfe25",
+      "elapsed_s": 26.01
+    },
+    {
+      "id": "wf-04",
+      "category": "workflow",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='protein' expected='protein'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174559-5dd264",
+      "elapsed_s": 2.04
+    },
+    {
+      "id": "wf-05",
+      "category": "workflow",
+      "skill_correct": true,
+      "skill_got": "mutation_effect",
+      "skill_expected": "mutation_effect",
+      "tool_called": true,
+      "tools_got": [
+        "mutation.diff"
+      ],
+      "tools_expected": [],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got=0 expected=0",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.5,
+      "session_id": "20260428-174601-4d7e7d",
+      "elapsed_s": 6.03
+    },
+    {
+      "id": "wf-06",
+      "category": "workflow",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=5 min=0",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174607-6b8ace",
+      "elapsed_s": 8.38
+    },
+    {
+      "id": "edge-01",
+      "category": "edge_case",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=1 expected=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174616-87eb29",
+      "elapsed_s": 2.54
+    },
+    {
+      "id": "edge-02",
+      "category": "edge_case",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=16 expected=16",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174618-419754",
+      "elapsed_s": 4.52
+    },
+    {
+      "id": "edge-03",
+      "category": "edge_case",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 0,
+      "keyword_total": 0,
+      "check_passed": true,
+      "check_reason": "got='P0DJN6' min_length=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.75,
+      "session_id": "20260428-174623-980e9b",
+      "elapsed_s": 19.27
+    },
+    {
+      "id": "edge-04",
+      "category": "edge_case",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 0,
+      "keyword_total": 0,
+      "check_passed": true,
+      "check_reason": "got=5 min=0",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174642-2e4684",
+      "elapsed_s": 7.01
+    },
+    {
+      "id": "followup-01-step1",
+      "category": "follow_up",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got='BRCA1_HUMAN' expected='BRCA1_HUMAN'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174649-f37719",
+      "elapsed_s": 24.22
+    },
+    {
+      "id": "followup-01-step2",
+      "category": "follow_up",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": false,
+      "keyword_hit": 0,
+      "keyword_total": 1,
+      "check_passed": false,
+      "check_reason": "summary_len=770 needs=['BRCA1']",
+      "task_passed": false,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174713-f656fe",
+      "elapsed_s": 6.03
+    },
+    {
+      "id": "followup-02-step1",
+      "category": "follow_up",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 2,
+      "keyword_total": 2,
+      "check_passed": true,
+      "check_reason": "got='protein' expected='protein'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.2,
+      "session_id": "20260428-174719-3700f7",
+      "elapsed_s": 2.86
+    },
+    {
+      "id": "followup-02-step2",
+      "category": "follow_up",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 0,
+      "keyword_total": 0,
+      "check_passed": false,
+      "check_reason": "summary_len=520 needs=['organism', 'species']",
+      "task_passed": false,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.75,
+      "session_id": "20260428-174722-a25de8",
+      "elapsed_s": 5.42
+    },
+    {
+      "id": "stress-01",
+      "category": "stress",
+      "skill_correct": true,
+      "skill_got": "sequence_basic_analysis",
+      "skill_expected": "sequence_basic_analysis",
+      "tool_called": true,
+      "tools_got": [
+        "sequence.analyze"
+      ],
+      "tools_expected": [
+        "sequence.analyze"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=[{'header': 'seq1', 'length': 12, 'type': 'dna', 'composition': {'A': 4, 'T': 3, 'G': 3, 'C': 2}, 'gc_percent': 41.67, 'reverse_complement_preview': 'TTACGTACGCAT', 'translation_preview': 'MRT*', 'translation_length': 4}, {'header': 'seq2', 'length': 19, 'type': 'protein', 'composition': {'V': 4, 'G': 4, 'R': 3, 'M': 1, 'K': 1, 'N': 1, 'F': 1, 'I': 1}, 'approx_molecular_weight_da': 2030.47}, {'header': 'seq3', 'length': 12, 'type': 'dna', 'composition': {'G': 5, 'C': 5, 'A': 1, 'T': 1}, 'gc_percent': 83.33, 'reverse_complement_preview': 'ATGCGCGCGCGC', 'translation_preview': 'ARAH', 'translation_length': 4}] min_length=3",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.1,
+      "session_id": "20260428-174728-beeace",
+      "elapsed_s": 3.83
+    },
+    {
+      "id": "stress-02",
+      "category": "stress",
+      "skill_correct": true,
+      "skill_got": "uniprot_lookup",
+      "skill_expected": "uniprot_lookup",
+      "tool_called": true,
+      "tools_got": [
+        "uniprot.fetch",
+        "uniprot.search"
+      ],
+      "tools_expected": [
+        "uniprot.fetch"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got='Cellular tumor antigen p53' contains='p53'",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.95,
+      "session_id": "20260428-174731-9b67cd",
+      "elapsed_s": 15.34
+    },
+    {
+      "id": "stress-03",
+      "category": "stress",
+      "skill_correct": true,
+      "skill_got": "literature_search",
+      "skill_expected": "literature_search",
+      "tool_called": true,
+      "tools_got": [
+        "pubmed.search"
+      ],
+      "tools_expected": [
+        "pubmed.search"
+      ],
+      "evidence_ok": true,
+      "trace_ok": true,
+      "keyword_ok": true,
+      "keyword_hit": 1,
+      "keyword_total": 1,
+      "check_passed": true,
+      "check_reason": "got=5 min=1",
+      "task_passed": true,
+      "failed": false,
+      "fail_reason": null,
+      "confidence": 0.85,
+      "session_id": "20260428-174747-14a420",
+      "elapsed_s": 25.81
+    }
+  ]
+}
