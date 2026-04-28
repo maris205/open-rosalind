@@ -10,6 +10,7 @@ export default function App() {
   const [currentResult, setCurrentResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [followUpSession, setFollowUpSession] = useState(null);
+  const [execMode, setExecMode] = useState('single'); // 'single' | 'task'
 
   useEffect(() => {
     loadSessions();
@@ -27,10 +28,23 @@ export default function App() {
   async function handleAnalyze(input, mode) {
     setLoading(true);
     try {
-      const result = await analyze(input, mode, followUpSession);
-      setCurrentResult(result);
-      setFollowUpSession(result.session_id); // next query can follow up
-      await loadSessions(); // refresh sidebar
+      if (execMode === 'task') {
+        // Multi-step task mode
+        const res = await fetch('/api/task/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal: input, max_steps: 5 }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        setCurrentResult({ ...result, exec_mode: 'task' });
+      } else {
+        // Single-step mode
+        const result = await analyze(input, mode, followUpSession);
+        setCurrentResult({ ...result, exec_mode: 'single' });
+        setFollowUpSession(result.session_id);
+        await loadSessions();
+      }
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -53,7 +67,7 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>Open-Rosalind <span className="tag">MVP2</span></h1>
+        <h1>Open-Rosalind <span className="tag">MVP3</span></h1>
         <p>Local-first, tool-driven bioinformatics agent</p>
       </header>
       <div className="main-layout">
@@ -63,7 +77,7 @@ export default function App() {
           onRefresh={loadSessions}
         />
         <div className="content">
-          <InputPanel onAnalyze={handleAnalyze} loading={loading} />
+          <InputPanel onAnalyze={handleAnalyze} loading={loading} execMode={execMode} setExecMode={setExecMode} />
           {currentResult && <ResultPanel result={currentResult} />}
         </div>
       </div>

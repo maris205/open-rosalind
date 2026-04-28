@@ -1,9 +1,46 @@
 import { useState } from 'react';
 
 export default function ResultPanel({ result }) {
-  const { session_id, skill, summary, annotation, confidence, notes, evidence, trace_steps } = result;
   const [showTrace, setShowTrace] = useState(false);
   const [showRawEvidence, setShowRawEvidence] = useState(false);
+
+  // Task mode
+  if (result.exec_mode === 'task') {
+    return (
+      <div className="panel result-panel">
+        <div className="card">
+          <h2>Task: {result.task_id}</h2>
+          <p>Status: <strong>{result.status}</strong></p>
+          {result.warnings && result.warnings.length > 0 && (
+            <div className="notes">
+              <ul>{result.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            </div>
+          )}
+        </div>
+        <div className="card">
+          <h2>Steps ({result.steps.length})</h2>
+          <ol className="trace-list">
+            {result.steps.map((s, i) => (
+              <li key={i}>
+                <span className="trace-skill">{s.status === 'success' ? '✅' : '❌'} {s.step_id}</span>
+                <div>{s.instruction}</div>
+                {s.summary && <div className="markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(s.summary.slice(0, 200)) }} />}
+              </li>
+            ))}
+          </ol>
+        </div>
+        {result.final_report && (
+          <div className="card">
+            <h2>Final Report</h2>
+            <div className="markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(result.final_report) }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Single-step mode
+  const { session_id, skill, summary, annotation, confidence, notes, evidence, trace_steps } = result;
 
   return (
     <div className="panel result-panel">

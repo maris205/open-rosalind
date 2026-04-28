@@ -1,56 +1,54 @@
 import { useState } from 'react';
 
-const DEMOS = [
-  { label: 'BRCA1 lookup', input: 'What is BRCA1 and where is it located in the cell?', mode: 'uniprot' },
-  { label: 'CRISPR papers', input: 'Find recent papers about CRISPR base editing in 2024', mode: 'literature' },
-  { label: 'Protein sequence', input: '>demo\nMVKVGVNGFGRIGRLVTRAAFNSGKVDIVAINDPFIDLNYMVYMFQYDSTHGKFHGTVKAENGKLVINGNPITIF', mode: 'sequence' },
-  { label: 'p53 R175H mutation', input: 'WT: MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD\nMT: p.R175H', mode: 'mutation' },
-];
-
-export default function InputPanel({ onAnalyze, loading }) {
+export default function InputPanel({ onAnalyze, loading, execMode, setExecMode }) {
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('auto');
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-    onAnalyze(input, mode);
-  }
-
-  function loadDemo(demo) {
-    setInput(demo.input);
-    setMode(demo.mode);
-  }
+  const demos = [
+    'What is BRCA1 and where is it located?',
+    'Find recent papers about CRISPR base editing',
+    '>seq1\nMVKVGVNGFGRIGRLVTRA',
+    'WT: MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD\nMT: p.R175H',
+  ];
 
   return (
     <div className="panel input-panel">
-      <form onSubmit={handleSubmit}>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Question / Sequence / UniProt accession"
-          rows={6}
-          disabled={loading}
-        />
-        <div className="controls">
-          <button type="submit" disabled={loading || !input.trim()}>
-            {loading ? 'Analyzing...' : 'Analyze'}
-          </button>
-          <select value={mode} onChange={(e) => setMode(e.target.value)}>
-            <option value="auto">mode: auto</option>
-            <option value="sequence">sequence</option>
-            <option value="uniprot">uniprot</option>
-            <option value="literature">literature</option>
-            <option value="mutation">mutation</option>
-          </select>
-          <select onChange={(e) => { if (e.target.value) loadDemo(JSON.parse(e.target.value)); e.target.value = ''; }}>
-            <option value="">— demo prompts —</option>
-            {DEMOS.map((d, i) => (
-              <option key={i} value={JSON.stringify(d)}>{d.label}</option>
-            ))}
-          </select>
-        </div>
-      </form>
+      <div className="mode-switch">
+        <label>
+          <input type="radio" checked={execMode === 'single'} onChange={() => setExecMode('single')} />
+          Single-step
+        </label>
+        <label>
+          <input type="radio" checked={execMode === 'task'} onChange={() => setExecMode('task')} />
+          Multi-step Task
+        </label>
+      </div>
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder={execMode === 'task' ? 'Describe your multi-step task (e.g., "Analyze this protein and find papers: MVKVGVNGFGRIGRLVTRA")' : 'Enter your question, sequence, or mutation...'}
+        rows={6}
+      />
+      <div className="controls">
+        <button onClick={() => onAnalyze(input, mode)} disabled={loading || !input.trim()}>
+          {loading ? 'Running...' : execMode === 'task' ? 'Run Task' : 'Analyze'}
+        </button>
+        {execMode === 'single' && (
+          <>
+            <select value={mode} onChange={(e) => setMode(e.target.value)}>
+              <option value="auto">Auto-detect</option>
+              <option value="sequence">Sequence</option>
+              <option value="mutation">Mutation</option>
+            </select>
+            <select onChange={(e) => setInput(e.target.value)} value="">
+              <option value="">Demo prompts...</option>
+              {demos.map((d, i) => (
+                <option key={i} value={d}>{d.slice(0, 50)}</option>
+              ))}
+            </select>
+          </>
+        )}
+      </div>
     </div>
   );
 }

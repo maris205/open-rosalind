@@ -50,3 +50,7 @@ pre { background: #0a0e14; padding: 12px; border-radius: 6px; overflow-x: auto; 
 .trace-list li { margin-bottom: 8px; }
 .trace-skill { color: #6ee7b7; font-weight: 600; margin-right: 8px; }
 .trace-io { color: #9ca3af; font-family: 'SF Mono', monospace; font-size: 12px; }
+
+.mode-switch { display: flex; gap: 16px; margin-bottom: 12px; }
+.mode-switch label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #9ca3af; cursor: pointer; }
+.mode-switch input[type="radio"] { cursor: pointer; }
