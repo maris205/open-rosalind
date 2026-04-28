@@ -54,7 +54,7 @@ export default function App() {
     <div className="app">
       <header>
         <h1>Open-Rosalind <span className="tag">MVP2</span></h1>
-        <p>Local-first, tool-driven life-science research agent</p>
+        <p>Local-first, tool-driven bioinformatics agent</p>
       </header>
       <div className="main-layout">
         <SessionSidebar

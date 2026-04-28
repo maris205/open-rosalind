@@ -25,8 +25,12 @@ header p { font-size: 13px; color: #9ca3af; margin-top: 4px; }
 .controls button:hover:not(:disabled) { background: #1f2937; border-color: #6ee7b7; }
 .controls button:disabled { opacity: 0.5; cursor: not-allowed; }
 .card { background: #0f1419; border: 1px solid #1f2937; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
-.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #e5e7eb; }
+.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
 .card h2 .meta { font-size: 12px; color: #6b7280; font-weight: 400; }
+.btn-toggle { background: none; border: 1px solid #1f2937; color: #9ca3af; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+.btn-toggle:hover { background: #1f2937; color: #6ee7b7; border-color: #6ee7b7; }
+.evidence-human { font-size: 13px; }
+.evidence-empty { color: #6b7280; font-size: 13px; font-style: italic; }
 .confidence-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 12px; }
 .conf-label { color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
 .conf-bar { flex: 0 0 180px; height: 8px; background: #1f2937; border-radius: 999px; overflow: hidden; }
