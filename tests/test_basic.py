@@ -101,3 +101,22 @@ def test_skill_registry_backward_compat():
     from open_rosalind.skills import SKILL_REGISTRY
     assert callable(SKILL_REGISTRY["sequence_basic_analysis"])
     assert callable(SKILL_REGISTRY["mutation_effect"])
+
+
+def test_session_store_write_read():
+    import tempfile
+    from open_rosalind.session import SessionStore
+    with tempfile.TemporaryDirectory() as tmpdir:
+        store = SessionStore(tmpdir)
+        store.write_event("test-123", "start", user_input="hello")
+        store.write_event("test-123", "skill_call", skill="uniprot_lookup", payload={"query": "P38398"})
+        store.write_event("test-123", "summary", text="BRCA1 is...")
+        events = store.read_session("test-123")
+        assert len(events) == 3
+        assert events[0].kind == "start"
+        assert events[1].kind == "skill_call"
+        assert events[2].kind == "summary"
+        sessions = store.list_sessions()
+        assert len(sessions) == 1
+        assert sessions[0]["session_id"] == "test-123"
+        assert sessions[0]["user_input"] == "hello"

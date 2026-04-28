@@ -75,6 +75,19 @@ def skill_detail(name: str):
     return sk.to_full()
 
 
+@app.get("/api/sessions")
+def sessions_list(limit: int = 50):
+    return {"sessions": agent.session_store.list_sessions(limit=limit)}
+
+
+@app.get("/api/sessions/{session_id}")
+def session_detail(session_id: str):
+    events = agent.session_store.read_session(session_id)
+    if not events:
+        raise HTTPException(status_code=404, detail=f"session not found: {session_id}")
+    return {"session_id": session_id, "events": [e.to_dict() for e in events]}
+
+
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 def analyze(req: AnalyzeRequest):
     try:

@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 from ..backends import Backend
+from ..session import SessionStore
 from ..skills import SKILL_REGISTRY
 from .intent_classifier import llm_classify, needs_llm_classification
 from .router import detect_intent, Intent
@@ -33,9 +34,10 @@ Strict rules:
 
 
 class Agent:
-    def __init__(self, backend: Backend, trace_dir: str = "./traces"):
+    def __init__(self, backend: Backend, trace_dir: str = "./traces", session_dir: str = "./sessions"):
         self.backend = backend
         self.trace_dir = trace_dir
+        self.session_store = SessionStore(session_dir)
 
     @staticmethod
     def _intent_from_mode(text: str, mode: str) -> Intent:
@@ -57,6 +59,9 @@ class Agent:
         trace = Trace(self.trace_dir, session_id=session_id)
         trace.log("user_input", {"question": question, "mode": mode})
 
+        # Session event: start
+        self.session_store.write_event(trace.session_id, "start", user_input=question, mode=mode)
+
         if mode and mode not in (None, "", "auto"):
             intent = self._intent_from_mode(question, mode)
             trace.log("router", {"path": "mode-forced", "skill": intent.skill})
@@ -75,7 +80,7 @@ class Agent:
                 elif llm_intent:
                     trace.log("router", {"path": "llm_classify_confirmed",
                                          "skill": llm_intent.skill})
-                    intent = llm_intent  # use LLM payload (better extraction)
+                    intent = llm_intent
                 else:
                     trace.log("router", {"path": "llm_classify_failed_fallback",
                                          "skill": rule_intent.skill})
@@ -85,9 +90,21 @@ class Agent:
                 intent = rule_intent
         trace.log("plan", {"skill": intent.skill, "payload": intent.payload})
 
+        # Session event: skill_call
+        self.session_store.write_event(trace.session_id, "skill_call", skill=intent.skill, payload=intent.payload)
+
         skill_fn = SKILL_REGISTRY[intent.skill]
         evidence = skill_fn(intent.payload, trace=trace)
         trace.log("evidence", {"skill": intent.skill, "evidence": evidence})
+
+        # Session event: skill_result
+        self.session_store.write_event(
+            trace.session_id, "skill_result",
+            evidence=evidence,
+            annotation=evidence.get("annotation"),
+            confidence=evidence.get("confidence"),
+            notes=evidence.get("notes", []),
+        )
 
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -113,6 +130,9 @@ class Agent:
                 f"_Model backend unavailable ({err}). "
                 f"Showing tool evidence only — see Evidence panel below._"
             )
+
+        # Session event: summary
+        self.session_store.write_event(trace.session_id, "summary", text=summary)
 
         return {
             "session_id": trace.session_id,
