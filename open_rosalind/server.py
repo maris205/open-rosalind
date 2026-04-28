@@ -11,11 +11,13 @@ from pydantic import BaseModel, Field
 from .backends import build_backend
 from .config import load_config
 from .orchestrator import Agent
+from .orchestrator.runner import AgentRunner
 from .skills import SKILLS, list_cards, get_skill
 
 cfg = load_config()
 backend = build_backend(cfg["backend"])
 agent = Agent(backend, trace_dir=cfg.get("trace", {}).get("dir", "./traces"))
+runner = AgentRunner(agent)
 
 app = FastAPI(title="Open-Rosalind", version="0.1.0")
 app.add_middleware(
@@ -31,6 +33,7 @@ class AnalyzeRequest(BaseModel):
     input: str | None = Field(None, max_length=20000)
     mode: str | None = Field(None, description="auto | sequence | uniprot | literature | mutation")
     session_id: str | None = None
+    follow_up_session: str | None = Field(None, description="Session ID to load prior evidence from for follow-up")
 
     def get_text(self) -> str:
         text = self.question or self.input or ""
@@ -92,7 +95,12 @@ def session_detail(session_id: str):
 def analyze(req: AnalyzeRequest):
     try:
         text = req.get_text()
-        result = agent.analyze(text, session_id=req.session_id, mode=req.mode)
+        result = runner.run(
+            text,
+            session_id=req.session_id,
+            mode=req.mode,
+            follow_up_session=req.follow_up_session,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:

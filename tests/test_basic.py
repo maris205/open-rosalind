@@ -110,13 +110,17 @@ def test_session_store_write_read():
         store = SessionStore(tmpdir)
         store.write_event("test-123", "start", user_input="hello")
         store.write_event("test-123", "skill_call", skill="uniprot_lookup", payload={"query": "P38398"})
+        store.write_event("test-123", "skill_result", evidence={"entry": {"name": "BRCA1"}})
         store.write_event("test-123", "summary", text="BRCA1 is...")
         events = store.read_session("test-123")
-        assert len(events) == 3
+        assert len(events) == 4
         assert events[0].kind == "start"
         assert events[1].kind == "skill_call"
-        assert events[2].kind == "summary"
+        assert events[2].kind == "skill_result"
+        assert events[3].kind == "summary"
         sessions = store.list_sessions()
         assert len(sessions) == 1
         assert sessions[0]["session_id"] == "test-123"
         assert sessions[0]["user_input"] == "hello"
+        last_ev = store.get_last_evidence("test-123")
+        assert last_ev == {"entry": {"name": "BRCA1"}}
