@@ -1,0 +1,23 @@
+{
+  "input": {
+    "sequence": "ATGGCCAAATTAA"
+  },
+  "expected_output": {
+    "annotation": {
+      "kind": "sequence",
+      "n_records": 1,
+      "primary_type": "dna",
+      "length": 13
+    },
+    "sequence_stats": {
+      "records": [
+        {
+          "type": "dna",
+          "length": 13,
+          "gc_content": 30.77,
+          "translation": "MAKL*"
+        }
+      ]
+    }
+  }
+}

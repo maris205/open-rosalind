@@ -1,0 +1,16 @@
+{
+  "input": {
+    "sequence": "MVKVGVNGFGRIGRLVTRA"
+  },
+  "expected_output": {
+    "annotation": {
+      "kind": "sequence",
+      "n_records": 1,
+      "primary_type": "protein",
+      "length": 19
+    },
+    "uniprot_hint": {
+      "hits": 3
+    }
+  }
+}

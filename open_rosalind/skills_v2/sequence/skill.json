@@ -1,0 +1,48 @@
+{
+  "name": "sequence_basic_analysis",
+  "description": "Analyze DNA/RNA/protein sequences and optionally probe UniProt for homology",
+  "category": "sequence",
+  "version": "1.0.0",
+  "safety_level": "safe",
+  "tools_used": ["sequence.analyze", "uniprot.search"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {
+        "type": "string",
+        "description": "FASTA format or raw sequence"
+      }
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {
+        "type": "object",
+        "properties": {
+          "kind": {"const": "sequence"},
+          "n_records": {"type": "integer"},
+          "primary_type": {"enum": ["dna", "rna", "protein"]}
+        }
+      },
+      "confidence": {"type": "number"},
+      "notes": {"type": "array", "items": {"type": "string"}},
+      "sequence_stats": {"type": "object"},
+      "uniprot_hint": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "ATGGCCAAATTAA"},
+      "expects": "DNA sequence with translation MAKL*"
+    },
+    {
+      "input": {"sequence": "MVKVGVNGFGRIGRLVTRA"},
+      "expects": "Protein sequence with UniProt homology hints"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}
