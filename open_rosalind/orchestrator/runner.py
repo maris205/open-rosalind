@@ -39,6 +39,7 @@ class AgentRunner:
         session_id: str | None = None,
         mode: str | None = None,
         follow_up_session: str | None = None,
+        conversation_history: list[dict] | None = None,
     ) -> dict[str, Any]:
         """Run the agent, optionally loading prior session evidence for follow-up.
 
@@ -80,9 +81,11 @@ class AgentRunner:
 
             self.agent.backend.chat = chat_with_context
             try:
-                result = self.agent.analyze(question, session_id=session_id, mode=mode)
+                result = self.agent.analyze(question, session_id=session_id, mode=mode,
+                                            conversation_history=conversation_history)
             finally:
                 self.agent.backend.chat = original_chat
             return result
         else:
-            return self.agent.analyze(question, session_id=session_id, mode=mode)
+            return self.agent.analyze(question, session_id=session_id, mode=mode,
+                                      conversation_history=conversation_history)

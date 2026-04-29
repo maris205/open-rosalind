@@ -55,7 +55,8 @@ class Agent:
             )
         return detect_intent(text)
 
-    def analyze(self, question: str, session_id: str | None = None, mode: str | None = None) -> dict[str, Any]:
+    def analyze(self, question: str, session_id: str | None = None, mode: str | None = None,
+                conversation_history: list[dict] | None = None) -> dict[str, Any]:
         trace = Trace(self.trace_dir, session_id=session_id)
         trace.log("user_input", {"question": question, "mode": mode})
 
@@ -108,16 +109,21 @@ class Agent:
 
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"USER QUESTION:\n{question}\n\n"
-                    f"SKILL: {intent.skill}\n"
-                    f"EVIDENCE (JSON):\n{json.dumps(evidence, ensure_ascii=False, indent=2)[:8000]}\n\n"
-                    "Write the answer now."
-                ),
-            },
         ]
+        # Insert recent conversation history so the LLM understands references
+        # like "this protein", "it", "再查一下文献", etc. (industry-standard
+        # sliding-window truncation, not long-term memory).
+        if conversation_history:
+            messages.extend(conversation_history)
+        messages.append({
+            "role": "user",
+            "content": (
+                f"USER QUESTION:\n{question}\n\n"
+                f"SKILL: {intent.skill}\n"
+                f"EVIDENCE (JSON):\n{json.dumps(evidence, ensure_ascii=False, indent=2)[:8000]}\n\n"
+                "Write the answer now."
+            ),
+        })
         trace.log("model_request", {"messages": messages})
         try:
             resp = self.backend.chat(messages, temperature=0.2, max_tokens=1024)

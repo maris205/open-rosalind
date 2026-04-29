@@ -423,6 +423,15 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         # When session_id is provided (continuing a conversation), use it as
         # follow_up_session so the runner loads prior evidence from JSONL.
 
+        # Build conversation history (industry-standard sliding window: last
+        # 6 turns, 1500 chars each) so the LLM understands references like
+        # "this protein", "再查文献", etc.
+        from .orchestrator.history import truncate_history
+        conv_history = []
+        if req.session_id:
+            prior_msgs = storage.get_messages(req.session_id)
+            conv_history = truncate_history(prior_msgs)
+
         # Enrich short follow-up questions with entities from the prior turn,
         # so the router can find the right tool. Without this, "is this protein
         # in other species?" lacks any concrete entity for UniProt search.
@@ -443,6 +452,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         result = runner.run(
             enriched_message,
             follow_up_session=req.session_id,
+            conversation_history=conv_history,
         )
 
         # Use the agent's session_id as the chat session if this is a new conversation
