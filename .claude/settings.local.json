@@ -59,7 +59,8 @@
       "Bash(mv skill.py handler.py)",
       "Bash(git branch *)",
       "Bash(git stash *)",
-      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\",\"password\":\"testpass123\"}')"
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\",\"password\":\"testpass123\"}')",
+      "Bash(sqlite3 open_rosalind.db \"SELECT email, datetime\\(created_at, 'unixepoch'\\) FROM users;\")"
     ]
   }
 }
