@@ -74,6 +74,26 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_at);
+
+CREATE TABLE IF NOT EXISTS traces (
+    trace_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    step_index INTEGER NOT NULL,
+    skill TEXT,
+    tool TEXT,
+    input_json TEXT,
+    output_json TEXT,
+    status TEXT,
+    latency_ms INTEGER,
+    created_at REAL NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_traces_session ON traces(session_id, step_index);
+CREATE INDEX IF NOT EXISTS idx_traces_user ON traces(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_traces_skill ON traces(skill);
 """
 
 
@@ -243,3 +263,85 @@ class Storage:
             d["card"] = json.loads(d.pop("card_json")) if d.get("card_json") else None
             out.append(d)
         return out
+
+    # ===== Traces (analytics-friendly) =====
+
+    def save_traces(self, session_id: str, user_id: str, trace_steps: list[dict]):
+        """Persist tool-call trace steps for analytics queries.
+
+        trace_steps shape (from agent's structured trace):
+            [{"skill": str, "input": dict, "output": dict, "status": str, "latency_ms": int}, ...]
+        """
+        if not trace_steps:
+            return
+        rows = []
+        for i, step in enumerate(trace_steps):
+            rows.append((
+                session_id,
+                user_id,
+                i,
+                step.get("skill"),
+                step.get("tool") or step.get("skill"),
+                json.dumps(step.get("input"), ensure_ascii=False) if step.get("input") is not None else None,
+                json.dumps(step.get("output"), ensure_ascii=False) if step.get("output") is not None else None,
+                step.get("status"),
+                step.get("latency_ms"),
+                time.time(),
+            ))
+        with self._conn() as c:
+            c.executemany(
+                "INSERT INTO traces (session_id, user_id, step_index, skill, tool, "
+                "input_json, output_json, status, latency_ms, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                rows,
+            )
+
+    def get_traces(self, session_id: str) -> list[dict]:
+        """Load all trace steps for a session, ordered by step index."""
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT step_index, skill, tool, input_json, output_json, "
+                "status, latency_ms, created_at FROM traces "
+                "WHERE session_id = ? ORDER BY step_index ASC",
+                (session_id,),
+            ).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["input"] = json.loads(d.pop("input_json")) if d.get("input_json") else None
+            d["output"] = json.loads(d.pop("output_json")) if d.get("output_json") else None
+            out.append(d)
+        return out
+
+    def stats(self, user_id: str | None = None) -> dict:
+        """Return basic analytics counters. Useful for admin dashboards."""
+        with self._conn() as c:
+            if user_id:
+                where = "WHERE user_id = ?"
+                args: tuple = (user_id,)
+            else:
+                where = ""
+                args = ()
+            n_sessions = c.execute(f"SELECT COUNT(*) FROM sessions {where}", args).fetchone()[0]
+            n_traces = c.execute(f"SELECT COUNT(*) FROM traces {where}", args).fetchone()[0]
+            n_users = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            top_skills = c.execute(
+                f"SELECT skill, COUNT(*) AS n FROM traces {where} "
+                "GROUP BY skill ORDER BY n DESC LIMIT 10",
+                args,
+            ).fetchall()
+            avg_latency = c.execute(
+                f"SELECT skill, AVG(latency_ms) AS avg_ms FROM traces {where} "
+                "WHERE latency_ms IS NOT NULL GROUP BY skill",
+                args,
+            ).fetchall() if user_id else c.execute(
+                "SELECT skill, AVG(latency_ms) AS avg_ms FROM traces "
+                "WHERE latency_ms IS NOT NULL GROUP BY skill"
+            ).fetchall()
+        return {
+            "n_users": n_users,
+            "n_sessions": n_sessions,
+            "n_traces": n_traces,
+            "top_skills": [dict(r) for r in top_skills],
+            "avg_latency_ms_by_skill": [dict(r) for r in avg_latency],
+        }

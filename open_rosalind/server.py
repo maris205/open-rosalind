@@ -410,6 +410,12 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         # Persist message turns (user + assistant) for full conversation replay
         storage.add_message(chat_session_id, "user", req.message)
         storage.add_message(chat_session_id, "assistant", result.final_report or "", card=assistant_card)
+        # Aggregate trace steps from all sub-tasks for analytics
+        all_trace_steps = []
+        for s in result.steps:
+            for t in (s.trace or []):
+                all_trace_steps.append(t)
+        storage.save_traces(chat_session_id, user["user_id"], all_trace_steps)
 
         return ChatResponse(
             session_id=chat_session_id,
@@ -487,6 +493,8 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         }
         storage.add_message(chat_session_id, "user", req.message)
         storage.add_message(chat_session_id, "assistant", result.get("summary", ""), card=assistant_card)
+        # Persist trace steps to SQLite for analytics queries
+        storage.save_traces(chat_session_id, user["user_id"], result.get("trace_steps") or [])
 
         return ChatResponse(
             session_id=chat_session_id,
@@ -531,3 +539,35 @@ def get_chat_session(session_id: str, authorization: str | None = Header(None), 
     messages = storage.get_messages(session_id)
     session["messages"] = messages
     return session
+
+
+# ===== MVP3.2 Analytics =====
+
+@app.get("/api/stats")
+def get_stats(authorization: str | None = Header(None)):
+    """Basic analytics: counts, top skills, avg latency.
+
+    Anonymous → returns global stats; authenticated → user-scoped stats.
+    """
+    user_id = None
+    if authorization and authorization.startswith("Bearer "):
+        u = storage.user_from_token(authorization[7:])
+        if u and not u.get("is_anonymous"):
+            user_id = u["user_id"]
+    return storage.stats(user_id=user_id)
+
+
+@app.get("/api/chat/sessions/{session_id}/traces")
+def get_session_traces(session_id: str, authorization: str | None = Header(None), anon_token: str | None = None):
+    """Get persisted trace steps for a session (analytics view)."""
+    user = None
+    if authorization and authorization.startswith("Bearer "):
+        user = storage.user_from_token(authorization[7:])
+    elif anon_token:
+        user = storage.user_from_token(anon_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    # verify session ownership
+    if not storage.get_session(session_id, user["user_id"]):
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"traces": storage.get_traces(session_id)}

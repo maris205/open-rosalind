@@ -60,7 +60,10 @@
       "Bash(git branch *)",
       "Bash(git stash *)",
       "Bash(curl -sS -X POST http://127.0.0.1:6006/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\",\"password\":\"testpass123\"}')",
-      "Bash(sqlite3 open_rosalind.db \"SELECT email, datetime\\(created_at, 'unixepoch'\\) FROM users;\")"
+      "Bash(sqlite3 open_rosalind.db \"SELECT email, datetime\\(created_at, 'unixepoch'\\) FROM users;\")",
+      "Bash(sqlite3 open_rosalind.db \".schema\")",
+      "Bash(sqlite3 open_rosalind.db \"SELECT count\\(*\\) as users FROM users; SELECT count\\(*\\) as sessions FROM sessions; SELECT count\\(*\\) as messages FROM messages; SELECT count\\(*\\) as tasks FROM tasks;\")",
+      "Bash(curl -sS http://127.0.0.1:6006/api/stats)"
     ]
   }
 }
