@@ -422,9 +422,26 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         # Single-step mode (use existing AgentRunner)
         # When session_id is provided (continuing a conversation), use it as
         # follow_up_session so the runner loads prior evidence from JSONL.
-        # The chat_session_id matches the JSONL session because the agent reuses it.
+
+        # Enrich short follow-up questions with entities from the prior turn,
+        # so the router can find the right tool. Without this, "is this protein
+        # in other species?" lacks any concrete entity for UniProt search.
+        enriched_message = req.message
+        if req.session_id:
+            prior = storage.get_session(req.session_id, user["user_id"])
+            if prior and prior.get("annotation"):
+                ann = prior["annotation"]
+                ent = ann.get("accession") or ann.get("name") or ""
+                msg_lower = req.message.lower()
+                refers_to_prior = any(p in msg_lower or p in req.message for p in [
+                    "this protein", "this gene", "this molecule", "it ",
+                    "这个蛋白", "这个基因", "该蛋白", "该基因",
+                ])
+                if ent and refers_to_prior and ent.lower() not in msg_lower:
+                    enriched_message = f"{ent}: {req.message}"
+
         result = runner.run(
-            req.message,
+            enriched_message,
             follow_up_session=req.session_id,
         )
 
