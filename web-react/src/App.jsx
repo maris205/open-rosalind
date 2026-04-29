@@ -150,7 +150,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1>🧬 Open-Rosalind</h1>
-          <p className="sidebar-tagline">Bio-agent</p>
+          <p className="sidebar-tagline">Bio-agent for reproducible research</p>
         </div>
 
         <button className="btn-new-session" onClick={handleNewSession}>

@@ -1,6 +1,8 @@
 # 🧬 Open-Rosalind
 
-> **A chat-based bioinformatics agent that grounds every answer in real database evidence.**
+> ## **Ask biology. Get answers you can trust.**
+>
+> *A tool-driven bio-agent for reproducible life science research.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![BioBench v0](https://img.shields.io/badge/BioBench_v0-100%25-brightgreen)](benchmark/BENCHMARK.md)

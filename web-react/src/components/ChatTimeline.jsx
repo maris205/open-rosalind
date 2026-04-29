@@ -4,6 +4,26 @@ function escapeHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Convert numeric confidence (0..1) to a human-readable label
+function confidenceLabel(c) {
+  const v = c.toFixed(2);
+  if (c >= 0.85) return `High (${v})`;
+  if (c >= 0.6) return `Medium (${v})`;
+  if (c >= 0.3) return `Low (${v})`;
+  return `Very low (${v})`;
+}
+
+// Map internal skill name → user-facing source label
+function skillToSource(skill) {
+  const map = {
+    sequence_basic_analysis: 'Sequence (BioPython)',
+    uniprot_lookup: 'UniProt',
+    literature_search: 'PubMed',
+    mutation_effect: 'Mutation diff',
+  };
+  return map[skill] || skill;
+}
+
 function renderMarkdown(md) {
   if (!md) return '';
   return escapeHtml(md)
@@ -42,12 +62,18 @@ function AssistantCard({ message, onSignupClick }) {
       <div className="card-result">
         <div className="card-header">
           <span className="exec-mode-badge" data-mode={message.execution_mode}>
-            {message.execution_mode === 'harness' ? '🔗 Multi-step' : '⚡ Single-step'}
+            {message.execution_mode === 'harness' ? '🔗 Multi-step research' : '⚡ Quick analysis'}
           </span>
           {message.confidence != null && (
-            <span className="confidence-badge">conf: {message.confidence.toFixed(2)}</span>
+            <span className="confidence-badge" title={`Score: ${message.confidence.toFixed(2)}`}>
+              🧬 Confidence: {confidenceLabel(message.confidence)}
+            </span>
           )}
-          {message.skill && <span className="skill-badge">{message.skill}</span>}
+          {message.skill && message.skill !== 'harness' && (
+            <span className="skill-badge" title={`Skill: ${message.skill}`}>
+              🔬 Source: {skillToSource(message.skill)}
+            </span>
+          )}
         </div>
 
         <div className="card-summary markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(message.summary) }} />
@@ -118,8 +144,9 @@ export default function ChatTimeline({ messages, loading, onSignupClick }) {
   if (messages.length === 0 && !loading) {
     return (
       <div className="chat-empty">
-        <h2>🧬 Open-Rosalind</h2>
-        <p>Ask me anything about proteins, sequences, or biomedical literature.</p>
+        <div className="empty-icon">🧬</div>
+        <h2>Ask biology. Get answers you can trust.</h2>
+        <p className="empty-tagline">A tool-driven bio-agent for reproducible life science research.</p>
         <div className="suggestions">
           <div className="suggestion">"What is BRCA1?"</div>
           <div className="suggestion">"Find papers about CRISPR base editing"</div>
