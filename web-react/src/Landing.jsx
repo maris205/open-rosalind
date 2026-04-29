@@ -16,7 +16,7 @@ export default function Landing() {
           <a href="#how">How it works</a>
           <a href="#principles">Principles</a>
           <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub ↗</a>
-          <a href="#/app" className="nav-cta">Try Demo →</a>
+          <a href="#/app" className="nav-cta">Launch App →</a>
         </div>
       </nav>
 
@@ -32,13 +32,13 @@ export default function Landing() {
             with structured workflows, evidence grounding, and full traceability.
           </p>
           <div className="hero-cta">
-            <a href="#/app" className="btn-primary-lg">Try Demo →</a>
+            <a href="#/app" className="btn-primary-lg">Launch App →</a>
             <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-secondary-lg">
               View on GitHub ↗
             </a>
           </div>
           <div className="hero-meta">
-            <span>✓ No signup needed</span>
+            <span>✓ Free to use</span>
             <span>✓ MIT open source</span>
             <span>✓ Works with any LLM</span>
           </div>
@@ -242,7 +242,7 @@ similar to GAPDH [UniProt:P04406]`}</pre>
           <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-primary-lg">
             View on GitHub ↗
           </a>
-          <a href="#/app" className="btn-secondary-lg">Try Demo →</a>
+          <a href="#/app" className="btn-secondary-lg">Launch App →</a>
         </div>
       </section>
 
