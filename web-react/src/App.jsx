@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import SessionSidebar from './components/SessionSidebar';
 import InputPanel from './components/InputPanel';
 import ResultPanel from './components/ResultPanel';
-import { analyze, listSessions } from './api';
+import { analyze, listSessions, getSession } from './api';
 import './App.css';
 
 export default function App() {
@@ -52,16 +52,49 @@ export default function App() {
     }
   }
 
-  function handleLoadSession(session) {
-    // For now, just show the session_id and user_input in the result panel
-    // A full implementation would replay the session events
-    setCurrentResult({
-      session_id: session.session_id,
-      summary: `Session loaded: ${session.user_input}\n\n(Full session replay coming soon)`,
-      evidence: {},
-      trace_steps: [],
-    });
-    setFollowUpSession(session.session_id);
+  async function handleLoadSession(session) {
+    try {
+      const data = await getSession(session.session_id);
+      const events = data.events || [];
+
+      // Extract relevant fields from event stream
+      const startEv = events.find((e) => e.kind === 'start');
+      const skillCallEv = events.find((e) => e.kind === 'skill_call');
+      const skillResultEv = events.find((e) => e.kind === 'skill_result');
+      const summaryEv = events.find((e) => e.kind === 'summary');
+
+      const evidence = skillResultEv?.evidence || {};
+      const annotation = skillResultEv?.annotation || null;
+      const confidence = skillResultEv?.confidence ?? null;
+      const notes = skillResultEv?.notes || [];
+
+      // Reconstruct trace_steps from skill_call + skill_result
+      const trace_steps = [];
+      if (skillCallEv) {
+        trace_steps.push({
+          skill: skillCallEv.skill,
+          input: skillCallEv.payload || {},
+          output: skillResultEv?.evidence || {},
+          status: skillResultEv ? 'success' : 'pending',
+          latency_ms: null,
+        });
+      }
+
+      setCurrentResult({
+        exec_mode: 'single',
+        session_id: session.session_id,
+        skill: skillCallEv?.skill || 'unknown',
+        summary: summaryEv?.text || `(No summary recorded for this session)`,
+        annotation,
+        confidence,
+        notes,
+        evidence,
+        trace_steps,
+      });
+      setFollowUpSession(session.session_id);
+    } catch (err) {
+      alert(`Failed to load session: ${err.message}`);
+    }
   }
 
   return (
