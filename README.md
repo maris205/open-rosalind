@@ -45,6 +45,30 @@ Open-Rosalind: 🔗 Multi-step auto-detected.
 
 ## 🚀 Quick Start
 
+### Option A — Docker (recommended for deployment)
+
+```bash
+# Pull the prebuilt image and run
+docker run -d --name open-rosalind \
+  -p 8080:80 \
+  -e OPENROUTER_API_KEY=sk-or-v1-... \
+  ghcr.io/maris205/open-rosalind:latest
+
+# Open http://localhost:8080/
+```
+
+Or with `docker-compose` (clones the repo, persists data):
+
+```bash
+git clone https://github.com/maris205/open-rosalind && cd open-rosalind
+export OPENROUTER_API_KEY=sk-or-v1-...
+docker compose up -d --build
+```
+
+See [`docs/DOCKER.md`](./docs/DOCKER.md) for env vars, OpenAI-compat endpoint examples (vLLM / Azure / DeepSeek / Ollama), and persistent volume mounts.
+
+### Option B — From source (development)
+
 ```bash
 # 1. Install Python deps
 pip install fastapi uvicorn openai requests pydantic biopython pyyaml
@@ -58,7 +82,7 @@ cd web-react && npm install && npm run build && cd ..
 # 4. Run the agent
 python -m open_rosalind.cli serve
 
-# Open http://127.0.0.1:6006/ — try a demo prompt!
+# Open http://127.0.0.1:6006/
 ```
 
 **No signup needed** to try — anonymous users get one free session. To save more conversations, sign up with email + password (no email verification).
@@ -254,6 +278,7 @@ task_traces/           JSONL multi-step task traces
 
 | Document | What it covers |
 |---|---|
+| [`docs/DOCKER.md`](./docs/DOCKER.md) | Docker deployment, env vars, OpenAI-compat endpoints |
 | [`docs/DESIGN_PRINCIPLES.md`](./docs/DESIGN_PRINCIPLES.md) | The 8 core principles (tool-first, evidence-grounded, …) |
 | [`docs/SKILL_SPEC.md`](./docs/SKILL_SPEC.md) | How skills are structured + how to add one |
 | [`docs/EXECUTION_PROTOCOL.md`](./docs/EXECUTION_PROTOCOL.md) | MCP-inspired execution model |
@@ -270,8 +295,26 @@ task_traces/           JSONL multi-step task traces
 - ✅ **mvp2** — Skills Registry + React UI + Standardization + BioBench v1
 - ✅ **mvp3** — Multi-step Harness (Planner + AgentAdapter + TaskRunner)
 - ✅ **mvp3.1** — Modular `skills_v2/` directory layout + auto-discovery
-- ✅ **mvp3.2** — Chat UI · Email auth · SQLite · in-session context · analytics
+- ✅ **mvp3.2** — Chat UI · Email auth · SQLite · in-session context · analytics · Docker
 - 🔜 **mvp4** — homology search (BLAST) · OAuth · admin dashboard · paper export
+
+---
+
+## 🚢 Deploy in 3 minutes
+
+On any Linux server with Docker installed:
+
+```bash
+ssh user@your-server.com
+git clone https://github.com/maris205/open-rosalind && cd open-rosalind
+export OPENROUTER_API_KEY=sk-or-v1-...
+docker compose up -d --build
+# → http://your-server.com:8080/
+```
+
+Tested on Ubuntu 22.04 / Debian 12 / Rocky 9. Works with any OpenAI-compatible LLM endpoint (OpenRouter, OpenAI, vLLM, Azure, Ollama via litellm proxy).
+
+For mainland-China deployment, point `OPENROUTER_BASE_URL` at a domestic provider like DeepSeek or Qwen — see [`docs/DOCKER.md`](./docs/DOCKER.md).
 
 ---
 
