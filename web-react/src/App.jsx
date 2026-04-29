@@ -1,119 +1,200 @@
 import { useState, useEffect } from 'react';
-import SessionSidebar from './components/SessionSidebar';
-import InputPanel from './components/InputPanel';
-import ResultPanel from './components/ResultPanel';
-import { analyze, listSessions, getSession } from './api';
+import ChatTimeline from './components/ChatTimeline';
+import ChatInput from './components/ChatInput';
+import AuthDialog from './components/AuthDialog';
+import { chat, listChatSessions, getChatSession, getMe } from './api';
 import './App.css';
 
 export default function App() {
+  const [user, setUser] = useState(null);
   const [sessions, setSessions] = useState([]);
-  const [currentResult, setCurrentResult] = useState(null);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [messages, setMessages] = useState([]);  // chat timeline
   const [loading, setLoading] = useState(false);
-  const [followUpSession, setFollowUpSession] = useState(null);
-  const [execMode, setExecMode] = useState('single'); // 'single' | 'task'
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState('signup');
 
   useEffect(() => {
-    loadSessions();
+    loadUser();
   }, []);
+
+  useEffect(() => {
+    if (user) loadSessions();
+  }, [user]);
+
+  async function loadUser() {
+    if (localStorage.getItem('or_token')) {
+      const me = await getMe();
+      if (me) setUser(me);
+      else localStorage.removeItem('or_token');
+    }
+  }
 
   async function loadSessions() {
     try {
-      const data = await listSessions();
+      const data = await listChatSessions();
       setSessions(data.sessions || []);
     } catch (err) {
       console.error('Failed to load sessions:', err);
     }
   }
 
-  async function handleAnalyze(input, mode) {
+  async function handleSend(text) {
+    // Add user message immediately
+    setMessages((prev) => [...prev, { role: 'user', content: text }]);
     setLoading(true);
+
     try {
-      if (execMode === 'task') {
-        // Multi-step task mode
-        const res = await fetch('/api/task/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ goal: input, max_steps: 5 }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const result = await res.json();
-        setCurrentResult({ ...result, exec_mode: 'task' });
-      } else {
-        // Single-step mode
-        const result = await analyze(input, mode, followUpSession);
-        setCurrentResult({ ...result, exec_mode: 'single' });
-        setFollowUpSession(result.session_id);
-        await loadSessions();
+      const result = await chat(text, currentSessionId);
+
+      // Update session_id if this is a new conversation
+      if (!currentSessionId && result.session_id) {
+        setCurrentSessionId(result.session_id);
       }
+
+      // Add assistant message
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        ...result,
+      }]);
+
+      // Refresh sessions list (for logged-in users)
+      if (user) await loadSessions();
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        summary: `❌ Error: ${err.message}`,
+        execution_mode: 'error',
+        execution_reason: err.message,
+      }]);
     } finally {
       setLoading(false);
     }
   }
 
+  async function handleNewSession() {
+    if (!user) {
+      // Anonymous can only have one session
+      setAuthMode('signup');
+      setShowAuth(true);
+      return;
+    }
+    setMessages([]);
+    setCurrentSessionId(null);
+  }
+
   async function handleLoadSession(session) {
     try {
-      const data = await getSession(session.session_id);
-      const events = data.events || [];
-
-      // Extract relevant fields from event stream
-      const startEv = events.find((e) => e.kind === 'start');
-      const skillCallEv = events.find((e) => e.kind === 'skill_call');
-      const skillResultEv = events.find((e) => e.kind === 'skill_result');
-      const summaryEv = events.find((e) => e.kind === 'summary');
-
-      const evidence = skillResultEv?.evidence || {};
-      const annotation = skillResultEv?.annotation || null;
-      const confidence = skillResultEv?.confidence ?? null;
-      const notes = skillResultEv?.notes || [];
-
-      // Reconstruct trace_steps from skill_call + skill_result
-      const trace_steps = [];
-      if (skillCallEv) {
-        trace_steps.push({
-          skill: skillCallEv.skill,
-          input: skillCallEv.payload || {},
-          output: skillResultEv?.evidence || {},
-          status: skillResultEv ? 'success' : 'pending',
-          latency_ms: null,
-        });
-      }
-
-      setCurrentResult({
-        exec_mode: 'single',
-        session_id: session.session_id,
-        skill: skillCallEv?.skill || 'unknown',
-        summary: summaryEv?.text || `(No summary recorded for this session)`,
-        annotation,
-        confidence,
-        notes,
-        evidence,
-        trace_steps,
-      });
-      setFollowUpSession(session.session_id);
+      const data = await getChatSession(session.session_id);
+      setCurrentSessionId(session.session_id);
+      // Reconstruct chat from stored session
+      setMessages([
+        { role: 'user', content: data.user_input },
+        {
+          role: 'assistant',
+          summary: data.summary,
+          skill: data.skill,
+          confidence: data.confidence,
+          annotation: data.annotation,
+          evidence: data.evidence,
+          notes: data.notes,
+          execution_mode: data.execution_mode,
+          execution_reason: data.execution_reason,
+          trace_steps: [],
+        },
+      ]);
     } catch (err) {
       alert(`Failed to load session: ${err.message}`);
     }
   }
 
+  function handleLogout() {
+    localStorage.removeItem('or_token');
+    localStorage.removeItem('or_email');
+    localStorage.removeItem('or_anon_token');
+    setUser(null);
+    setSessions([]);
+    setMessages([]);
+    setCurrentSessionId(null);
+  }
+
+  function handleAuthSuccess(result) {
+    setUser({ user_id: result.user_id, email: result.email, is_anonymous: false });
+    setShowAuth(false);
+  }
+
   return (
     <div className="app">
-      <header>
-        <h1>Open-Rosalind <span className="tag">MVP3</span></h1>
-        <p>Local-first, tool-driven bioinformatics agent</p>
-      </header>
-      <div className="main-layout">
-        <SessionSidebar
-          sessions={sessions}
-          onLoadSession={handleLoadSession}
-          onRefresh={loadSessions}
-        />
-        <div className="content">
-          <InputPanel onAnalyze={handleAnalyze} loading={loading} execMode={execMode} setExecMode={setExecMode} />
-          {currentResult && <ResultPanel result={currentResult} />}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <h1>🧬 Open-Rosalind</h1>
+          <p className="sidebar-tagline">Bio-agent</p>
         </div>
-      </div>
+
+        <button className="btn-new-session" onClick={handleNewSession}>
+          + New conversation
+        </button>
+
+        <div className="sidebar-section">
+          <div className="sidebar-label">Sessions</div>
+          {sessions.length === 0 ? (
+            <div className="sidebar-empty">
+              {user ? 'No sessions yet' : 'Sign in to save sessions'}
+            </div>
+          ) : (
+            <ul className="session-list">
+              {sessions.map((s) => (
+                <li
+                  key={s.session_id}
+                  className={`session-item ${s.session_id === currentSessionId ? 'active' : ''}`}
+                  onClick={() => handleLoadSession(s)}
+                >
+                  <div className="session-title">{(s.user_input || '').slice(0, 50)}</div>
+                  <div className="session-meta">
+                    {s.execution_mode === 'harness' ? '🔗' : '⚡'} {s.skill || ''}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="sidebar-footer">
+          {user ? (
+            <div className="user-info">
+              <div className="user-email">{user.email}</div>
+              <button className="btn-link" onClick={handleLogout}>Log out</button>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <button className="btn-link" onClick={() => { setAuthMode('login'); setShowAuth(true); }}>
+                Log in
+              </button>
+              {' · '}
+              <button className="btn-link" onClick={() => { setAuthMode('signup'); setShowAuth(true); }}>
+                Sign up
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <main className="main">
+        <ChatTimeline
+          messages={messages}
+          loading={loading}
+          onSignupClick={() => { setAuthMode('signup'); setShowAuth(true); }}
+        />
+        <ChatInput onSend={handleSend} disabled={loading} />
+      </main>
+
+      {showAuth && (
+        <AuthDialog
+          defaultMode={authMode}
+          onClose={() => setShowAuth(false)}
+          onSuccess={handleAuthSuccess}
+        />
+      )}
     </div>
   );
 }
