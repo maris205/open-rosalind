@@ -69,7 +69,8 @@
       "Bash(sqlite3 open_rosalind.db \"SELECT annotation_json FROM sessions WHERE skill='harness' ORDER BY created_at DESC LIMIT 1;\")",
       "Bash(sqlite3 open_rosalind.db \"SELECT session_id, role, length\\(content\\) FROM messages WHERE content LIKE '%Analyze sequence%' OR content LIKE '%Task Report%' LIMIT 10;\")",
       "Bash(sqlite3 open_rosalind.db \"SELECT session_id, user_input, execution_mode FROM sessions WHERE execution_mode='harness';\")",
-      "Bash(sqlite3 open_rosalind.db \"SELECT card_json FROM messages WHERE role='assistant' AND content LIKE '%Task Report%' ORDER BY created_at DESC LIMIT 1;\")"
+      "Bash(sqlite3 open_rosalind.db \"SELECT card_json FROM messages WHERE role='assistant' AND content LIKE '%Task Report%' ORDER BY created_at DESC LIMIT 1;\")",
+      "Bash(docker --version)"
     ]
   }
 }

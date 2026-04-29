@@ -1,0 +1,56 @@
+# Git / version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+*.egg-info
+
+# Virtual envs
+venv
+.venv
+env
+
+# Node (will be reinstalled in builder stage)
+web-react/node_modules
+web-react/dist
+web-react/.vite
+web/dist
+
+# Runtime data — should NOT bake into image
+sessions/
+traces/
+task_traces/
+*.db
+*.db-journal
+*.log
+
+# Local dev / docs
+.claude/
+develop/
+docs/
+benchmark/results*.json
+benchmark/results*.md
+benchmark/history*.jsonl
+*.md
+!README.md
+
+# Reference projects
+OpenBioMed/
+
+# Secrets
+.env
+.env.local
+secrets.local.env
+openrouter.md
+
+# OS / editor
+.DS_Store
+.vscode
+.idea
+*.swp
+.ipynb_checkpoints/

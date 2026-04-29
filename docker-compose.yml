@@ -1,0 +1,26 @@
+services:
+  open-rosalind:
+    build: .
+    image: open-rosalind:latest
+    container_name: open-rosalind
+    ports:
+      - "8080:80"   # host 8080 → container 80; change left side to expose elsewhere
+    environment:
+      # === LLM backend (required) ===
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?must set OPENROUTER_API_KEY}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemma-4-26b-a4b-it}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+    volumes:
+      # Persist sessions, traces, sqlite db across restarts
+      - ./sessions:/app/sessions
+      - ./traces:/app/traces
+      - ./task_traces:/app/task_traces
+      # Map the SQLite db to host so user data survives image rebuilds
+      - ./open_rosalind.db:/app/open_rosalind.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

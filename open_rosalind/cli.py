@@ -14,12 +14,17 @@ from .skills import SKILLS, list_cards, get_skill
 
 
 def cmd_serve(args):
+    import os
     cfg = load_config(args.config)
     server_cfg = cfg.get("server", {})
+    # Priority: CLI arg → env var → config → default
+    host = args.host or os.environ.get("HOST") or server_cfg.get("host", "0.0.0.0")
+    port_raw = args.port or os.environ.get("PORT") or server_cfg.get("port", 6006)
+    port = int(port_raw) if not isinstance(port_raw, int) else port_raw
     uvicorn.run(
         "open_rosalind.server:app",
-        host=args.host or server_cfg.get("host", "0.0.0.0"),
-        port=args.port or server_cfg.get("port", 6006),
+        host=host,
+        port=port,
         reload=False,
     )
 
