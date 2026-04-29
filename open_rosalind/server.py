@@ -159,6 +159,14 @@ if _WEB_DIR.exists():
     def index():
         return FileResponse(str(_WEB_DIR / "index.html"))
 
+    @app.get("/favicon.svg")
+    def favicon_svg():
+        return FileResponse(str(_WEB_DIR / "favicon.svg"))
+
+    @app.get("/favicon.ico")
+    def favicon_ico():
+        return FileResponse(str(_WEB_DIR / "favicon.svg"))
+
 
 # ===== MVP3 Task API =====
 

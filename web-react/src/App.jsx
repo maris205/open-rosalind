@@ -13,6 +13,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signup');
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const GITHUB_URL = 'https://github.com/maris205/open-rosalind';
 
   useEffect(() => {
     loadUser();
@@ -180,19 +183,41 @@ export default function App() {
 
         <div className="sidebar-footer">
           {user ? (
-            <div className="user-info">
-              <div className="user-email">{user.email}</div>
-              <button className="btn-link" onClick={handleLogout}>Log out</button>
+            <div className="user-block">
+              <button
+                className="user-button"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                title={user.email}
+              >
+                <div className="user-avatar">{user.email.charAt(0).toUpperCase()}</div>
+                <div className="user-name">{user.email.split('@')[0]}</div>
+                <div className="user-caret">⌄</div>
+              </button>
+              {showUserMenu && (
+                <div className="user-menu" onMouseLeave={() => setShowUserMenu(false)}>
+                  <a className="user-menu-item" href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
+                    <span className="menu-icon">📖</span> Help / GitHub
+                  </a>
+                  <button className="user-menu-item" onClick={() => { setShowUserMenu(false); handleLogout(); }}>
+                    <span className="menu-icon">↗</span> Log out
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="auth-buttons">
-              <button className="btn-link" onClick={() => { setAuthMode('login'); setShowAuth(true); }}>
-                Log in
-              </button>
-              {' · '}
-              <button className="btn-link" onClick={() => { setAuthMode('signup'); setShowAuth(true); }}>
-                Sign up
-              </button>
+            <div className="user-block">
+              <div className="auth-buttons">
+                <button className="btn-link" onClick={() => { setAuthMode('login'); setShowAuth(true); }}>
+                  Log in
+                </button>
+                {' · '}
+                <button className="btn-link" onClick={() => { setAuthMode('signup'); setShowAuth(true); }}>
+                  Sign up
+                </button>
+              </div>
+              <a className="help-link" href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
+                📖 Help
+              </a>
             </div>
           )}
         </div>
