@@ -99,12 +99,6 @@ class TaskRunner:
                 lines.append(f"- **{key}**: {value}")
             lines.append("")
 
-        # Evidence summary
-        lines.append(f"## Evidence\n")
-        lines.append(f"- Total evidence records: {len(task.state.evidence_pool)}")
-        lines.append(f"- Trace references: {len(task.state.trace_refs)}")
-        lines.append("")
-
         # Warnings
         if task.warnings:
             lines.append("## Warnings\n")

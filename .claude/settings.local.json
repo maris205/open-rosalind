@@ -63,7 +63,13 @@
       "Bash(sqlite3 open_rosalind.db \"SELECT email, datetime\\(created_at, 'unixepoch'\\) FROM users;\")",
       "Bash(sqlite3 open_rosalind.db \".schema\")",
       "Bash(sqlite3 open_rosalind.db \"SELECT count\\(*\\) as users FROM users; SELECT count\\(*\\) as sessions FROM sessions; SELECT count\\(*\\) as messages FROM messages; SELECT count\\(*\\) as tasks FROM tasks;\")",
-      "Bash(curl -sS http://127.0.0.1:6006/api/stats)"
+      "Bash(curl -sS http://127.0.0.1:6006/api/stats)",
+      "Bash(sqlite3 open_rosalind.db \"SELECT session_id, skill, length\\(evidence_json\\) as ev_len, length\\(annotation_json\\) as ann_len FROM sessions ORDER BY created_at DESC LIMIT 5;\")",
+      "Bash(sqlite3 open_rosalind.db \"SELECT evidence_json FROM sessions WHERE skill='harness' ORDER BY created_at DESC LIMIT 1;\")",
+      "Bash(sqlite3 open_rosalind.db \"SELECT annotation_json FROM sessions WHERE skill='harness' ORDER BY created_at DESC LIMIT 1;\")",
+      "Bash(sqlite3 open_rosalind.db \"SELECT session_id, role, length\\(content\\) FROM messages WHERE content LIKE '%Analyze sequence%' OR content LIKE '%Task Report%' LIMIT 10;\")",
+      "Bash(sqlite3 open_rosalind.db \"SELECT session_id, user_input, execution_mode FROM sessions WHERE execution_mode='harness';\")",
+      "Bash(sqlite3 open_rosalind.db \"SELECT card_json FROM messages WHERE role='assistant' AND content LIKE '%Task Report%' ORDER BY created_at DESC LIMIT 1;\")"
     ]
   }
 }

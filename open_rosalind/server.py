@@ -388,6 +388,17 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         )
 
         # Build the assistant card (matches ChatResponse shape minus session_id)
+        # Aggregate evidence from each step so the UI can show it under "Evidence"
+        aggregated_evidence: dict = {}
+        aggregated_trace_steps: list = []
+        for s in result.steps:
+            ar = s.agent_result or {}
+            ev = ar.get("evidence") or {}
+            if ev:
+                aggregated_evidence[s.step_id] = ev
+            for t in (ar.get("trace") or []):
+                aggregated_trace_steps.append(t)
+
         assistant_card = {
             "execution_mode": mode,
             "execution_reason": reason,
@@ -406,6 +417,8 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                 }
                 for s in result.steps
             ],
+            "evidence": aggregated_evidence,
+            "trace_steps": aggregated_trace_steps,
         }
         # Persist message turns (user + assistant) for full conversation replay
         storage.add_message(chat_session_id, "user", req.message)
