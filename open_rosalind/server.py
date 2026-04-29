@@ -357,6 +357,9 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     # 3. Auto-select mode
     mode, reason = select_mode(req.message)
 
+    # Determine the chat session_id (sticky across turns within a conversation)
+    chat_session_id = req.session_id
+
     # 3. Run skill
     if mode == "harness":
         from datetime import datetime
@@ -365,10 +368,13 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         result = harness_runner.run(task)
         task_trace_store.save(result)
 
-        # Store as session in SQLite
-        session_id = task_id
+        # If this is the first turn of a new conversation, use task_id as chat session
+        if not chat_session_id:
+            chat_session_id = task_id
+
+        # Save session metadata (used for sidebar listing)
         storage.save_session(
-            session_id=session_id,
+            session_id=chat_session_id,
             user_id=user["user_id"],
             user_input=req.message,
             skill="harness",
@@ -381,18 +387,17 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             execution_reason=reason,
         )
 
-        return ChatResponse(
-            session_id=session_id,
-            user_id=user["user_id"],
-            execution_mode=mode,
-            execution_reason=reason,
-            skill="harness",
-            summary=result.final_report or "",
-            annotation={"kind": "task", "n_steps": len(result.steps)},
-            confidence=0.85,
-            notes=result.warnings,
-            final_report=result.final_report,
-            steps=[
+        # Build the assistant card (matches ChatResponse shape minus session_id)
+        assistant_card = {
+            "execution_mode": mode,
+            "execution_reason": reason,
+            "skill": "harness",
+            "summary": result.final_report or "",
+            "annotation": {"kind": "task", "n_steps": len(result.steps)},
+            "confidence": 0.85,
+            "notes": result.warnings,
+            "final_report": result.final_report,
+            "steps": [
                 {
                     "step_id": s.step_id,
                     "instruction": s.instruction,
@@ -401,19 +406,34 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
                 }
                 for s in result.steps
             ],
+        }
+        # Persist message turns (user + assistant) for full conversation replay
+        storage.add_message(chat_session_id, "user", req.message)
+        storage.add_message(chat_session_id, "assistant", result.final_report or "", card=assistant_card)
+
+        return ChatResponse(
+            session_id=chat_session_id,
+            user_id=user["user_id"],
+            **assistant_card,
             anon_token=new_anon_token or req.anon_token if is_anonymous else None,
             is_anonymous=is_anonymous,
         )
     else:
         # Single-step mode (use existing AgentRunner)
-        # When req.session_id is provided, treat it as the follow-up context
-        # so the agent injects prior evidence into the LLM prompt.
+        # When session_id is provided (continuing a conversation), use it as
+        # follow_up_session so the runner loads prior evidence from JSONL.
+        # The chat_session_id matches the JSONL session because the agent reuses it.
         result = runner.run(
             req.message,
             follow_up_session=req.session_id,
         )
+
+        # Use the agent's session_id as the chat session if this is a new conversation
+        if not chat_session_id:
+            chat_session_id = result["session_id"]
+
         storage.save_session(
-            session_id=result["session_id"],
+            session_id=chat_session_id,
             user_id=user["user_id"],
             user_input=req.message,
             skill=result.get("skill", ""),
@@ -425,43 +445,62 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             execution_mode=mode,
             execution_reason=reason,
         )
+
+        # Build the assistant card and persist messages
+        assistant_card = {
+            "execution_mode": mode,
+            "execution_reason": reason,
+            "skill": result.get("skill"),
+            "summary": result.get("summary", ""),
+            "annotation": result.get("annotation"),
+            "confidence": result.get("confidence"),
+            "notes": result.get("notes") or [],
+            "evidence": result.get("evidence"),
+            "trace_steps": result.get("trace_steps") or [],
+        }
+        storage.add_message(chat_session_id, "user", req.message)
+        storage.add_message(chat_session_id, "assistant", result.get("summary", ""), card=assistant_card)
+
         return ChatResponse(
-            session_id=result["session_id"],
+            session_id=chat_session_id,
             user_id=user["user_id"],
-            execution_mode=mode,
-            execution_reason=reason,
-            skill=result.get("skill"),
-            summary=result.get("summary", ""),
-            annotation=result.get("annotation"),
-            confidence=result.get("confidence"),
-            notes=result.get("notes") or [],
-            evidence=result.get("evidence"),
-            trace_steps=result.get("trace_steps") or [],
+            **assistant_card,
             anon_token=new_anon_token or req.anon_token if is_anonymous else None,
             is_anonymous=is_anonymous,
         )
 
 
 @app.get("/api/chat/sessions")
-def list_chat_sessions(authorization: str | None = Header(None), limit: int = 50):
-    """List user's chat sessions (requires auth or anonymous user)."""
-    if not authorization or not authorization.startswith("Bearer "):
-        return {"sessions": []}
-    user = storage.user_from_token(authorization[7:])
+def list_chat_sessions(authorization: str | None = Header(None), anon_token: str | None = None, limit: int = 50):
+    """List user's chat sessions (works for both authenticated and anonymous)."""
+    user = None
+    if authorization and authorization.startswith("Bearer "):
+        user = storage.user_from_token(authorization[7:])
+    elif anon_token:
+        user = storage.user_from_token(anon_token)
     if not user:
         return {"sessions": []}
     return {"sessions": storage.list_sessions(user["user_id"], limit=limit)}
 
 
 @app.get("/api/chat/sessions/{session_id}")
-def get_chat_session(session_id: str, authorization: str | None = Header(None)):
-    """Get full session detail."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authentication required")
-    user = storage.user_from_token(authorization[7:])
+def get_chat_session(session_id: str, authorization: str | None = Header(None), anon_token: str | None = None):
+    """Get full session detail with all message turns."""
+    # Resolve user from either Bearer token or anon_token query param
+    user = None
+    if authorization and authorization.startswith("Bearer "):
+        user = storage.user_from_token(authorization[7:])
+    elif anon_token:
+        user = storage.user_from_token(anon_token)
+
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     session = storage.get_session(session_id, user["user_id"])
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Include full message history for replay
+    messages = storage.get_messages(session_id)
+    session["messages"] = messages
     return session

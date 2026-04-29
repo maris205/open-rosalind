@@ -63,13 +63,21 @@ export async function chat(message, sessionId = null) {
 }
 
 export async function listChatSessions() {
-  const res = await fetch(`${API_BASE}/chat/sessions`, { headers: authHeaders() });
+  const anonToken = localStorage.getItem('or_anon_token');
+  const url = anonToken && !localStorage.getItem('or_token')
+    ? `${API_BASE}/chat/sessions?anon_token=${encodeURIComponent(anonToken)}`
+    : `${API_BASE}/chat/sessions`;
+  const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) return { sessions: [] };
   return res.json();
 }
 
 export async function getChatSession(sessionId) {
-  const res = await fetch(`${API_BASE}/chat/sessions/${sessionId}`, { headers: authHeaders() });
+  const anonToken = localStorage.getItem('or_anon_token');
+  const url = anonToken && !localStorage.getItem('or_token')
+    ? `${API_BASE}/chat/sessions/${sessionId}?anon_token=${encodeURIComponent(anonToken)}`
+    : `${API_BASE}/chat/sessions/${sessionId}`;
+  const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

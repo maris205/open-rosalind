@@ -16,6 +16,7 @@ export default function App() {
 
   useEffect(() => {
     loadUser();
+    loadSessions();
   }, []);
 
   useEffect(() => {
@@ -58,8 +59,8 @@ export default function App() {
         ...result,
       }]);
 
-      // Refresh sessions list (for logged-in users)
-      if (user) await loadSessions();
+      // Refresh sessions list (works for both authenticated and anonymous now)
+      await loadSessions();
     } catch (err) {
       setMessages((prev) => [...prev, {
         role: 'assistant',
@@ -87,22 +88,36 @@ export default function App() {
     try {
       const data = await getChatSession(session.session_id);
       setCurrentSessionId(session.session_id);
-      // Reconstruct chat from stored session
-      setMessages([
-        { role: 'user', content: data.user_input },
-        {
-          role: 'assistant',
-          summary: data.summary,
-          skill: data.skill,
-          confidence: data.confidence,
-          annotation: data.annotation,
-          evidence: data.evidence,
-          notes: data.notes,
-          execution_mode: data.execution_mode,
-          execution_reason: data.execution_reason,
-          trace_steps: [],
-        },
-      ]);
+
+      // Rebuild full chat timeline from stored messages
+      const msgs = data.messages || [];
+      if (msgs.length > 0) {
+        setMessages(msgs.map((m) => {
+          if (m.role === 'user') {
+            return { role: 'user', content: m.content };
+          } else {
+            // Assistant: spread the saved card so all UI fields work
+            return { role: 'assistant', ...(m.card || {}), summary: m.content || (m.card?.summary || '') };
+          }
+        }));
+      } else {
+        // Fallback for legacy sessions saved without messages
+        setMessages([
+          { role: 'user', content: data.user_input },
+          {
+            role: 'assistant',
+            summary: data.summary,
+            skill: data.skill,
+            confidence: data.confidence,
+            annotation: data.annotation,
+            evidence: data.evidence,
+            notes: data.notes,
+            execution_mode: data.execution_mode,
+            execution_reason: data.execution_reason,
+            trace_steps: [],
+          },
+        ]);
+      }
     } catch (err) {
       alert(`Failed to load session: ${err.message}`);
     }
