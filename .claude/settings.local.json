@@ -56,7 +56,10 @@
       "Bash(PYTHONPATH=/root/autodl-tmp/open-rosalind python tests/test_harness.py)",
       "Bash(curl -sS -X POST http://127.0.0.1:6006/api/task/run -H 'Content-Type: application/json' -d '{\"goal\":\"Find papers about CRISPR\",\"max_steps\":2}')",
       "Bash(git mv *)",
-      "Bash(mv skill.py handler.py)"
+      "Bash(mv skill.py handler.py)",
+      "Bash(git branch *)",
+      "Bash(git stash *)",
+      "Bash(curl -sS -X POST http://127.0.0.1:6006/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\",\"password\":\"testpass123\"}')"
     ]
   }
 }

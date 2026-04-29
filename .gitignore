@@ -35,3 +35,7 @@ OpenBioMed/
 
 # Local-only docs containing keys
 openrouter.md
+
+# MVP3.2: SQLite db
+*.db
+*.db-journal
