@@ -406,7 +406,12 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
         )
     else:
         # Single-step mode (use existing AgentRunner)
-        result = runner.run(req.message, session_id=req.session_id)
+        # When req.session_id is provided, treat it as the follow-up context
+        # so the agent injects prior evidence into the LLM prompt.
+        result = runner.run(
+            req.message,
+            follow_up_session=req.session_id,
+        )
         storage.save_session(
             session_id=result["session_id"],
             user_id=user["user_id"],
