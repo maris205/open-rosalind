@@ -23,8 +23,6 @@ def handler(payload: dict, trace: Any) -> dict:
             "uniprot_hint": {...}
         }
     """
-    from ...tools.registry import REGISTRY
-
     sequence = payload.get("sequence", "").strip()
     if not sequence:
         return {
@@ -55,20 +53,18 @@ def handler(payload: dict, trace: Any) -> dict:
         probe_len = min(30, primary["length"])
         probe = primary["sequence"][:probe_len]
 
-        # Call uniprot.search via registry
-        search_fn = REGISTRY.get("uniprot.search")
-        if search_fn:
-            try:
-                result = search_fn.handler(query=probe, trace=trace)
-                if result.get("hits"):
-                    uniprot_hint = {
-                        "hits": len(result["hits"]),
-                        "top_match": result["hits"][0].get("accession"),
-                        "probe_length": probe_len,
-                    }
-                    notes.append(f"UniProt probe: {len(result['hits'])} hits")
-            except Exception as e:
-                notes.append(f"UniProt probe failed: {e}")
+        try:
+            from ..uniprot import tools as up_tools
+            result = up_tools.search(query=probe, max_results=3)
+            if result.get("hits"):
+                uniprot_hint = {
+                    "hits": len(result["hits"]),
+                    "top_match": result["hits"][0].get("accession"),
+                    "probe_length": probe_len,
+                }
+                notes.append(f"UniProt probe: {len(result['hits'])} hits")
+        except Exception as e:
+            notes.append(f"UniProt probe failed: {e}")
 
     confidence = 0.85 if primary["type"] in ["dna", "rna"] else 0.7
 
