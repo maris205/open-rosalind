@@ -121,6 +121,10 @@ export default function App() {
   function handleAuthSuccess(result) {
     setUser({ user_id: result.user_id, email: result.email, is_anonymous: false });
     setShowAuth(false);
+    // After signup/login, start fresh: clear anonymous messages + session
+    // so the user enters a clean "logged-in" state ready for new conversations.
+    setMessages([]);
+    setCurrentSessionId(null);
   }
 
   return (
