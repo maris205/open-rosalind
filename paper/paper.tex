@@ -114,7 +114,7 @@ The framework rests on four principles, summarized in Figure~\ref{fig:principles
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/disign_principle.png}
-\caption{The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture (Figure~\ref{fig:arch}).}
+\caption{The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture.}
 \label{fig:principles}
 \end{figure}
 
@@ -133,14 +133,7 @@ Tasks are executed through pre-declared workflows rather than free-form agent lo
 \section{Framework Architecture}
 \label{sec:framework}
 
-Open-Rosalind organizes the four principles into a layered architecture (Figure~\ref{fig:arch}) in which each layer enforces a specific reproducibility invariant. We describe the layers from the bottom up.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.95\linewidth]{claude-open-rosalind.png}
-\caption{The Open-Rosalind layered architecture. Atomic tools and MCP-compliant tool interfaces sit at the base; skills compose tools deterministically; the router and agent dispatch single-step queries; and the harness orchestrates bounded multi-step workflows. Each layer carries its own invariant: tools are deterministic and versioned, skills produce typed outputs, the router emits a categorical decision, and the harness enforces a hard step bound.}
-\label{fig:arch}
-\end{figure}
+Open-Rosalind organizes the four principles into a layered architecture in which each layer enforces a specific reproducibility invariant. We describe the layers from the bottom up.
 
 \subsection{Atomic Tools and MCP Interfaces}
 \label{sec:tools}

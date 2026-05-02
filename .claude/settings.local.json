@@ -98,7 +98,8 @@
       "Bash(apt-get install *)",
       "Bash(pdflatex -interaction=nonstopmode paper.tex)",
       "Bash(pdfinfo paper.pdf)",
-      "Bash(pdftotext paper.pdf -)"
+      "Bash(pdftotext paper.pdf -)",
+      "Bash(grep -E \"^Figure|^--$\")"
     ]
   }
 }
