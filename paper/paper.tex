@@ -231,9 +231,11 @@ ReAct \cite{yao2023react} and its descendants assume that flexibility is intrins
 A complementary line of work --- BioGPT \cite{luo2022biogpt}, BioMedLM \cite{stanford2023biomedlm}, Med-PaLM \cite{singhal2023palm2} --- improves the LLM's biomedical knowledge through specialized pre-training. Open-Rosalind is orthogonal to this line: the framework remains valid regardless of the underlying model. Indeed, our results suggest that even a general-purpose model, embedded in a sufficiently disciplined framework, can deliver reproducibility properties that no parameter scaling alone provides.
 
 \paragraph{Position relative to recent bio-agent systems.}
-Concurrent work has demonstrated the potential of LLM agents in biomedical research. \textbf{Biomni} \cite{huang2025biomni} is a general-purpose biomedical AI agent that unifies reasoning, retrieval, and code execution across diverse biological domains (genomics, immunology, microbiology, neuroscience). Biomni emphasizes breadth and autonomous task execution, supporting complex multi-step workflows through free-form planning. \textbf{GeneAgent} \cite{geneagent2025} addresses hallucination in gene-set analysis by autonomously interacting with biological databases to verify its own output, introducing a self-verification loop that reduces parametric recall errors. A recent Nature Methods perspective \cite{naturemethods2025agents} surveys the broader landscape of AI agents for biology, highlighting the transformative potential of autonomous systems while noting the need for verification mechanisms.
+The past year has seen rapid progress in LLM-based biomedical agents. \textbf{Biomni} \cite{huang2025biomni} is a general-purpose biomedical AI agent that unifies reasoning, retrieval, and code execution across diverse biological domains (genomics, immunology, microbiology, neuroscience), emphasizing breadth and autonomous task execution through free-form planning. \textbf{GeneAgent} \cite{geneagent2025} addresses hallucination in gene-set analysis by autonomously interacting with biological databases to verify its own output, introducing a self-verification loop that reduces parametric recall errors. \textbf{STELLA} \cite{stella2025} employs a multi-agent architecture with an evolving template library and dynamic tool ocean, enabling self-improvement through iterative refinement. A recent comprehensive review \cite{llmagents2025biomedicine} surveys the landscape of LLM agents for biomedicine, highlighting methods, evaluations, and challenges across clinical and research applications.
 
-Open-Rosalind's distinct contribution relative to these systems is its focus on \emph{protocol discipline as a first-class design constraint}. Where Biomni prioritizes capability breadth and GeneAgent prioritizes self-verification, Open-Rosalind prioritizes \emph{reproducibility guarantees}: every fact must originate from a tool, every step must be logged, every workflow must terminate within a known bound. The hold-out repair cycle (Section 8.9) demonstrates that these guarantees are not automatic --- they require deliberate architectural choices (tool-first execution, bounded planning, mandatory traces) and careful routing robustness. We view these systems as complementary: Biomni and GeneAgent explore what autonomous bio-agents \emph{can do}, while Open-Rosalind explores what they \emph{must guarantee} to be trusted in scientific workflows.
+Concurrent work has also addressed reproducibility and evaluation. \textbf{R-LAM} \cite{rlam2025} proposes reproducibility-constrained large action models for scientific workflow automation, introducing structured action schemas and deterministic execution traces. Several benchmarks have emerged: an \textbf{AI Agent Evaluation Suite for Bioinformatics} \cite{bioagenteval2025} evaluates frontier models across multiple agent harnesses using LLM-based graders; a \textbf{Scientific Research Suite} \cite{sciresearch2025} provides rigorous benchmarking for AI agents in scientific contexts; and frameworks for \textbf{multi-agent scientific AI evaluation} \cite{multiagenteval2026} propose process-level metrics, scaling curves, and adversarial robustness tests. A Nature Methods perspective \cite{naturemethods2025agents} surveys the broader landscape, noting the transformative potential of autonomous systems while emphasizing the need for verification mechanisms.
+
+Open-Rosalind's distinct contribution relative to these systems is its focus on \emph{protocol discipline as a first-class design constraint}. Where Biomni and STELLA prioritize capability breadth and self-evolution, and GeneAgent prioritizes self-verification, Open-Rosalind prioritizes \emph{reproducibility guarantees enforced at every architectural layer}: every fact must originate from a tool, every step must be logged, every workflow must terminate within a known bound. The hold-out repair cycle (Section 8.9) demonstrates that these guarantees are not automatic --- they require deliberate architectural choices (tool-first execution, bounded planning, mandatory traces) and careful routing robustness. We view these systems as complementary: Biomni, STELLA, and GeneAgent explore what autonomous bio-agents \emph{can do}, while Open-Rosalind explores what they \emph{must guarantee} to be trusted in scientific workflows. The emerging evaluation frameworks \cite{bioagenteval2025,sciresearch2025,multiagenteval2026} align with our position that process-level metrics (tool correctness, trace completeness, evidence grounding) are as important as task accuracy for scientific agents.
 
 \paragraph{Limitations.}
 The benchmark is small (91 tasks across three tiers) and skewed toward the four implemented skills. The harness templates are hand-coded; while their fixity is a feature for reproducibility, it bounds the range of multi-step workflows the system can express. The literature retrieval skill depends on PubMed availability and inherits its retrieval biases. Finally, the system has been validated on one model family; we have not yet characterized the dependence of trace completeness on model capability under more aggressive perturbations.
@@ -300,6 +302,31 @@ Y.~Huang, et~al.
 \newblock {GeneAgent}: Self-verification language agent for gene-set analysis using domain databases.
 \newblock {\em Nature Methods}, 2025.
 \newblock \url{https://doi.org/10.1038/s41592-025-02748-6}.
+
+\bibitem{stella2025}
+Self-Evolving {LLM} Agent for Biomedical Research.
+\newblock {\em arXiv preprint arXiv:2507.02004}, 2025.
+
+\bibitem{llmagents2025biomedicine}
+Large Language Model Agents for Biomedicine: A Comprehensive Review of Methods, Evaluations, Challenges, and Future Directions.
+\newblock {\em Information}, 16(10):894, 2025.
+\newblock \url{https://www.mdpi.com/2078-2489/16/10/894}.
+
+\bibitem{rlam2025}
+Reproducibility-Constrained Large Action Models for Scientific Workflow Automation.
+\newblock {\em arXiv preprint arXiv:2601.09749}, 2025.
+
+\bibitem{bioagenteval2025}
+An {AI} Agent Evaluation Suite for Bioinformatics.
+\newblock {\em arXiv preprint arXiv:2601.21800}, 2025.
+
+\bibitem{sciresearch2025}
+Rigorous Benchmarking of {AI} Agents with a Scientific Research Suite.
+\newblock {\em arXiv preprint arXiv:2510.21652}, 2025.
+
+\bibitem{multiagenteval2026}
+Toward Evaluation Frameworks for Multi-Agent Scientific {AI} Systems.
+\newblock {\em arXiv preprint arXiv:2603.26718}, 2026.
 
 \bibitem{naturemethods2025agents}
 Nature Methods Editorial.
