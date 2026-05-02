@@ -1,0 +1,703 @@
+[
+  {
+    "id": "seq-01",
+    "split": "basic",
+    "input": ">tiny ATGAAACGT",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "dna",
+      "9"
+    ]
+  },
+  {
+    "id": "seq-02",
+    "split": "basic",
+    "input": ">aa MVKVGVNGFGRIGRLVTRA",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "protein",
+      "19"
+    ]
+  },
+  {
+    "id": "seq-03",
+    "split": "basic",
+    "input": ">len GATTACAGATTACAGATTACAGATTACAGATTACAGATTACAGATTACA",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "49"
+    ]
+  },
+  {
+    "id": "seq-04",
+    "split": "basic",
+    "input": ">gc GCGCGCGCGCATAT",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "gc",
+      "71"
+    ]
+  },
+  {
+    "id": "seq-05",
+    "split": "basic",
+    "input": ">tr ATGCGTACGTAA",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "MRT"
+    ]
+  },
+  {
+    "id": "seq-06",
+    "split": "basic",
+    "input": ">rc ATGCGTACGTAA",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "TTACGT"
+    ]
+  },
+  {
+    "id": "seq-07",
+    "split": "basic",
+    "input": ">empty A",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "1"
+    ]
+  },
+  {
+    "id": "seq-08",
+    "split": "basic",
+    "input": "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "dna",
+      "48"
+    ]
+  },
+  {
+    "id": "lit-01",
+    "split": "basic",
+    "input": "Find papers about CRISPR base editing in 2024",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "CRISPR",
+      "2024"
+    ]
+  },
+  {
+    "id": "lit-02",
+    "split": "basic",
+    "input": "Find papers about p53 tumor suppressor",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "p53"
+    ]
+  },
+  {
+    "id": "lit-03",
+    "split": "basic",
+    "input": "Find recent literature on AlphaFold protein structure",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "AlphaFold"
+    ]
+  },
+  {
+    "id": "lit-04",
+    "split": "basic",
+    "input": "Find pubmed articles on CAR-T cell therapy in 2023",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "CAR-T",
+      "2023"
+    ]
+  },
+  {
+    "id": "lit-05",
+    "split": "basic",
+    "input": "Find papers about BRCA1 function",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "BRCA1"
+    ]
+  },
+  {
+    "id": "lit-06",
+    "split": "basic",
+    "input": "Find pubmed publications on single cell RNA-seq",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "single cell",
+      "RNA"
+    ]
+  },
+  {
+    "id": "ann-01",
+    "split": "basic",
+    "input": "P38398",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch",
+      "uniprot.search"
+    ],
+    "keywords": [
+      "BRCA1",
+      "Homo sapiens"
+    ]
+  },
+  {
+    "id": "ann-02",
+    "split": "basic",
+    "input": "P69905",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "hemoglobin",
+      "Homo sapiens"
+    ]
+  },
+  {
+    "id": "ann-03",
+    "split": "basic",
+    "input": "P53_HUMAN tumor suppressor",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "p53",
+      "tumor"
+    ]
+  },
+  {
+    "id": "ann-04",
+    "split": "basic",
+    "input": "What is hemoglobin?",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "hemoglobin"
+    ]
+  },
+  {
+    "id": "ann-05",
+    "split": "basic",
+    "input": "P04637",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "p53",
+      "Homo sapiens"
+    ]
+  },
+  {
+    "id": "ann-06",
+    "split": "basic",
+    "input": "Q9Y6K9 protein function",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "Homo sapiens"
+    ]
+  },
+  {
+    "id": "mut-01",
+    "split": "basic",
+    "input": "WT: MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD\nMT: p.R175H",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "R175H",
+      "175"
+    ]
+  },
+  {
+    "id": "mut-02",
+    "split": "basic",
+    "input": "WT: MAAAAA\nMT: p.A2C",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "cysteine",
+      "disulfide"
+    ]
+  },
+  {
+    "id": "mut-03",
+    "split": "basic",
+    "input": "WT: MKKKEE\nMT: p.K2D",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "charge"
+    ]
+  },
+  {
+    "id": "mut-04",
+    "split": "basic",
+    "input": "WT: MQRSTV\nMT: p.Q2*",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "stop",
+      "truncation"
+    ]
+  },
+  {
+    "id": "mut-05",
+    "split": "basic",
+    "input": "WT: MAAAAA\nMT: p.A3V",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "A3V",
+      "3"
+    ]
+  },
+  {
+    "id": "mut-06",
+    "split": "basic",
+    "input": "WT: MAAAAA\nMT: MAAAAA",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "0",
+      "identical"
+    ]
+  },
+  {
+    "id": "pro-01",
+    "split": "basic",
+    "input": "What is the molecular function of TP53 in humans?",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "TP53",
+      "tumor",
+      "Homo sapiens"
+    ]
+  },
+  {
+    "id": "pro-02",
+    "split": "basic",
+    "input": "Find papers about BRCA1 BARD1 heterodimer DNA repair",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "BRCA1",
+      "BARD1"
+    ]
+  },
+  {
+    "id": "pro-03",
+    "split": "basic",
+    "input": "What organism is UniProt P00750 from?",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "Homo sapiens"
+    ]
+  },
+  {
+    "id": "pro-04",
+    "split": "basic",
+    "input": "How long is the human insulin protein? Use UniProt P01308.",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "insulin",
+      "110"
+    ]
+  },
+  {
+    "id": "pro-05",
+    "split": "basic",
+    "input": "Translate this DNA: ATGGCCAAATTAA",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "MAK"
+    ]
+  },
+  {
+    "id": "pro-06",
+    "split": "basic",
+    "input": "Find recent papers about long-read sequencing in 2024",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "long-read",
+      "2024"
+    ]
+  },
+  {
+    "id": "wf-01",
+    "split": "edge",
+    "input": "Analyze this protein: MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKT",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [],
+    "keywords": [
+      "protein",
+      "56"
+    ]
+  },
+  {
+    "id": "wf-02",
+    "split": "edge",
+    "input": "Find papers about xyznonexistentprotein2024topic",
+    "expected_skill": "literature_search",
+    "gold_path": [],
+    "keywords": []
+  },
+  {
+    "id": "wf-03",
+    "split": "edge",
+    "input": "What is asdfgh nonexistent protein query",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [],
+    "keywords": []
+  },
+  {
+    "id": "wf-04",
+    "split": "edge",
+    "input": "MKVLWAALLVTFLAGCQAKV",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [],
+    "keywords": [
+      "protein",
+      "20"
+    ]
+  },
+  {
+    "id": "wf-05",
+    "split": "edge",
+    "input": "WT: MEEPQ\nMT: MEEPQ",
+    "expected_skill": "mutation_effect",
+    "gold_path": [],
+    "keywords": [
+      "0",
+      "identical"
+    ]
+  },
+  {
+    "id": "wf-06",
+    "split": "edge",
+    "input": "Find recent papers about AlphaFold3 in 2025",
+    "expected_skill": "literature_search",
+    "gold_path": [],
+    "keywords": [
+      "AlphaFold"
+    ]
+  },
+  {
+    "id": "edge-01",
+    "split": "edge",
+    "input": "A",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "1"
+    ]
+  },
+  {
+    "id": "edge-02",
+    "split": "edge",
+    "input": "NNNNNNNNNNNNNNNN",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "16"
+    ]
+  },
+  {
+    "id": "edge-03",
+    "split": "edge",
+    "input": "INVALID_ACCESSION_12345",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": []
+  },
+  {
+    "id": "edge-04",
+    "split": "edge",
+    "input": "Find papers about @#$%^&*()",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": []
+  },
+  {
+    "id": "followup-01-step1",
+    "split": "edge",
+    "input": "P38398",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "BRCA1"
+    ]
+  },
+  {
+    "id": "followup-01-step2",
+    "split": "edge",
+    "input": "Find papers about this protein",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "BRCA1"
+    ]
+  },
+  {
+    "id": "followup-02-step1",
+    "split": "edge",
+    "input": "MVKVGVNGFGRIGRLVTRA",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "protein",
+      "19"
+    ]
+  },
+  {
+    "id": "followup-02-step2",
+    "split": "edge",
+    "input": "What organism is this from?",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": []
+  },
+  {
+    "id": "stress-01",
+    "split": "edge",
+    "input": ">seq1\nATGCGTACGTAA\n>seq2\nMVKVGVNGFGRIGRLVTRA\n>seq3\nGCGCGCGCGCAT",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "3"
+    ]
+  },
+  {
+    "id": "stress-02",
+    "split": "edge",
+    "input": "P04637",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "p53"
+    ]
+  },
+  {
+    "id": "stress-03",
+    "split": "edge",
+    "input": "Find papers about machine learning in bioinformatics genomics proteomics metabolomics transcriptomics epigenomics",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "machine learning"
+    ]
+  },
+  {
+    "id": "harness-protein-01",
+    "split": "multistep",
+    "input": "Analyze this protein and find papers: MVKVGVNGFGRIGRLVTRA",
+    "expected_skill": "protein_research",
+    "gold_path": [],
+    "keywords": [
+      "protein",
+      "papers"
+    ]
+  },
+  {
+    "id": "harness-protein-02",
+    "split": "multistep",
+    "input": "What is this protein sequence and what research has been done on it? ATGGCCAAATTAA",
+    "expected_skill": "protein_research",
+    "gold_path": [],
+    "keywords": [
+      "protein",
+      "research"
+    ]
+  },
+  {
+    "id": "harness-protein-03",
+    "split": "multistep",
+    "input": "Analyze P38398 and find related literature",
+    "expected_skill": "protein_research",
+    "gold_path": [],
+    "keywords": [
+      "BRCA1",
+      "literature"
+    ]
+  },
+  {
+    "id": "harness-protein-04",
+    "split": "multistep",
+    "input": "Study this sequence: MKVLWAALLVTFLAGCQAKV",
+    "expected_skill": "protein_research",
+    "gold_path": [],
+    "keywords": [
+      "protein",
+      "sequence"
+    ]
+  },
+  {
+    "id": "harness-lit-01",
+    "split": "multistep",
+    "input": "Find papers about CRISPR base editing",
+    "expected_skill": "literature_review",
+    "gold_path": [],
+    "keywords": [
+      "CRISPR",
+      "papers"
+    ]
+  },
+  {
+    "id": "harness-lit-02",
+    "split": "multistep",
+    "input": "Review recent literature on AlphaFold3",
+    "expected_skill": "literature_review",
+    "gold_path": [],
+    "keywords": [
+      "AlphaFold",
+      "literature"
+    ]
+  },
+  {
+    "id": "harness-lit-03",
+    "split": "multistep",
+    "input": "Find papers on protein structure prediction",
+    "expected_skill": "literature_review",
+    "gold_path": [],
+    "keywords": [
+      "protein",
+      "structure"
+    ]
+  },
+  {
+    "id": "harness-mut-01",
+    "split": "multistep",
+    "input": "Assess this mutation and find literature: WT: MEEPQ MT: p.R175H",
+    "expected_skill": "mutation_assessment",
+    "gold_path": [],
+    "keywords": [
+      "mutation",
+      "literature"
+    ]
+  },
+  {
+    "id": "harness-mut-02",
+    "split": "multistep",
+    "input": "Analyze mutation WT: ATCG MT: ATGG",
+    "expected_skill": "mutation_assessment",
+    "gold_path": [],
+    "keywords": [
+      "mutation"
+    ]
+  },
+  {
+    "id": "harness-mut-03",
+    "split": "multistep",
+    "input": "What is the impact of p.V600E in BRAF?",
+    "expected_skill": "mutation_assessment",
+    "gold_path": [],
+    "keywords": [
+      "mutation",
+      "BRAF"
+    ]
+  }
+]

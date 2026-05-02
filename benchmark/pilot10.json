@@ -1,0 +1,12 @@
+[
+  {"id":"seq-01","split":"basic","input":">tiny ATGAAACGT","expected_skill":"sequence_basic_analysis","keywords":["dna","9"],"gold_path":["sequence.analyze"]},
+  {"id":"seq-02","split":"basic","input":">aa MVKVGVNGFGRIGRLVTRA","expected_skill":"sequence_basic_analysis","keywords":["protein","19"],"gold_path":["sequence.analyze"]},
+  {"id":"ann-01","split":"basic","input":"P38398","expected_skill":"uniprot_lookup","keywords":["BRCA1","P38398"],"gold_path":["uniprot.fetch"]},
+  {"id":"ann-04","split":"basic","input":"What is hemoglobin?","expected_skill":"uniprot_lookup","keywords":["hemoglobin"],"gold_path":["uniprot.search"]},
+  {"id":"lit-02","split":"basic","input":"Find papers about p53 tumor suppressor","expected_skill":"literature_search","keywords":["p53"],"gold_path":["pubmed.search"]},
+  {"id":"mut-02","split":"basic","input":"WT: MAAAAA\nMT: p.A2C","expected_skill":"mutation_effect","keywords":["A","C"],"gold_path":["mutation.diff"]},
+  {"id":"pro-04","split":"edge","input":"How long is the human insulin protein? Use UniProt P01308.","expected_skill":"uniprot_lookup","keywords":["P01308","insulin"],"gold_path":["uniprot.fetch"]},
+  {"id":"pro-05","split":"edge","input":"Translate this DNA: ATGGCCAAATTAA","expected_skill":"sequence_basic_analysis","keywords":["MAK","translation","ATGGCCAAATTAA"],"gold_path":["sequence.analyze"]},
+  {"id":"harness-protein-03","split":"multistep","input":"Analyze P38398 and find related literature","expected_skill":"protein_research","keywords":["P38398","BRCA1"],"gold_path":["uniprot.fetch","pubmed.search"]},
+  {"id":"harness-mut-03","split":"multistep","input":"What is the impact of p.V600E in BRAF?","expected_skill":"mutation_assessment","keywords":["BRAF","V600E"],"gold_path":["uniprot.fetch","pubmed.search"]}
+]

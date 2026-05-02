@@ -70,7 +70,30 @@
       "Bash(sqlite3 open_rosalind.db \"SELECT session_id, role, length\\(content\\) FROM messages WHERE content LIKE '%Analyze sequence%' OR content LIKE '%Task Report%' LIMIT 10;\")",
       "Bash(sqlite3 open_rosalind.db \"SELECT session_id, user_input, execution_mode FROM sessions WHERE execution_mode='harness';\")",
       "Bash(sqlite3 open_rosalind.db \"SELECT card_json FROM messages WHERE role='assistant' AND content LIKE '%Task Report%' ORDER BY created_at DESC LIMIT 1;\")",
-      "Bash(docker --version)"
+      "Bash(docker --version)",
+      "Bash(pip show *)",
+      "Skill(mermaid-diagram)",
+      "Skill(research-review)",
+      "Bash(sed -n '44,60p' /root/autodl-tmp/open-rosalind/open_rosalind/tools/pubmed.py)",
+      "Bash(sed -n '130,145p' /root/autodl-tmp/open-rosalind/open_rosalind/tools/sequence.py)",
+      "Bash(sed -n '64,95p' /root/autodl-tmp/open-rosalind/open_rosalind/tools/uniprot.py)",
+      "Bash(sed -n '124,140p' /root/autodl-tmp/open-rosalind/open_rosalind/tools/mutation.py)",
+      "Bash(env)",
+      "Bash(pkill -f run_scaled)",
+      "Bash(ps -p 42632 -o pid,stat,etime,cmd)",
+      "Read(//tmp/**)",
+      "Bash(ps -p 43225 -o pid,stat,etime,cmd)",
+      "mcp__codex__codex-reply",
+      "mcp__codex__codex",
+      "Bash(ps -p 44051 -o pid,stat,etime,cmd)",
+      "Bash(ps -p 44051 -o pid,stat,etime)",
+      "Bash(ps -p 44213 -o pid,stat,etime)",
+      "Bash(ps -p 44415 -o pid,stat,etime,ppid)",
+      "Bash(awk '{print $2,$4\"%mem\",$6\"KB\",$10}')",
+      "Bash(pkill -f \"benchmark/run_paired\")",
+      "Bash(curl -s --max-time 10 -x http://127.0.0.1:7890 https://api.ipify.org)",
+      "Bash(curl -s --max-time 10 https://api.ipify.org)",
+      "Bash(grep -A 50 \"Model: \\\\`google/gemma\")"
     ]
   }
 }

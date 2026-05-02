@@ -1,0 +1,315 @@
+% Open-Rosalind: A Reproducible Bio-Agent Framework
+% Compile: pdflatex paper.tex && bibtex paper && pdflatex paper.tex && pdflatex paper.tex
+
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{authblk}
+\usepackage{abstract}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{tabularx}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    urlcolor=blue!60!black,
+    citecolor=blue!60!black,
+}
+
+\title{\textbf{Open-Rosalind: A Reproducible Bio-Agent Framework with Standardized Skills, Execution Protocols, and Traceable Workflows}}
+
+\author[1,*]{Liang Wang}
+\affil[1]{Huazhong University of Science and Technology; \href{mailto:wangliang.f@gmail.com}{wangliang.f@gmail.com}}
+\affil[*]{Correspondence: \href{mailto:wangliang.f@gmail.com}{wangliang.f@gmail.com}; School of Artificial Intelligence and Automation, Huazhong University of Science and Technology, 430070, P.R. China}
+
+\date{\today}
+
+\renewcommand{\abstractnamefont}{\normalfont\bfseries}
+\renewcommand{\abstracttextfont}{\normalfont\small}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent
+The rapid progress of large language models (LLMs) has produced a new generation of autonomous agents capable of orchestrating complex scientific tasks. Yet the design philosophy that enables general-purpose agents to thrive on open-ended problems --- free-form reasoning, opportunistic tool use, and best-effort summarization --- is fundamentally at odds with the demands of biomedical research, where every claim must be verifiable and every analysis must be reproducible. We argue that bio-agent systems should not be evaluated by what they \emph{can} attempt, but by what they \emph{must guarantee}. From this premise we derive a framework, \textbf{Open-Rosalind}, organized around four principles: tool-first execution, evidence-grounded outputs, trace completeness, and workflow-constrained execution. The framework instantiates a layered architecture --- atomic tools, MCP-style tool interfaces, deterministic skills, a hybrid router, a single-step agent, and a bounded multi-step harness --- in which every layer enforces a reproducibility-oriented invariant. To assess whether such systems can be evaluated meaningfully, we additionally introduce \textbf{Open-Rosalind BioBench}, a benchmark that measures task accuracy alongside tool correctness, evidence rate, trace completeness, workflow success, and failure rate. Across 91 tasks spanning four task categories and three benchmark tiers, the reference implementation achieves 100\% / 93.9\% / 90\% accuracy on basic, edge-case, and multi-step tasks respectively, while sustaining 100\% trace completeness and evidence grounding. Our results suggest that the limiting factor for trustworthy biomedical agents is not raw model capability, but the \emph{discipline of the protocol that surrounds the model}.
+
+\smallskip
+\noindent\textbf{Keywords:} bio-agent, large language models, reproducibility, tool-driven AI, scientific workflows, evidence grounding
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Within a span of two years, large language models have evolved from text completion engines into autonomous agents that plan, invoke external tools, and iterate over multi-step tasks. In domains such as software engineering, customer support, and general information work, this transition has produced dramatic gains, in part because mistakes are rapidly visible and easily corrected. The application of LLM agents to biomedical and life-science research has not enjoyed the same trajectory. The problem is not capability: modern models can read a UniProt entry, parse a FASTA sequence, and reason about substitutions in a multi-step manner. The problem is \emph{epistemic accountability}.
+
+A scientific claim is not merely an assertion; it is a binding to a verifiable source. When a general-purpose LLM agent confidently reports that a protein is located on a particular chromosome arm, or cites a PubMed identifier in support of a mutation pathogenicity claim, the reader has no operational way to distinguish a tool-grounded fact from a hallucinated one. Worse, the agent may itself fail to draw this distinction, freely paraphrasing tool outputs alongside parametric knowledge in a single fluent paragraph. For wet-lab researchers, clinicians, or anyone whose downstream decisions are guided by such answers, this opacity is a fundamental defect, not an implementation gap.
+
+The position taken in this paper is that bio-agent systems require a different kind of design contract than general-purpose agents:
+
+\begin{quote}
+\emph{In biomedical AI, the question is not whether an agent can produce an answer, but whether the answer can be verified, reproduced, and trusted.}
+\end{quote}
+
+Pursuing this contract leads to four design constraints that shape every layer of the system: factual content must come from explicit tools rather than parametric memory; every claim in an answer must be cited inline to a tool-derived source; every step of execution must be recorded in a replayable trace; and the agent must operate within bounded, pre-declared workflows rather than free-form planning loops. Each of these constraints sacrifices some capability in exchange for a reproducibility guarantee.
+
+This paper presents \textbf{Open-Rosalind}, a bio-agent framework built around these constraints, together with a reference implementation and a benchmark suite. Rather than enumerating contributions as discrete bullet items, we frame the work as three interlocking artifacts. The first is a \emph{principled framework} (Sections~\ref{sec:principles}--\ref{sec:framework}) that codifies the four design principles into a layered architecture in which atomic tools, MCP-style tool interfaces, deterministic skills, a hybrid router, an agent, and a bounded multi-step harness each carry their own reproducibility invariant. The second is a \emph{reference implementation} (Section~\ref{sec:system}) that demonstrates the framework runs end-to-end on real biological tasks: sequence analysis, protein annotation, literature retrieval, and mutation assessment. The third is \textbf{Open-Rosalind BioBench} (Sections~\ref{sec:biobench}--\ref{sec:experiments}), a benchmark designed not to maximize raw task accuracy but to measure whether bio-agent systems satisfy the framework's reproducibility guarantees in addition to producing correct outputs. We argue that these latter properties --- not single-task accuracy --- are the right yardstick for evaluating agents in regulated and reproducible domains.
+
+\section{From General Agents to Bio-Agents}
+\label{sec:bioagent}
+
+The literature on LLM agents has converged on a small set of recurring patterns: \emph{ReAct}-style interleaved reasoning and acting, \emph{tool-use} protocols, \emph{planner-executor} decompositions, and recursive task decomposition (e.g., AutoGPT-style loops). These patterns share a common philosophical commitment: \emph{flexibility is a virtue}. The agent decides which tool to invoke, when to stop, when to backtrack, and how to summarize. This commitment is well-suited to open-ended environments, where the cost of failure is low and the diversity of tasks resists pre-specification.
+
+Biomedical research is not such an environment. The set of legitimate workflows is small and well-defined: annotate a protein, search the literature on a topic, evaluate the impact of a mutation, compare two sequences. The cost of an unverifiable answer is high. The expectation that another researcher can reproduce the analysis is not optional. Under these conditions, flexibility is not a virtue but a liability: every additional degree of freedom afforded to the agent expands the surface over which errors and ambiguities can enter the result. Table~\ref{tab:compare} contrasts the design assumptions of general agents with those required for bio-agents.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Design contrasts: general-purpose agents vs.\ reproducible bio-agents.}
+\label{tab:compare}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Dimension} & \textbf{General-purpose agent} & \textbf{Bio-agent (this work)} \\
+\midrule
+Knowledge source & LLM parametric memory + optional tools & Tools only; LLM is a synthesizer \\
+Planning & Free-form, recursive, open-vocabulary & Templated, bounded, closed-vocabulary \\
+Tool invocation & Optional, opportunistic & Mandatory for all factual claims \\
+Output format & Natural language, untyped & Typed evidence + cited summary \\
+Failure mode & Best-effort answer, possible hallucination & Explicit ``insufficient evidence'' \\
+Trace & Best-effort logs (if any) & Mandatory, replayable, structured \\
+Step bound & None or LLM-decided & Hard cap, externally enforced \\
+Evaluation & Task accuracy & Accuracy + tool correctness + evidence + trace + failure rate \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The right column of Table~\ref{tab:compare} should not be read as a list of capabilities omitted from general agents, but as a set of \emph{guarantees added}. A bio-agent gains less behavioral freedom than a general agent but offers stronger contracts: every fact has a source, every step is logged, every workflow terminates within a known bound. The remainder of this paper develops these guarantees into a concrete framework.
+
+\section{Design Principles}
+\label{sec:principles}
+
+The framework rests on four principles, summarized in Figure~\ref{fig:principles}. Each principle is operational --- it is enforced by a specific component of the system --- rather than aspirational.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{rosalind-principle.png}
+\caption{The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture (Figure~\ref{fig:arch}).}
+\label{fig:principles}
+\end{figure}
+
+\subsection{Tool-First Execution}
+The LLM never serves as a knowledge oracle. Every fact, computation, or annotation that appears in the final answer must originate from an explicit tool invocation registered in the system. The LLM is invoked only after tools have produced structured outputs, and its role is reduced to synthesizing those outputs into a natural-language summary. This re-positions the model as a \emph{reader} rather than a \emph{source}, and aligns the system with how scientific writing operates in practice: claims are made by citing data, not by recalling lore.
+
+\subsection{Evidence-Grounded Outputs}
+Every factual claim in the LLM's output must carry an inline citation to a tool-derived source --- a UniProt accession, a PubMed identifier, a structured statistic produced by an analysis routine. When the supporting evidence is insufficient, the LLM must say so explicitly rather than fall back on parametric guesses. This principle converts the conventional opacity of LLM outputs into something closer to a scientific paragraph: each sentence is either bound to a citation or marked as a deliberate non-answer.
+
+\subsection{Trace Completeness}
+Every routing decision, every tool invocation, every observed return value, and the final LLM prompt are recorded in a structured, replayable trace. The trace is not a debugging aid but a first-class artifact, intended to support reproduction by external readers and auditing by reviewers. The system treats a missing trace as a correctness failure on par with a wrong answer.
+
+\subsection{Workflow-Constrained Execution}
+Tasks are executed through pre-declared workflows rather than free-form agent loops. Single-step queries dispatch to one of a small fixed set of skills via a deterministic router; multi-step queries execute through one of a small fixed set of templated plans, under a hard step bound. The agent is not permitted to invent new tools, restructure the plan mid-run, or recurse beyond the bound. This sacrifices flexibility deliberately: predictability and termination are valued above adaptability.
+
+\section{Framework Architecture}
+\label{sec:framework}
+
+Open-Rosalind organizes the four principles into a layered architecture (Figure~\ref{fig:arch}) in which each layer enforces a specific reproducibility invariant. We describe the layers from the bottom up.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{claude-open-rosalind.png}
+\caption{The Open-Rosalind layered architecture. Atomic tools and MCP-compliant tool interfaces sit at the base; skills compose tools deterministically; the router and agent dispatch single-step queries; and the harness orchestrates bounded multi-step workflows. Each layer carries its own invariant: tools are deterministic and versioned, skills produce typed outputs, the router emits a categorical decision, and the harness enforces a hard step bound.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Atomic Tools and MCP Interfaces}
+\label{sec:tools}
+At the lowest level sit atomic tools --- thin Python wrappers around external biological resources (UniProt, PubMed via Entrez) and local computations (BioPython sequence statistics, mutation diff). Atomic tools are intentionally minimal: each performs a single operation, returns a structured object, records latency and status, and never branches based on natural-language input. Tools are exposed to higher layers through MCP-style \cite{anthropic2024mcp} interfaces, which provide a uniform contract for tool description, invocation, and result serialization. This boundary serves two purposes. First, it makes the system's external dependencies explicit and version-controlled: a tool change is an interface change. Second, it allows alternative implementations (e.g., a local UniProt mirror, a cached PubMed index) to be substituted without changes to higher layers.
+
+\subsection{Skills as Composed, Deterministic Pipelines}
+\label{sec:skills}
+A \emph{skill} is the next layer up: a deterministic pipeline that composes one or more atomic tools to produce a typed output addressing a single biological question. The four skills used in this work --- \texttt{sequence\_basic\_analysis}, \texttt{uniprot\_lookup}, \texttt{literature\_search}, \texttt{mutation\_effect} --- collectively cover the recurring questions in routine bioinformatics: \emph{what is this sequence?}, \emph{what is this protein?}, \emph{what does the literature say?}, \emph{what does this mutation do?}.
+
+Skills are deliberately narrower than the LLM's apparent reasoning capability. Their narrowness is the point: a skill is a unit of behavior that is small enough to test exhaustively, version explicitly, and reuse across both single-step and multi-step execution paths. Each skill carries a structured manifest declaring its category, safety level (safe / network / compute), the atomic tools it depends on, an input/output schema, and a small set of tested examples. Adding a new skill amounts to declaring its manifest and providing a handler; the rest of the framework discovers and integrates it without code changes.
+
+\subsection{Hybrid Router}
+\label{sec:router}
+The router maps an incoming user query to a skill (single-step path) or to a multi-step plan (harness path). It is intentionally hybrid: a rule-based pre-filter handles the unambiguous cases --- a FASTA header, a UniProt accession pattern, a literature query containing the word ``papers'' --- and an LLM-assisted intent classifier handles only the residual cases that mix natural language with embedded sequences or identifiers. The classifier is constrained to return a label from the small fixed skill set; it cannot invent new skills, and a parsing failure causes a deterministic fallback to the rule-based result.
+
+This hybrid design reflects a recurring tension in agent systems: rule-based routing is brittle but auditable, while LLM-based routing is flexible but opaque. Open-Rosalind resolves the tension by giving rules first refusal: the LLM is consulted only when the rules cannot decide, and even then only inside a closed-vocabulary contract.
+
+\subsection{Single-Step Agent}
+\label{sec:agent}
+The agent layer wraps the routed skill with the LLM-as-synthesizer step. Once the skill has executed and produced its typed output, the agent constructs an evidence-only prompt and asks the LLM to produce a Markdown summary with inline citations. The agent enforces the evidence-grounded-outputs principle through prompt design (the system prompt forbids claims without citations) and through post-hoc validation (claims without recognizable evidence markers trigger a fallback answer). The agent is also responsible for in-session context: a sliding window of prior turns is supplied to the LLM, allowing follow-up questions such as ``what species is this protein in?'' to be resolved against the prior annotation.
+
+\subsection{Multi-Step Harness}
+\label{sec:harness}
+The harness orchestrates queries that require more than one skill. Rather than expose the agent to arbitrary planning, the harness chooses from a small fixed set of templates --- in the present implementation: \texttt{protein\_research} (sequence analysis $\to$ annotation $\to$ literature), \texttt{literature\_review} (literature only), and \texttt{mutation\_assessment} (mutation $\to$ annotation $\to$ literature). Each template is a sequence of skill invocations with explicit slots for entities (e.g., \texttt{\{protein\_name\}}) that are filled from prior step outputs.
+
+The harness enforces three invariants. First, the planner cannot invent new templates; it can only select from the registered set. Second, the runner observes a hard step bound (default five) that terminates execution regardless of the plan. Third, the per-step trace is structurally identical to a single-step trace, so multi-step workflows are reproducible and auditable in the same way as single-step queries.
+
+The combined data flow --- query, mode selection, single-step or harness path, skill execution, evidence and trace generation, and final answer --- is shown in Figure~\ref{fig:workflow}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/workflow.png}
+\caption{End-to-end execution flow. The hybrid mode selector dispatches to either the single-step agent path or the bounded harness path. Both paths converge on the skill registry and the underlying tool layer, and both yield a structured evidence-and-trace bundle that is then summarized into the final answer.}
+\label{fig:workflow}
+\end{figure}
+
+\section{Reference Implementation}
+\label{sec:system}
+
+The reference implementation realizes the architecture as a small server-and-client system: a Python backend exposing a unified chat endpoint, a React-based front-end providing chat and session management, and an embedded SQLite store for users, sessions, messages, and traces. The implementation is intentionally lightweight, in part to reinforce the framework's claim that reproducibility does not require a heavyweight agent stack.
+
+The model layer is pluggable: the system communicates with any OpenAI-compatible endpoint (OpenRouter, vLLM, Azure, on-premise inference servers). The reference deployment uses \texttt{google/gemma-4-26b-a4b-it} via OpenRouter, but no part of the framework is specific to that model. Skills are auto-discovered from a directory layout at startup, and the front-end exposes them through a single chat interface that selects the appropriate execution mode automatically based on the router's decision.
+
+Beyond the chat interface, the system exposes APIs for inspecting registered skills, retrieving full session histories, and downloading per-session traces. These surfaces collectively support the trace-completeness principle: every interaction produces an artifact that can be reviewed, replayed, and audited.
+
+\section{Open-Rosalind BioBench}
+\label{sec:biobench}
+
+Conventional agent benchmarks measure task accuracy --- the fraction of queries for which the final answer is correct. For bio-agents, accuracy is necessary but not sufficient: an answer that happens to be right but is delivered through hallucinated tool calls, or with no recoverable trace, fails the framework's contract even when the surface output looks correct. \textbf{Open-Rosalind BioBench} is designed to make this distinction empirically tractable.
+
+\subsection{Task Categories}
+The benchmark spans four task categories aligned with the four built-in skills: sequence analysis (e.g., translate a DNA sequence, compute the GC content of a transcript), protein annotation (e.g., what is the function of P38398?), literature retrieval (e.g., recent papers on a method), and mutation assessment (e.g., predicted effect of a substitution). Tasks are drawn from real biological objects --- canonical UniProt accessions, real PubMed-indexed publications, real proteins with documented variants --- so that correctness can be verified against authoritative sources rather than against model-generated ground truth.
+
+\subsection{Tiered Difficulty}
+The benchmark is partitioned into three tiers. \textbf{BioBench v0} (32 tasks) covers basic skills that should succeed under correct routing and tool invocation; it is calibrated so that a system that respects the framework's contracts should achieve perfect or near-perfect performance. \textbf{BioBench v1} (49 tasks) introduces edge cases, mixed-modality inputs (natural language interleaved with sequence or accession), and follow-up turns that exercise the in-session-context layer. \textbf{BioBench v0.3} (10 tasks) targets the multi-step harness specifically: each task requires at least two skills to be composed in sequence with entity propagation between them. Together the three tiers contain 91 tasks.
+
+\subsection{Metrics}
+Five metrics are reported per run. \emph{Task accuracy} is the fraction of tasks whose final answer is judged correct. \emph{Tool correctness} is the fraction in which the routed skill (and, in the harness case, the chosen template) matches the task's expected execution path. \emph{Evidence rate} is the fraction of factual claims in the final answer that carry a recognizable inline citation. \emph{Trace completeness} is the fraction of tasks for which a structured trace covering all routing and tool-call events is recovered. \emph{Failure rate} is the fraction of tasks that crash or time out; this is reported separately from accuracy because a crash and a wrong answer represent different failure modes for downstream consumers. The framework's claim is that the latter four metrics are at least as important as the first.
+
+\section{Empirical Results}
+\label{sec:experiments}
+
+We report results from running the reference implementation against all 91 BioBench tasks using \texttt{google/gemma-4-26b-a4b-it} as the underlying LLM. Aggregate results are summarized in Table~\ref{tab:bench}.
+
+\begin{table}[h]
+\centering
+\small
+\caption{BioBench results across three tiers. Accuracy varies with task difficulty; the four reproducibility-oriented metrics remain saturated, indicating that the framework's contracts are honored even when the model is wrong about the underlying fact.}
+\label{tab:bench}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Tier} & \textbf{Tasks} & \textbf{Accuracy} & \textbf{Tool corr.} & \textbf{Evidence / Trace / No-fail} \\
+\midrule
+v0 (basic skills)             & 32 & 100.0\% & 100\% & 100\% / 100\% / 100\% \\
+v1 (edge cases + follow-ups)  & 49 & 93.9\%  & 100\% & 100\% / 100\% / 100\% \\
+v0.3 (multi-step harness)     & 10 & 90.0\%  & 100\% & 100\% / 100\% / 100\% \\
+\midrule
+\textbf{Combined}             & \textbf{91} & \textbf{96.7\%} & \textbf{100\%} & \textbf{100\% / 100\% / 100\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pattern in Table~\ref{tab:bench} merits closer reading than a single accuracy number conveys. As task difficulty increases from v0 to v0.3, task accuracy degrades modestly, while the four reproducibility metrics remain saturated. This is the intended behavior of the framework: when the model produces a wrong fact, the surrounding apparatus still routes correctly, cites correctly, traces correctly, and terminates correctly. The framework localizes the failure to the model's reasoning about facts, rather than allowing it to propagate into the routing, citation, or termination machinery. From the standpoint of downstream consumption, this distinction matters: a wrong answer with a complete trace can be diagnosed, replayed, and corrected; a wrong answer with no trace cannot.
+
+The single class of failure observed on v1 traces to mixed-modality inputs that combine free-form natural language with embedded sequences --- precisely the case the LLM-assisted classifier exists to handle. The remaining errors are concentrated in such inputs, suggesting a clear next step: a stronger constrained classifier rather than a larger underlying model. We view this as evidence in support of the paper's central thesis: progress in trustworthy bio-agents flows from the protocol around the model, not from the model itself.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Position relative to general-purpose agent frameworks.}
+ReAct \cite{yao2023react} and its descendants assume that flexibility is intrinsically valuable. For research domains in which the set of legitimate tasks is small, the cost of incorrect outputs is high, and reproducibility is non-negotiable, this assumption inverts. Open-Rosalind is in part an argument that the bio-agent literature should adopt a different default: that flexibility be unlocked deliberately, and that every degree of freedom granted to the agent be paid for in additional verification machinery.
+
+\paragraph{Position relative to biomedical LLMs.}
+A complementary line of work --- BioGPT \cite{luo2022biogpt}, BioMedLM \cite{stanford2023biomedlm}, Med-PaLM \cite{singhal2023palm2} --- improves the LLM's biomedical knowledge through specialized pre-training. Open-Rosalind is orthogonal to this line: the framework remains valid regardless of the underlying model. Indeed, our results suggest that even a general-purpose model, embedded in a sufficiently disciplined framework, can deliver reproducibility properties that no parameter scaling alone provides.
+
+\paragraph{Limitations.}
+The benchmark is small (91 tasks across three tiers) and skewed toward the four implemented skills. The harness templates are hand-coded; while their fixity is a feature for reproducibility, it bounds the range of multi-step workflows the system can express. The literature retrieval skill depends on PubMed availability and inherits its retrieval biases. Finally, the system has been validated on one model family; we have not yet characterized the dependence of trace completeness on model capability under more aggressive perturbations.
+
+\paragraph{Future work.}
+Three directions are immediate. First, expanding the skill registry to include homology search (e.g., BLAST), structure prediction interfaces, and pathway databases. Second, growing BioBench to support adversarial inputs designed to probe specific principles in isolation: claims unsupported by tool output, requests that solicit parametric recall, and follow-up turns that conflict with prior evidence. Third, building a public ``trace registry'' to enable third-party verification of reported results --- treating traces as first-class scientific artifacts rather than internal logs.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Open-Rosalind shifts the design of bio-agent systems from free-form reasoning to reproducible workflow execution. Its contribution is not a more capable model nor a more elaborate planner; it is the proposition that trustworthy biomedical agents emerge from the discipline of the protocol around the model. By codifying that protocol as four operational principles, instantiating it as a layered framework with explicit invariants at every layer, and evaluating it through a benchmark that measures reproducibility properties alongside accuracy, we offer a reference point for what a reproducible bio-agent should look like. We hope it is useful both as a working system and as an argument for the kinds of guarantees future bio-agent work should be expected to provide.
+
+\section*{Code, Data, and Reproducibility}
+The reference implementation, all benchmark tasks, and the framework specification are released open-source under the MIT license at \url{https://github.com/maris205/open-rosalind}. Per-task traces from the experiments reported here are included in the repository.
+
+\bibliographystyle{plain}
+\begin{thebibliography}{99}
+
+\bibitem{anthropic2024mcp}
+Anthropic.
+\newblock Model context protocol (MCP) specification.
+\newblock \url{https://modelcontextprotocol.io}, 2024.
+
+\bibitem{anthropic2025skills}
+Anthropic.
+\newblock Build with Claude Skills.
+\newblock \url{https://docs.claude.com/en/docs/build-with-claude/skills}, 2025.
+
+\bibitem{bytedance2025deerflow}
+ByteDance.
+\newblock {DeerFlow}: A modular agent skill framework.
+\newblock \url{https://github.com/bytedance/deerflow}, 2025.
+
+\bibitem{biofm2025openbiomed}
+{OpenBioMed Team}.
+\newblock {OpenBioMed}: An open multimodal biomedical foundation framework.
+\newblock 2025.
+
+\bibitem{singhal2023palm2}
+K.~Singhal, T.~Tu, J.~Gottweis, et~al.
+\newblock Towards expert-level medical question answering with large language
+  models.
+\newblock {\em arXiv preprint arXiv:2305.09617}, 2023.
+
+\bibitem{stanford2023biomedlm}
+{Stanford CRFM}.
+\newblock {BioMedLM}: A 2.7{B} parameter language model trained on biomedical
+  text.
+\newblock 2023.
+
+\bibitem{luo2022biogpt}
+R.~Luo, L.~Sun, Y.~Xia, T.~Qin, S.~Zhang, H.~Poon, and T.-Y. Liu.
+\newblock {BioGPT}: Generative pre-trained transformer for biomedical text
+  generation and mining.
+\newblock {\em Briefings in Bioinformatics}, 23(6):bbac409, 2022.
+
+\bibitem{uniprot2023}
+{The UniProt Consortium}.
+\newblock {UniProt}: the universal protein knowledgebase in 2023.
+\newblock {\em Nucleic Acids Research}, 51(D1):D523--D531, 2023.
+
+\bibitem{ncbi2024entrez}
+{National Center for Biotechnology Information}.
+\newblock Entrez programming utilities help.
+\newblock \url{https://www.ncbi.nlm.nih.gov/books/NBK25501/}, 2024.
+
+\bibitem{cock2009biopython}
+P.~J.~A. Cock, T.~Antao, J.~T. Chang, et~al.
+\newblock {Biopython}: Freely available {Python} tools for computational
+  molecular biology and bioinformatics.
+\newblock {\em Bioinformatics}, 25(11):1422--1423, 2009.
+
+\bibitem{yao2023react}
+S.~Yao, J.~Zhao, D.~Yu, N.~Du, I.~Shafran, K.~Narasimhan, and Y.~Cao.
+\newblock {ReAct}: Synergizing reasoning and acting in language models.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{wang2026emergence}
+L.~Wang.
+\newblock Emergence of biological structural discovery in general-purpose
+  language models.
+\newblock {\em bioRxiv}, 2026.01.03.697478, 2026.
+
+\end{thebibliography}
+
+\end{document}

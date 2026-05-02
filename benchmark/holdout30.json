@@ -1,0 +1,452 @@
+[
+  {
+    "id": "ind-01",
+    "category": "sequence",
+    "input": "Analyze this DNA sequence from Arabidopsis thaliana: ATGTTGTAGCAAACCCTCAAGCTGAGGG",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "dna",
+      "28"
+    ],
+    "gold_source": "ATGTTGTAGCAAACCCTCAAGCTGAGGG | DNA | Length: 30 | GC%: 46.7",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-02",
+    "category": "protein",
+    "input": "What is the function of human SLC6A4?",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "slc6a4",
+      "serotonin transporter"
+    ],
+    "gold_source": "Q13581 (SLC6A4_HUMAN) | Serotonin transporter",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-03",
+    "category": "literature",
+    "input": "Find recent papers on mitochondrial biogenesis regulation",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "mitochondrial biogenesis",
+      "pgc-1alpha"
+    ],
+    "gold_source": "PMID:11726196 | PGC-1α coactivator",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-04",
+    "category": "mutation",
+    "input": "How does the CFTR ΔF508 mutation affect protein stability?",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "p.phe508del",
+      "hydrophobicity"
+    ],
+    "gold_source": "PMID:2405560 | Loss of phenylalanine's hydrophobic interaction",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-05",
+    "category": "sequence",
+    "input": "Evaluate this yeast RNA sequence: UACUACUAGGAGUCGACCCGUUGGU",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "rna",
+      "25"
+    ],
+    "gold_source": "UACUACUAGGAGUCGACCCGUUGGU | RNA | Length: 25 | GC%: 64.0",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-06",
+    "category": "protein",
+    "input": "Details on UniProt Q9Y6Q9",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "q9y6q9",
+      "gpr174"
+    ],
+    "gold_source": "Q9Y6Q9 (GPR174_HUMAN) | G protein-coupled receptor",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-07",
+    "category": "literature",
+    "input": "Papers about ribosomal frameshifting in coronaviruses",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "ribosomal frameshift",
+      "programmed -1"
+    ],
+    "gold_source": "PMID:10892027 | SARS-CoV frameshifting",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-08",
+    "category": "mutation",
+    "input": "Effect of KRAS G12D substitution",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "p.gly12asp",
+      "charge"
+    ],
+    "gold_source": "PMID:8425559 | Glycine→Aspartate introduces negative charge",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-09",
+    "category": "sequence",
+    "input": "Characterize this E. coli protein: MKRISTTITTTKGLPVTAYKELLRRLG",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "protein",
+      "27"
+    ],
+    "gold_source": "P0A798 (HNS_ECOLI) | Length: 27 | Isoelectric point: 10.2",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-10",
+    "category": "protein",
+    "input": "Information on mouse Pten with isoform 1",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "pten",
+      "phosphatase"
+    ],
+    "gold_source": "P60458 (PTEN_MOUSE) | Phosphatase and tensin homolog",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-11",
+    "category": "literature",
+    "input": "Recent studies on RNA editing in squid axons",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "rna editing",
+      "adar"
+    ],
+    "gold_source": "PMID:32187558 | ADAR-mediated editing in squid nervous system",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-12",
+    "category": "mutation",
+    "input": "Impact of HBB E6V mutation",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "p.glu6val",
+      "hydrophobicity"
+    ],
+    "gold_source": "PMID:1949240 | Glutamate→Valine creates hydrophobic contact in β-globin",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-13",
+    "category": "sequence",
+    "input": "Analyze DNA sequence: TTAGCCCATGTTGTAGCAAACCCTCAAG",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "dna",
+      "28"
+    ],
+    "gold_source": "TTAGCCCATGTTGTAGCAAACCCTCAAG | DNA | Length: 29 | GC%: 48.3",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-14",
+    "category": "protein",
+    "input": "Details on UniProt P31946",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "p31946",
+      "rnasep"
+    ],
+    "gold_source": "P31946 (P_ROLA) | Ribonuclease P protein component",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-15",
+    "category": "literature",
+    "input": "Publications on bacterial efflux pumps and antibiotic resistance",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "efflux pump",
+      "antibiotic resistance"
+    ],
+    "gold_source": "PMID:11454314 | RND family efflux systems in Gram-negative bacteria",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-16",
+    "category": "mutation",
+    "input": "Effect of EGFR L858R substitution",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "p.leu858arg",
+      "charge"
+    ],
+    "gold_source": "PMID:15146165 | Leucine→Arginine introduces positive charge in kinase domain",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-17",
+    "category": "sequence",
+    "input": "Evaluate this plant protein: MGVKVVLKGQGGEIIKQKDIKKIFKNGQ",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "protein",
+      "28"
+    ],
+    "gold_source": "Q94K77 (GRP2_ARATH) | Glycine-rich protein 2 | Length: 26",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-18",
+    "category": "protein",
+    "input": "What is the role of yeast RPB1?",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "rpb1",
+      "rna polymerase"
+    ],
+    "gold_source": "P04050 (RPB1_YEAST) | DNA-directed RNA polymerase II subunit RPB1",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-19",
+    "category": "literature",
+    "input": "Studies on plant circadian clock mechanisms",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "circadian clock",
+      "photoperiodism"
+    ],
+    "gold_source": "PMID:17183354 | Arabidopsis circadian clock gene CCA1",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-20",
+    "category": "mutation",
+    "input": "Impact of HTT polyQ expansion at residue 23",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "p.gln23pro",
+      "aggregation"
+    ],
+    "gold_source": "PMID:10775708 | CAG repeat expansion in huntingtin exon 1",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-21",
+    "category": "sequence",
+    "input": "Characterize this viral RNA: GGGCCGAUCGGCACUGCCUCGGA",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "rna",
+      "23"
+    ],
+    "gold_source": "GGGCCGAUCGGCACUGCCUCGGA | RNA | Length: 23 | GC%: 73.9",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-22",
+    "category": "protein",
+    "input": "Details on human ADRB2 receptor",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "adrb2",
+      "g protein-coupled"
+    ],
+    "gold_source": "P07550 (ADRB2_HUMAN) | Beta-2 adrenergic receptor",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-23",
+    "category": "literature",
+    "input": "Research on influenza neuraminidase inhibitors",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "neuraminidase",
+      "oseltamivir"
+    ],
+    "gold_source": "PMID:10720327 | Neuraminidase inhibitors for influenza treatment",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-24",
+    "category": "mutation",
+    "input": "Effect of PAH E280A mutation",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "p.glu280ala",
+      "hydrogen bond"
+    ],
+    "gold_source": "PMID:1684580 | Glutamate→Alanine disrupts hydrogen bonding in phenylalanine hydroxylase",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-25",
+    "category": "sequence",
+    "input": "Analyze DNA from Zea mays: CCGCCGCCGCCGCCGCCGCCGCCGCGC",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "dna",
+      "27"
+    ],
+    "gold_source": "CCGCCGCCGCCGCCGCCGCCGCCGCGC | DNA | Length: 27 | GC%: 92.6",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-26",
+    "category": "protein",
+    "input": "Information on UniProt Q06612",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.fetch"
+    ],
+    "keywords": [
+      "q06612",
+      "potassium channel"
+    ],
+    "gold_source": "Q06612 (SHAK_DROME) | Potassium channel protein shaker",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-27",
+    "category": "literature",
+    "input": "Papers discussing fungal mating type loci",
+    "expected_skill": "literature_search",
+    "gold_path": [
+      "pubmed.search"
+    ],
+    "keywords": [
+      "mating type",
+      "sex determination"
+    ],
+    "gold_source": "PMID:15252441 | Mating type locus evolution in fungi",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-28",
+    "category": "mutation",
+    "input": "Impact of BRAF V600E substitution",
+    "expected_skill": "mutation_effect",
+    "gold_path": [
+      "mutation.diff"
+    ],
+    "keywords": [
+      "p.val600glu",
+      "activation"
+    ],
+    "gold_source": "PMID:12660770 | Valine→Glutamate mimics phosphorylation-induced activation",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-29",
+    "category": "sequence",
+    "input": "Evaluate this yeast protein: MSVAVLDRKGKPVVKGQGGEIIKQKDIK",
+    "expected_skill": "sequence_basic_analysis",
+    "gold_path": [
+      "sequence.analyze"
+    ],
+    "keywords": [
+      "protein",
+      "28"
+    ],
+    "gold_source": "P0CX94 (RPA1_YEAST) | RNA polymerase I subunit RPA1 | Length: 28",
+    "split": "holdout"
+  },
+  {
+    "id": "ind-30",
+    "category": "protein",
+    "input": "Details on human CD36 receptor",
+    "expected_skill": "uniprot_lookup",
+    "gold_path": [
+      "uniprot.search"
+    ],
+    "keywords": [
+      "cd36",
+      "scavenger receptor"
+    ],
+    "gold_source": "P16665 (CD36_HUMAN) | Platelet glycoprotein IV",
+    "split": "holdout"
+  }
+]

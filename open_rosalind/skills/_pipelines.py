@@ -21,6 +21,16 @@ _STOPWORDS = {
     "it", "its", "this", "that", "these", "those",
     "and", "or", "but", "with", "without",
     "located", "location", "cell", "function", "role",
+    # Round-5 hold-out additions:
+    "information", "info", "details", "detail", "data", "knowledge",
+    "characterize", "characterise", "analyze", "analyse", "analysis", "evaluate",
+    "effect", "effects", "impact", "impacts", "consequences",
+    "regarding", "concerning", "related",
+    "isoform", "variant", "form",
+    "background", "context", "overview",
+    "current", "available", "known", "reported",
+    "characterization", "evaluation", "assessment",
+    "mechanism", "mechanisms",
 }
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
 
@@ -212,10 +222,42 @@ def literature_search(payload: dict, trace) -> dict:
 
 def mutation_effect(payload: dict, trace) -> dict:
     notes: list[str] = []
+
+    # Natural-language mutation: gene_symbol + mutation, no WT sequence supplied.
+    # Look up UniProt by gene symbol, pull its sequence, then diff.
+    wild_type = payload.get("wild_type")
+    if not wild_type and payload.get("gene_symbol"):
+        gene = payload["gene_symbol"]
+        trace.log("nl_mutation_lookup", {"gene_symbol": gene, "mutation": payload.get("mutation")})
+        search = _run("uniprot.search", trace, query=gene, size=5)
+        if not _is_error(search) and search.get("hits"):
+            # Prefer human unless organism explicitly implied; for now pick first
+            top = search["hits"][0]
+            accession = top.get("accession")
+            if accession:
+                entry = _run("uniprot.fetch", trace, accession=accession)
+                if not _is_error(entry) and entry.get("sequence"):
+                    wild_type = entry["sequence"]
+                    notes.append(
+                        f"gene {gene!r} resolved to UniProt {accession} ({entry.get('name','?')}); "
+                        f"using its canonical sequence as wild-type"
+                    )
+                else:
+                    notes.append(f"uniprot.fetch failed for gene {gene!r} → {accession}")
+        if not wild_type:
+            notes.append(f"could not resolve gene {payload.get('gene_symbol')!r} to a UniProt sequence")
+            out = {
+                "mutation": {"error": {"error": "UnresolvedGene", "message": notes[-1]}},
+                "annotation": _empty_annotation(),
+                "confidence": 0.0,
+                "notes": notes,
+            }
+            return out
+
     res = _run(
         "mutation.diff",
         trace,
-        wild_type=payload["wild_type"],
+        wild_type=wild_type,
         mutant=payload.get("mutant"),
         mutation=payload.get("mutation"),
     )

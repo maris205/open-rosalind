@@ -1,0 +1,974 @@
+[
+  {
+    "task_id": "seq-01",
+    "split": "basic",
+    "condition": "no_template",
+    "input": ">tiny ATGAAACGT",
+    "summary": "The provided DNA sequence, labeled \"tiny,\" consists of 9 nucleotides: ATGAAACGT. \n\nThe nucleotide composition includes 4 Adenine (A), 2 Thymine (T), 2 Guanine (G), and 1 Cytosine (C). This results in a GC content of 33.33%. \n\nWhen translated into a protein sequence, the DNA sequence produces a peptide with the amino acid sequence MKR. The resulting protein translation has a length of 3 amino acids. The reverse complement of the original DNA sequence is ACGTTTCAT.",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 2952,
+    "error": null
+  },
+  {
+    "task_id": "seq-01",
+    "split": "basic",
+    "condition": "no_cite",
+    "input": ">tiny ATGAAACGT",
+    "summary": "The provided DNA sequence, identified by the header \"tiny,\" consists of 9 nucleotides. The nucleotide composition includes 4 Adenine (A), 2 Thymine (T), 2 Guanine (G), and 1 Cytosine (C). This results in a GC content of 33.33%.\n\nWhen translated into a protein sequence, this DNA segment produces a peptide with a length of 3 amino acids. The resulting translation is MKR. The reverse complement of the sequence is ACGTTTCAT.",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 3717,
+    "error": null
+  },
+  {
+    "task_id": "seq-01",
+    "split": "basic",
+    "condition": "full",
+    "input": ">tiny ATGAAACGT",
+    "summary": "The provided DNA sequence, labeled \"tiny,\" consists of 9 nucleotides: ATGAAACGT. \n\nThe nucleotide composition includes 4 Adenine (A), 2 Thymine (T), 2 Guanine (G), and 1 Cytosine (C). This results in a GC content of 33.33%.\n\nWhen translated into a protein sequence, the DNA produces a peptide with the amino acid sequence MKR. The length of this translated protein is 3 amino acids. The reverse complement of the original DNA sequence is ACGTTTCAT.",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 4921,
+    "error": null
+  },
+  {
+    "task_id": "seq-01",
+    "split": "basic",
+    "condition": "react",
+    "input": ">tiny ATGAAACGT",
+    "summary": "thought\nThe sequence `ATGAAACGT` is a short DNA fragment with the following characteristics:\n\n*   **Type:** DNA\n*   **Length:** 9 base pairs\n*   **Composition:** \n    *   Adenine (A): 4\n    *   Thymine (T): 2\n    *   Guanine (G): 2\n    *   Cytosine (C): 1\n*   **GC Content:** 33.33%\n*   **Reverse Complement:** `ACGTTTCAT`\n*   **Predicted Translation:** `MKR` (Methionine-Lysine-Arginine)",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 6961,
+    "error": null
+  },
+  {
+    "task_id": "seq-02",
+    "split": "basic",
+    "condition": "full",
+    "input": ">aa MVKVGVNGFGRIGRLVTRA",
+    "summary": "The provided sequence is a protein consisting of 19 amino acids. Its primary structure is MVKVGVNGFGRIGRLVTRA.\n\nThe amino acid composition of this peptide includes four valines (V), four glycines (G), three arginines (R), one methionine (M), one lysine (K), one asparagine (N), one phenylalanine (F), and one isoleucine (I). The sequence is characterized by a high proportion of small and hydrophobic residues, such as glycine and valine.\n\nThe approximate molecular weight of this sequence is 2030.47 Daltons. Based on the available data, there is no specific functional annotation, organism identification, or accession number associated with this sequence.",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 5515,
+    "error": null
+  },
+  {
+    "task_id": "seq-02",
+    "split": "basic",
+    "condition": "no_tool",
+    "input": ">aa MVKVGVNGFGRIGRLVTRA",
+    "summary": "This amino acid sequence represents a portion of a protein, likely a signal peptide or a transmembrane domain, given its high proportion of hydrophobic residues (Methionine, Valine, Leucine, Isoleucine, Alanine, Glycine).\n\nSpecifically, this sequence is a known fragment of the **human insulin signal peptide**. Signal peptides are N-terminal sequences that direct a nascent polypeptide chain to the endoplasmic reticulum for secretion or membrane insertion.",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 4465,
+    "error": null
+  },
+  {
+    "task_id": "seq-02",
+    "split": "basic",
+    "condition": "no_template",
+    "input": ">aa MVKVGVNGFGRIGRLVTRA",
+    "summary": "The provided sequence is a protein consisting of 19 amino acids. Its primary structure is MVKVGVNGFGRIGRLVTRA.\n\nThe amino acid composition of this peptide includes four valines (V), four glycines (G), three arginines (R), one methionine (M), one lysine (K), one asparagine (N), one phenylalanine (F), and one isoleucine (I). The sequence is characterized by a relatively high proportion of small and hydrophobic residues, such as glycine and valine.\n\nThe approximate molecular weight of this sequence is 2030.47 Daltons. No specific functional annotations, organismal origins, or homology information are available for this sequence based on the provided data.",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 2211,
+    "error": null
+  },
+  {
+    "task_id": "seq-01",
+    "split": "basic",
+    "condition": "no_tool",
+    "input": ">tiny ATGAAACGT",
+    "summary": "This sequence is a short segment of DNA. Here is a breakdown of its biological significance:\n\n1.  **Start Codon:** The sequence begins with **ATG**, which is the universal \"start codon\" in DNA/RNA. It signals the beginning of a protein-coding sequence and codes for the amino acid **Methionine**.\n2.  **Sequence Composition:** It consists of 10 nucleotides: Adenine (A), Thymine (T), and Guanine (G). There are no Cytosines (C) in this specific snippet.\n3.  **Translation (mRNA):** If transcribed into mRNA, it would be `5'-AUG AAACGU-3'`.\n4.  **Amino Acid Sequence:** If translated, the first few amino acids would be **Met-Lys-Arg...** (Methionine - Lysine - Arginine).",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 10902,
+    "error": null
+  },
+  {
+    "task_id": "seq-02",
+    "split": "basic",
+    "condition": "no_cite",
+    "input": ">aa MVKVGVNGFGRIGRLVTRA",
+    "summary": "The provided sequence is a protein consisting of 19 amino acids. Its primary structure is MVKVGVNGFGRIGRLVTRA.\n\nThe amino acid composition of this peptide includes:\n- Valine (V): 4 residues\n- Glycine (G): 4 residues\n- Arginine (R): 3 residues\n- Methionine (M): 1 residue\n- Lysine (K): 1 residue\n- Asparagine (N): 1 residue\n- Phenylalanine (F): 1 residue\n- Isoleucine (I): 1 residue\n- Threonine (T): 1 residue\n- Alanine (A): 1 residue\n\nThe approximate molecular weight of the sequence is 2030.47 Daltons. No specific organism, function, or accession number is associated with this sequence in the provided data.",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 4367,
+    "error": null
+  },
+  {
+    "task_id": "seq-02",
+    "split": "basic",
+    "condition": "react",
+    "input": ">aa MVKVGVNGFGRIGRLVTRA",
+    "summary": "The sequence you provided is a short peptide of 19 amino acids:\n\n**Sequence:** `MVKVGVNGFGRIGRLVTRA`\n\n**Analysis:**\n* **Type:** Protein (Peptide)\n* **Length:** 19 amino acids\n* **Composition:** \n    * Valine (V): 4\n    * Glycine (G): 4\n    * Arginine (R): 3\n    * Methionine (M): 1\n    * Lysine (K): 1\n    * Asparagine (N): 1\n    * Phenylalanine (F): 1\n    * Isoleucine (I): 1\n    * Threonine (T): 1\n    * Alanine (A): 1\n* **Approximate Molecular Weight:** ~2030.47 Da\n\n**Search Results:**\nA direct search for this exact sequence in UniProt yielded no direct matches. This suggests the sequence might be:\n1. A fragment of a much larger protein.\n2. A synthetic peptide.\n3. A sequence from a non-model organism or a specific research context not indexed by exact string matching in the primary database.\n\nIf this is a fragment of a known protein, providing more context (such as the organism or the protein family it belongs to) would help in identifying its origin.",
+    "tool_path": [
+      "sequence.analyze",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 14492,
+    "error": null
+  },
+  {
+    "task_id": "ann-01",
+    "split": "basic",
+    "condition": "no_cite",
+    "input": "P38398",
+    "summary": "The protein associated with UniProt accession P38398 is the Breast cancer type 1 susceptibility protein (BRCA1_HUMAN) in Homo sapiens. It consists of 1863 amino acids.\n\nBRCA1 functions as an E3 ubiquitin-protein ligase that specifically mediates the formation of Lys-6-linked polyubiquitin chains. It plays a central role in DNA repair by facilitating cellular responses to DNA damage. As part of the BRCA1-BARD1 heterodimer, it coordinates various cellular pathways, including DNA damage repair, ubiquitination, and transcriptional regulation, to maintain genomic stability.\n\nKey biological roles include:\n- Facilitating homologous recombination repair (HRR) through direct interaction with PALB2 and modulating the loading of the BRCA2-RAD51 repair machinery.\n- Requiring appropriate cell cycle arrests in the S-phase and G2 phase following ionizing irradiation.\n- Assisting in FANCD2 targeting to DNA damage sites.\n- Regulating centrosomal microtubule nucleation.\n- Acting as a transcriptional activator.\n- Inhibiting lipid synthesis by binding to inactive phosphorylated ACACA.\n- Forming the BRCA1-RBBP8 complex, which regulates CHEK1 activation and controls G2/M checkpoints via the ubiquitination of RBBP8.",
+    "tool_path": [
+      "uniprot.fetch",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 7028,
+    "error": null
+  },
+  {
+    "task_id": "ann-01",
+    "split": "basic",
+    "condition": "full",
+    "input": "P38398",
+    "summary": "The protein associated with accession P38398 is the Breast cancer type 1 susceptibility protein, identified in Homo sapiens. It has a length of 1863 amino acids.\n\nFunctionally, this protein acts as an E3 ubiquitin-protein ligase that specifically mediates the formation of Lys-6-linked polyubiquitin chains. It plays a central role in DNA repair by facilitating cellular responses to DNA damage. The BRCA1-BARD1 heterodimer is involved in coordinating various cellular pathways, including DNA damage repair, ubiquitination, and transcriptional regulation, to maintain genomic stability.\n\nAdditional biological roles include:\n* Regulating centrosomal microtubule nucleation.\n* Facilitating appropriate cell cycle arrests in the S-phase and G2 phase following ionizing irradiation.\n* Requiring FANCD2 targeting to DNA damage sites.\n* Inhibiting lipid synthesis by binding to inactive phosphorylated ACACA.\n* Contributing to homologous recombination repair (HRR) through direct interaction with PALB2 and modulating the loading of the BRCA2-RAD51 repair machinery.\n* Acting as a component of the BRCA1-RBBP8 complex to regulate CHEK1 activation and G2/M checkpoints.\n* Serving as a transcriptional activator.",
+    "tool_path": [
+      "uniprot.fetch",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 10317,
+    "error": null
+  },
+  {
+    "task_id": "ann-01",
+    "split": "basic",
+    "condition": "no_tool",
+    "input": "P38398",
+    "summary": "**P38398** is the UniProt accession number for the human protein **p53** (also known as Cellular tumor antigen p53).\n\nKey facts about this protein:\n*   **Function:** It is a critical tumor suppressor protein that regulates the cell cycle, DNA repair, apoptosis (programmed cell death), and cellular senescence.\n*   **Mechanism:** It acts primarily as a transcription factor. In response to cellular stress (such as DNA damage), p53 levels increase and it binds to specific DNA sequences to activate genes that halt the cell cycle or trigger cell death if the damage is irreparable.\n*   **Clinical Significance:** Mutations in the *TP53* gene (which encodes this protein) are among the most common genetic alterations found in human cancers. Loss of p53 function allows cells with damaged DNA to continue dividing, leading to genomic instability and tumor progression.",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 8939,
+    "error": null
+  },
+  {
+    "task_id": "ann-04",
+    "split": "basic",
+    "condition": "no_tool",
+    "input": "What is hemoglobin?",
+    "summary": "Hemoglobin is a complex protein found in red blood cells that is responsible for transporting oxygen from the lungs to the body's tissues and returning carbon dioxide from the tissues back to the lungs.\n\nIt consists of four subunits (two alpha and two beta chains), each containing an **heme group**. At the center of each heme group is an **iron atom**, which is the specific site where oxygen molecules bind.",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 1788,
+    "error": null
+  },
+  {
+    "task_id": "ann-01",
+    "split": "basic",
+    "condition": "react",
+    "input": "P38398",
+    "summary": "thought\n**P38398** refers to the **Breast cancer type 1 susceptibility protein (BRCA1_HUMAN)** in humans.\n\n### Key Information:\n*   **Protein Name:** Breast cancer type 1 susceptibility protein\n*   **Gene:** *BRCA1*\n*   **Organism:** *Homo sapiens* (Human)\n*   **Length:** 1,863 amino acids\n*   **Primary Function:** It acts as an **E3 ubiquitin-protein ligase** and plays a critical role in maintaining genomic stability through several mechanisms:\n    *   **DNA Repair:** It is central to the cellular response to DNA damage, specifically facilitating **homologous recombination repair (HRR)** by interacting with proteins like PALB2 and BRCA2.\n    *   **Cell Cycle Regulation:** It is required for appropriate cell cycle arrests (specifically in the S and G2 phases) following ionizing radiation.\n    *   **Genomic Stability:** Through the formation of the BRCA1-BARD1 heterodimer, it coordinates DNA damage repair, ubiquitination, and transcriptional regulation.\n    *   **Other Roles:** It regulates centrosomal microtubule nucleation, inhibits lipid synthesis (by binding to phosphorylated ACACA), and acts as a transcriptional activator.\n\n### Clinical Significance:\nMutations in the *BRCA1* gene are well-known for significantly increasing the risk of developing breast, ovarian, and other types of cancer due to the protein's essential role in repairing DNA double-strand breaks.",
+    "tool_path": [
+      "uniprot.fetch"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 11405,
+    "error": null
+  },
+  {
+    "task_id": "ann-04",
+    "split": "basic",
+    "condition": "no_cite",
+    "input": "What is hemoglobin?",
+    "summary": "Hemoglobin is a protein composed of various subunits that play a critical role in oxygen transport from the lungs to various peripheral tissues. In humans, these subunits include different types that serve specific developmental stages and functions.\n\nKey subunits include:\n\n*   **Hemoglobin subunit beta (HBB):** Involved in oxygen transport. It also functions as an endogenous inhibitor of enkephalin-degrading enzymes like DPP3 and acts as a selective antagonist of the P2RX3 receptor, suggesting a role in regulating pain and inflammation.\n*   **Hemoglobin subunit delta (HBD):** Also involved in oxygen transport.\n*   **Hemoglobin subunit gamma-2 (HBG2):** Gamma chains combine with alpha chains to form fetal hemoglobin (HbF).\n*   **Embryonic subunits:** The epsilon chain (HBE) is a beta-type chain found in early mammalian embryonic hemoglobin, while the zeta chain (HBAZ) is an alpha-type chain of mammalian embryonic hemoglobin.",
+    "tool_path": [
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 3682,
+    "error": null
+  },
+  {
+    "task_id": "ann-01",
+    "split": "basic",
+    "condition": "no_template",
+    "input": "P38398",
+    "summary": "P38398 is the accession for the Breast cancer type 1 susceptibility protein in *Homo sapiens* [UniProt:P38398].\n\n### Protein Overview\nThe protein is 1863 amino acids long [UniProt:P38398]. It functions primarily as an E3 ubiquitin-protein ligase that mediates the formation of 'Lys-6'-linked polyubiquitin chains [UniProt:P38398].\n\n### Biological Functions\n*   **DNA Repair and Genomic Stability:** It plays a central role in DNA repair by facilitating cellular responses to DNA damage [UniProt:P38398]. The BRCA1-BARD1 heterodimer coordinates pathways including DNA damage repair, ubiquitination, and transcriptional regulation to maintain genomic stability [UniProt:P38398]. It is required for FANCD2 targeting to DNA damage sites [UniProt:P38398] and contributes to homologous recombination repair (HRR) through interaction with PALB2 [UniProt:P38398].\n*   **Cell Cycle Regulation:** It is required for appropriate cell cycle arrests in both the S-phase and G2 phase following ionizing irradiation [UniProt:P38398]. Additionally, as part of the BRCA1-RBBP8 complex, it regulates CHEK1 activation and controls G2/M checkpoints [UniProt:P38398].\n*   **Other Roles:** It regulates centrosomal microtubule nucleation [UniProt:P38398], inhibits lipid synthesis by binding to inactive phosphorylated ACACA [UniProt:P38398], and acts as a transcriptional activator [UniProt:P38398].\n\n### Evidence\n* [UniProt:P38398]",
+    "tool_path": [
+      "uniprot.fetch",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": true,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 9104,
+    "error": null
+  },
+  {
+    "task_id": "ann-04",
+    "split": "basic",
+    "condition": "react",
+    "input": "What is hemoglobin?",
+    "summary": "thought\n**Hemoglobin** is a vital protein found in red blood cells that is responsible for transporting oxygen from the lungs to the rest of the body's tissues and returning carbon dioxide from the tissues back to the lungs.\n\n### Key Biological Functions\n1.  **Oxygen Transport:** Hemoglobin contains iron-rich heme groups that bind to oxygen molecules in the lungs (where oxygen concentration is high) and release them in peripheral tissues (where oxygen concentration is low).\n2.  **Carbon Dioxide Transport:** It also assists in carrying carbon dioxide, a waste product of metabolism, back to the lungs to be exhaled.\n3.  **pH Buffering:** Hemoglobin helps maintain the acid-base balance (pH) of the blood.\n\n### Structure\nIn humans, adult hemoglobin (HbA) is a **tetramer**, meaning it is composed of four polypeptide subunits. Typically, these consist of:\n*   **Two alpha ($\\alpha$) chains** (e.g., Hemoglobin subunit zeta or alpha-type chains).\n*   **Two beta ($\\beta$) chains** (e.g., Hemoglobin subunit beta).\n\nEach of these four subunits contains a **heme group**, which is a non-protein component containing an iron atom ($Fe^{2+}$). This iron atom is the specific site where oxygen binds.\n\n### Variations in Humans\nHemoglobin composition changes throughout human development:\n*   **Fetal Hemoglobin (HbF):** During fetal development, the body produces hemoglobin with different subunits (such as gamma chains, $\\gamma$), which has a higher affinity for oxygen. This allows the fetus to effectively \"strip\" oxygen from the mother's bloodstream across the placenta.\n*   **Embryonic Hemoglobin:** Early in development, different subunits like epsilon ($\\epsilon$) and zeta ($\\zeta$) are expressed.\n\n### Clinical Significance\n*   **Anemia:** A condition where there is a deficiency in red blood cells or hemoglobin, leading to reduced oxygen delivery to tissues (often characterized by fatigue and weakness).\n*   **Sickle Cell Disease:** A genetic disorder caused by a mutation in the $\\beta$-globin gene (HBB), which causes hemoglobin to form rigid structures, distorting red blood cells into a \"sickle\" shape.\n*   **Thalassemia:** A group of inherited disorders that cause the body to produce an abnormal form of hemoglobin or insufficient amounts of it.",
+    "tool_path": [
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 10668,
+    "error": null
+  },
+  {
+    "task_id": "ann-04",
+    "split": "basic",
+    "condition": "no_template",
+    "input": "What is hemoglobin?",
+    "summary": "Hemoglobin is a protein composed of various subunits that play a critical role in oxygen transport from the lungs to various peripheral tissues. In humans, these subunits include beta, delta, epsilon, gamma, and zeta chains.\n\nSpecific subunits serve different developmental roles. For example, the epsilon chain is a beta-type chain found in early mammalian embryonic hemoglobin, while the zeta chain is an alpha-type chain of mammalian embryonic hemoglobin. The gamma chains combine with alpha chains to form fetal hemoglobin (HbF).\n\nThe hemoglobin subunit beta is involved in oxygen transport and also possesses additional regulatory functions. It can act as an endogenous inhibitor of enkephalin-degrading enzymes, such as DPP3, and serves as a selective antagonist of the P2RX3 receptor, which is involved in pain signaling. These properties suggest that the beta subunit may also function as a regulator of pain and inflammation. Additionally, LVV-hemorphin-7 can potentiate the activity of bradykinin, leading to a decrease in blood pressure.",
+    "tool_path": [
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 8513,
+    "error": null
+  },
+  {
+    "task_id": "ann-04",
+    "split": "basic",
+    "condition": "full",
+    "input": "What is hemoglobin?",
+    "summary": "Hemoglobin is composed of various subunits involved in the transport of oxygen from the lungs to peripheral tissues [UniProt:P68871, UniProt:P02042].\n\n### Overview\nHemoglobin consists of several different subunits in *Homo sapiens*, including:\n* **Beta subunit (HBB):** Involved in oxygen transport and acts as a regulator of pain and inflammation by inhibiting enkephalin-degrading enzymes like DPP3 and antagonizing the P2RX3 receptor [UniProt:P68871].\n* **Delta subunit (HBD):** Involved in oxygen transport from the lungs to peripheral tissues [UniProt:P02042].\n* **Epsilon subunit (HBE):** A beta-type chain found in early mammalian embryonic hemoglobin [UniProt:P02100].\n* **Gamma-2 subunit (HBG2):** Part of fetal hemoglobin F when combined with alpha chains [UniProt:HBG2_HUMAN].\n* **Zeta subunit (HBAZ):** An alpha-type chain of mammalian embryonic hemoglobin [UniProt:P02008].\n\n### Evidence\n* [UniProt:P68871]\n* [UniProt:P02042]\n* [UniProt:P02100]\n* [UniProt:HBG2_HUMAN]\n* [UniProt:P02008]",
+    "tool_path": [
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": true,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 13325,
+    "error": null
+  },
+  {
+    "task_id": "lit-02",
+    "split": "basic",
+    "condition": "full",
+    "input": "Find papers about p53 tumor suppressor",
+    "summary": "Several papers regarding the p53 tumor suppressor have been identified, covering its crystal structure, evolutionary roles, and interactions with DNA viruses.\n\n### Literature Summary\nThe following publications discuss various aspects of p53:\n\n* **Structural and Genetic Studies**: Research has explored the crystal structure of the p53-DNA complex to understand tumorigenic mutations [PMID:8023157] and provides general information on the p53 tumor suppressor gene [PMID:8173170].\n* **Biological Context and Evolution**: Recent literature places p53 in a broader biological context [PMID:28886379] and examines the role of TP53 in adaptation and evolution [PMID:36766853].\n* **Viral Interactions**: The relationship between the human tumor suppressor p53 and DNA viruses has also been reviewed [PMID:15334538].\n\n### Evidence\n* [PMID:8023157]\n* [PMID:8173170]\n* [PMID:28886379]\n* [PMID:36766853]\n* [PMID:15334538]",
+    "tool_path": [
+      "pubmed.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 9836,
+    "error": null
+  },
+  {
+    "task_id": "lit-02",
+    "split": "basic",
+    "condition": "no_template",
+    "input": "Find papers about p53 tumor suppressor",
+    "summary": "Several key papers discuss the p53 tumor suppressor, covering its structural biology, evolutionary role, and interactions with viruses.\n\nIn terms of structural biology, Cho et al. published a study in Science in 1994 detailing the crystal structure of a p53 tumor suppressor-DNA complex, which provided insights into understanding tumorigenic mutations.\n\nRegarding its broader biological context, Kastenhuber and Lowe published a review in Cell in 2017 titled \"Putting p53 in Context.\" More recently, Voskarides and Giannopoulou explored the role of TP53 in adaptation and evolution in a 2023 article in Cells.\n\nThe relationship between p53 and viral infections is also documented. Collot-Teixeira et al. published a review in Reviews in Medical Virology in 2004 regarding the human tumor suppressor p53 and DNA viruses. Additionally, an earlier work by Soussi in the Bulletin du Cancer in 1993 provides information on the p53 tumor suppressor gene.",
+    "tool_path": [
+      "pubmed.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 4896,
+    "error": null
+  },
+  {
+    "task_id": "lit-02",
+    "split": "basic",
+    "condition": "no_tool",
+    "input": "Find papers about p53 tumor suppressor",
+    "summary": "Since I cannot browse the live internet to provide a real-time list of the most recent publications from this week, I can direct you to the most influential, foundational, and highly-cited papers that define the field of p53 research.\n\nTo find the absolute latest research, I recommend searching **PubMed**, **Google Scholar**, or **Nature Reviews Cancer** using the search string: `\"p53 tumor suppressor\" AND (mechanism OR therapeutic target OR mutation)`.\n\nHere are the landmark papers and key areas of study you should look for:\n\n### 1. The Foundational Discovery\n*   **\"A tumor suppressor gene in human cells\" (Lane, 1992):** This is one of the seminal works describing the function of the p53 protein in regulating the cell cycle and inducing apoptosis.\n*   **\"p53: a guardian of the genome\" (Levine, 1994):** This paper discusses the critical role of p53 in maintaining genomic stability by responding to DNA damage.\n\n### 2. Key Mechanisms (Search Terms)\nIf you are looking for specific biological functions, search for these specific mechanisms:\n*   **p53 and Cell Cycle Arrest:** Look for papers discussing the **p21 (WAF1/CIP1)** pathway.\n*   **p53 and Apoptosis:** Search for papers involving **BAX, PUMA, and NOXA** (the pro-apoptotic targets of p53).\n*   **p53 and DNA Repair:** Search for the interaction between p53 and **GADD45**.\n\n### 3. Clinical and Therapeutic Research (Current Trends)\nMost modern papers focus on how to \"fix\" mutant p53. Search for:\n*   **MDM2 Inhibitors:** Research on small molecules (like Nutlins) that prevent the degradation of wild-type p53.\n*   **p53 Reactivation:** Papers focusing on restoring function to mutant p53 proteins (e.g., through pharmacological chaperones).\n*   **Synthetic Lethality:** Research exploring how to kill cells that have lost p53 function by targeting their specific vulnerabilities (e.g., WEE1 inhibitors).\n\n### 4. Recommended Review Journals\nFor a high-level summary of the current state of the field, search within these journals:\n*   *Nature Reviews Molecular Cell Biology*\n*   *Cell*\n*",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 7587,
+    "error": null
+  },
+  {
+    "task_id": "lit-02",
+    "split": "basic",
+    "condition": "no_cite",
+    "input": "Find papers about p53 tumor suppressor",
+    "summary": "Several scientific papers address the role and mechanisms of the p53 tumor suppressor. Research published in Science in 1994 by Cho, Gorina, Jeffrey, and Pavletich describes the crystal structure of a p53 tumor suppressor-DNA complex, which helps in understanding tumorigenic mutations. \n\nThe broader biological context of p53 is explored in a 2017 Cell paper by Kastenhuber and Lowe titled Putting p53 in Context. More recent research includes a 2023 study in Cells by Voskarides and Giannopoulou regarding the role of TP53 in adaptation and evolution. \n\nAdditionally, the relationship between the human tumor suppressor p53 and DNA viruses was reviewed by Collot-Teixeira, Bass, Denis, and Ranger-Rogez in Reviews in Medical Virology in 2004. An earlier overview of the p53 tumor suppressor gene was also published by Soussi in the Bulletin du cancer in 1993.",
+    "tool_path": [
+      "pubmed.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 7496,
+    "error": null
+  },
+  {
+    "task_id": "mut-02",
+    "split": "basic",
+    "condition": "full",
+    "input": "WT: MAAAAA\nMT: p.A2C",
+    "summary": "The mutation p.A2C is a missense mutation characterized by a high severity assessment and is considered likely impactful. This change involves the substitution of alanine at position 2 with cysteine.\n\nThe mutation results in a significant physicochemical shift, transitioning the amino acid from a hydrophobic residue to a polar uncharged residue. Furthermore, the introduction of a cysteine residue is a notable event because it can lead to the gain or loss of a disulfide bond, which may alter the protein's structural stability or folding. Based on these rule-based heuristics, the mutation is expected to have a meaningful effect on the protein.",
+    "tool_path": [
+      "mutation.diff"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 3062,
+    "error": null
+  },
+  {
+    "task_id": "mut-02",
+    "split": "basic",
+    "condition": "no_tool",
+    "input": "WT: MAAAAA\nMT: p.A2C",
+    "summary": "This notation describes a specific genetic mutation:\n\n*   **WT (Wild Type):** `MAAAAA` represents the normal, original amino acid sequence of a protein segment (Methionine-Alanine-Alanine-Alanine-Alanine-Alanine).\n*   **MT (Mutant):** `p.A2C` indicates a **missense mutation** at the protein level.\n    *   **p.** denotes a protein-level change.\n    *   **A2** means the 2nd amino acid in the sequence (Alanine) is the site of the mutation.\n    *   **C** means that Alanine has been replaced by **Cysteine**.\n\n**Summary:** The mutation causes the second amino acid in this sequence to change from Alanine to Cysteine.",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 3387,
+    "error": null
+  },
+  {
+    "task_id": "mut-02",
+    "split": "basic",
+    "condition": "no_template",
+    "input": "WT: MAAAAA\nMT: p.A2C",
+    "summary": "The mutation p.A2C is a missense mutation characterized by a high severity assessment. This change involves the substitution of alanine at position 2 with cysteine.\n\nThe mutation results in a significant change in physicochemical properties, specifically a class change from a hydrophobic amino acid to a polar uncharged amino acid. Furthermore, the introduction of a cysteine residue is a notable event because it can lead to the gain or loss of a disulfide bond, which may alter the protein's structural stability or folding.\n\nBased on these factors, the overall assessment of this mutation is that it is likely impactful. This conclusion is derived from rule-based heuristics regarding amino acid properties and structural implications.",
+    "tool_path": [
+      "mutation.diff"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 4438,
+    "error": null
+  },
+  {
+    "task_id": "lit-02",
+    "split": "basic",
+    "condition": "react",
+    "input": "Find papers about p53 tumor suppressor",
+    "summary": "thought\nI found several papers regarding the p53 tumor suppressor, ranging from foundational structural studies to recent reviews on its role in evolution and adaptation:\n\n1.  **Crystal structure of a p53 tumor suppressor-DNA complex: understanding tumorigenic mutations.**\n    *   **Authors:** Cho Y, Gorina S, Jeffrey PD, Pavletich NP\n    *   **Journal:** *Science (New York, N.Y.)* (1994)\n    *   **PMID:** [8023157](https://pubmed.ncbi.nlm.nih.gov/8023157/)\n    *   **Summary:** A foundational study providing structural insights into how p53 interacts with DNA and how mutations affect this process.\n\n2.  **Putting p53 in Context.**\n    *   **Authors:** Kastenhuber ER, Lowe SW\n    *   **Journal:** *Cell* (2017)\n    *   **PMID:** [28886379](https://pubmed.ncbi.nlm.nih.gov/28886379/)\n    *   **Summary:** A comprehensive review discussing the biological context and multifaceted roles of p53.\n\n3.  **The Role of TP53 in Adaptation and Evolution.**\n    *   **Authors:** Voskarides K, Giannopoulou N\n    *   **Journal:** *Cells* (2023)\n    *   **PMID:** [36766853](https://pubmed.ncbi.nlm.nih.gov/36766853/)\n    *   **Summary:** A recent look at how the TP53 gene influences evolutionary processes and adaptation.\n\n4.  **Human tumor suppressor p53 and DNA viruses.**\n    *   **Authors:** Collot-Teixeira S, Bass J, Denis F, Ranger-Rogez S\n    *   **Journal:** *Reviews in medical virology* (2004)\n    *   **PMID:** [15334538](https://pubmed.ncbi.nlm.nih.gov/15334538/)\n    *   **Summary:** Explores the interaction between the p53 protein and various DNA viruses.\n\n5.  **[P53 tumor suppressor gene].**\n    *   **Author:** Soussi T\n    *   **Journal:** *Bulletin du cancer* (1993)\n    *   **PMID:** [8173170](https://pubmed.ncbi.nlm.nih.gov/8173170/)",
+    "tool_path": [
+      "pubmed.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 15376,
+    "error": null
+  },
+  {
+    "task_id": "pro-04",
+    "split": "edge",
+    "condition": "no_tool",
+    "input": "How long is the human insulin protein? Use UniProt P01308.",
+    "summary": "The human insulin protein (UniProt P01308) is a precursor called **preproinsulin**, which is **110 amino acids** long.\n\nAfter post-translational processing, it is cleaved into:\n*   **Insulin (the active hormone):** Consists of the A chain (21 amino acids) and the B chain (30 amino acids) linked by disulfide bonds, totaling **51 amino acids**.\n*   **C-peptide:** A connecting peptide of **31 amino acids** that is removed during maturation.",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 1556,
+    "error": null
+  },
+  {
+    "task_id": "mut-02",
+    "split": "basic",
+    "condition": "react",
+    "input": "WT: MAAAAA\nMT: p.A2C",
+    "summary": "thought\nThe mutation **p.A2C** in the sequence **MAAAAA** results in the following changes:\n\n### Mutation Summary\n*   **Wild-type (WT):** `MAAAAA`\n*   **Mutant (MT):** `MCAAAA`\n*   **Type:** Missense mutation (Alanine $\\rightarrow$ Cysteine at position 2)\n\n### Analysis of Impact\n*   **Physicochemical Change:** The substitution replaces **Alanine (A)**, a small hydrophobic amino acid, with **Cysteine (C)**, a polar uncharged amino acid.\n*   **Key Functional Risk:** The introduction of a Cysteine residue is flagged as a **high-severity** change. Cysteines are chemically reactive and can form **disulfide bonds** with other cysteine residues, potentially altering the protein's folding, stability, or tertiary structure.\n*   **Overall Assessment:** **Likely impactful**. While the sequence is very short (likely a peptide fragment), the gain of a cysteine residue significantly changes the chemical reactivity of the chain.",
+    "tool_path": [
+      "mutation.diff"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 8774,
+    "error": null
+  },
+  {
+    "task_id": "pro-04",
+    "split": "edge",
+    "condition": "full",
+    "input": "How long is the human insulin protein? Use UniProt P01308.",
+    "summary": "The human insulin protein, identified by UniProt accession P01308, has a length of 110 amino acids.",
+    "tool_path": [
+      "uniprot.fetch",
+      "uniprot.search",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 4985,
+    "error": null
+  },
+  {
+    "task_id": "pro-04",
+    "split": "edge",
+    "condition": "react",
+    "input": "How long is the human insulin protein? Use UniProt P01308.",
+    "summary": "thought\nThe human insulin protein (UniProt P01308) is **110 amino acids** long.",
+    "tool_path": [
+      "uniprot.fetch"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 3920,
+    "error": null
+  },
+  {
+    "task_id": "pro-04",
+    "split": "edge",
+    "condition": "no_cite",
+    "input": "How long is the human insulin protein? Use UniProt P01308.",
+    "summary": "The human insulin protein, identified by UniProt accession P01308, has a length of 110 amino acids.",
+    "tool_path": [
+      "uniprot.fetch",
+      "uniprot.search",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 4856,
+    "error": null
+  },
+  {
+    "task_id": "pro-05",
+    "split": "edge",
+    "condition": "full",
+    "input": "Translate this DNA: ATGGCCAAATTAA",
+    "summary": "The DNA sequence ATGGCCAAATTAA consists of 13 nucleotides. Based on the provided data, the translation of this sequence results in the protein sequence MAKL. This protein sequence has a length of 4 amino acids.",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 2988,
+    "error": null
+  },
+  {
+    "task_id": "mut-02",
+    "split": "basic",
+    "condition": "no_cite",
+    "input": "WT: MAAAAA\nMT: p.A2C",
+    "summary": "The mutation p.A2C represents a missense change where the second amino acid in the sequence is altered from Alanine (A) to Cysteine (C). This substitution is classified as likely impactful.\n\nThe biochemical impact of this mutation is significant due to a change in amino acid properties, specifically a class change from a hydrophobic residue to a polar uncharged residue. Furthermore, the introduction of a cysteine residue is a notable event because it can lead to the gain or loss of a disulfide bond, which is critical for maintaining the structural stability and folding of proteins. Due to these factors, the mutation is assigned a high severity rating.",
+    "tool_path": [
+      "mutation.diff"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 12050,
+    "error": null
+  },
+  {
+    "task_id": "pro-05",
+    "split": "edge",
+    "condition": "react",
+    "input": "Translate this DNA: ATGGCCAAATTAA",
+    "summary": "thought\nThe DNA sequence **ATGGCCAAATTAA** translates to the following peptide (reading in the 5' to 3' direction using the standard genetic code):\n\n**Met-Ala-Lys-Leu** (or **MAKL**)\n\n**Breakdown:**\n*   **ATG** $\\rightarrow$ Met (M)\n*   **GCC** $\\rightarrow$ Ala (A)\n*   **AAA** $\\rightarrow$ Lys (K)\n*   **TTA** $\\rightarrow$ Leu (L)\n*   **A** (remaining nucleotide, does not form a complete codon)",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 3896,
+    "error": null
+  },
+  {
+    "task_id": "pro-04",
+    "split": "edge",
+    "condition": "no_template",
+    "input": "How long is the human insulin protein? Use UniProt P01308.",
+    "summary": "The human insulin protein, identified by UniProt accession P01308, has a length of 110 amino acids.",
+    "tool_path": [
+      "uniprot.fetch",
+      "uniprot.search",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 5709,
+    "error": null
+  },
+  {
+    "task_id": "pro-05",
+    "split": "edge",
+    "condition": "no_cite",
+    "input": "Translate this DNA: ATGGCCAAATTAA",
+    "summary": "The DNA sequence ATGGCCAAATTAA translates to the peptide sequence MAKL [tool:sequence_basic_analysis].\n\n### Sequence Details\nThe provided DNA sequence has a length of 13 nucleotides [tool:sequence_basic_analysis]. The composition of the sequence consists of 6 Adenine (A), 3 Thymine (T), 2 Guanine (G), and 2 Cytosine (C) bases, resulting in a GC content of 30.77% [tool:sequence_basic_analysis]. The resulting protein translation has a length of 4 amino acids [tool:sequence_basic_analysis].\n\n### Evidence\n* [tool:sequence_basic_analysis]",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": true,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 3409,
+    "error": null
+  },
+  {
+    "task_id": "pro-05",
+    "split": "edge",
+    "condition": "no_template",
+    "input": "Translate this DNA: ATGGCCAAATTAA",
+    "summary": "The DNA sequence ATGGCCAAATTAA translates to the peptide sequence MAKL [tool:sequence_basic_analysis].\n\n### Sequence Details\nThe provided DNA sequence has a length of 13 nucleotides [tool:sequence_basic_analysis]. The composition of the sequence consists of 6 Adenine (A), 3 Thymine (T), 2 Guanine (G), and 2 Cytosine (C) bases, resulting in a GC content of 30.77% [tool:sequence_basic_analysis]. The resulting protein translation has a length of 4 amino acids [tool:sequence_basic_analysis].\n\n### Evidence\n* [tool:sequence_basic_analysis]",
+    "tool_path": [
+      "sequence.analyze"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": true,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 3214,
+    "error": null
+  },
+  {
+    "task_id": "pro-05",
+    "split": "edge",
+    "condition": "no_tool",
+    "input": "Translate this DNA: ATGGCCAAATTAA",
+    "summary": "To translate this DNA sequence, we first need to transcribe it into mRNA and then use the genetic code to find the amino acids.\n\n**1. Transcription (DNA $\\rightarrow$ mRNA):**\n`AUG GCC AAA UUA A`\n\n**2. Translation (mRNA $\\rightarrow$ Amino Acids):**\n*   **AUG:** Methionine (Start)\n*   **GCC:** Alanine\n*   **AAA:** Lysine\n*   **UUA:** Leucine\n\n**Resulting Peptide Chain:**\n**Met-Ala-Lys-Leu**",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 4872,
+    "error": null
+  },
+  {
+    "task_id": "harness-protein-03",
+    "split": "multistep",
+    "condition": "no_tool",
+    "input": "Analyze P38398 and find related literature",
+    "summary": "**P38398** is the UniProt accession number for the human protein **Phosphoglycerate kinase 1 (PGK1)**.\n\n### Protein Analysis: PGK1\n*   **Function:** It is a key enzyme in glycolysis. It catalyzes the reversible transfer of a phosphate group from 1,3-bisphosphoglycerate to ADP, yielding 3-phosphoglycerate and ATP. This is one of the ATP-generating steps in the glycolytic pathway.\n*   **Structure:** It typically functions as a homodimer.\n*   **Clinical Significance:** \n    *   **Cancer:** PGK1 is frequently overexpressed in various cancers (e.g., lung, breast, and colon cancer) to support the \"Warburg Effect\" (aerobic glycolysis), providing the energy and metabolic intermediates needed for rapid tumor growth.\n    *   **Metabolic Disorders:** Mutations or dysregulation can impact glucose metabolism.\n    *   **Prognostic Marker:** High levels of PGK1 are often correlated with poor prognosis and increased metastasis in several malignancies.\n\n### Related Literature Themes\nTo find specific literature, you should search academic databases (like PubMed or Google Scholar) using the following keywords:\n\n1.  **\"PGK1 and the Warburg Effect\":** Research focusing on how cancer cells upregulate this enzyme to drive glycolysis.\n2.  **\"PGK1 as a therapeutic target\":** Studies investigating small molecule inhibitors of PGK1 to starve cancer cells of energy.\n3.  **\"PGK1 in metastasis\":** Literature exploring the role of PGK1 in epithelial-mesenchymal transition (EMT) and cell motility.\n4.  **\"PGK1 non-glycolytic functions\":** Recent research into its roles in cell signaling, apoptosis, and protein moonlighting.\n\n**Recommended Search Query:** `PGK1 human cancer metabolism glycolysis`",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 5888,
+    "error": null
+  },
+  {
+    "task_id": "harness-protein-03",
+    "split": "multistep",
+    "condition": "no_template",
+    "input": "Analyze P38398 and find related literature",
+    "summary": "P38398 is the Breast cancer type 1 susceptibility protein (BRCA1) in Homo sapiens. It is an E3 ubiquitin-protein ligase that specifically mediates the formation of Lys-6-linked polyubiquitin chains.\n\nBRCA1 plays a central role in maintaining genomic stability through several key mechanisms:\n\n*   **DNA Repair:** It facilitates cellular responses to DNA damage and contributes to homologous recombination repair (HRR) through direct interaction with PALB2. It also assists in the loading of the BRCA2-RAD51 repair machinery at DNA breaks and is required for FANCD2 targeting to DNA damage sites.\n*   **Cell Cycle Regulation:** It is required for appropriate cell cycle arrests in the S and G2 phases following ionizing irradiation. As part of the BRCA1-RBBP8 complex, it regulates CHEK1 activation and controls G2/M checkpoints via the ubiquitination of RBBP8.\n*   **Protein Interactions:** It forms a heterodimer with BARD1 to coordinate DNA damage repair, ubiquitination, and transcriptional regulation.\n*   **Other Functions:** BRCA1 regulates centrosomal microtubule nucleation, acts as a transcriptional activator, and inhibits lipid synthesis by binding to inactive phosphorylated ACACA.",
+    "tool_path": [
+      "uniprot.fetch",
+      "uniprot.search",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 9126,
+    "error": null
+  },
+  {
+    "task_id": "harness-protein-03",
+    "split": "multistep",
+    "condition": "full",
+    "input": "Analyze P38398 and find related literature",
+    "summary": "# Task Report: Analyze P38398 and find related literature\n\n## Steps Executed\n\n✅ **step_001**: Analyze the provided protein sequence.\n   - The provided protein sequence corresponds to dipeptidyl-peptidase IV from the organism Ascodesmis nigricans. This protein has a length of 813 amino acids.\n\nFunctionally, it acts as a Type IV dipeptidy...\n\n✅ **step_002**: Search protein annotation using UniProt for {protein_name}.\n   - Based on the UniProt search results provided, there are no direct matches for dipeptidyl-peptidase IV. The search returned several unrelated human proteins as a fallback, including Golgi resident prot...\n\n✅ **step_003**: Find related literature for {protein_name}.\n   - Literature regarding the Golgi resident protein GCP60 identifies it as part of a multi-functional protein also known as Acyl-coenzyme A binding domain containing 3 (ACBD3) or PAP7. Research published ...\n\n## Key Entities\n\n- **uniprot_accession**: Q9H3P7\n- **protein_name**: Golgi resident protein GCP60\n- **organism**: Homo sapiens\n- **pmids**: ['20043945']\n",
+    "tool_path": [
+      "uniprot.search",
+      "sequence_basic_analysis",
+      "uniprot.search",
+      "uniprot.search",
+      "uniprot_lookup",
+      "pubmed.search",
+      "literature_search"
+    ],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 14962,
+    "error": null
+  },
+  {
+    "task_id": "harness-protein-03",
+    "split": "multistep",
+    "condition": "no_cite",
+    "input": "Analyze P38398 and find related literature",
+    "summary": "# Task Report: Analyze P38398 and find related literature\n\n## Steps Executed\n\n✅ **step_001**: Analyze the provided protein sequence.\n   - The provided protein sequence corresponds to dipeptidyl-peptidase IV from the organism Ascodesmis nigricans. This protein has a length of 813 amino acids.\n\nFunctionally, it acts as a Type IV dipeptidy...\n\n✅ **step_002**: Search protein annotation using UniProt for {protein_name}.\n   - Based on the UniProt search results provided, there are no direct matches for dipeptidyl-peptidase IV. The search returned several unrelated human proteins as a fallback, including Golgi resident prot...\n\n✅ **step_003**: Find related literature for {protein_name}.\n   - Literature regarding the Golgi resident protein GCP60 identifies it as part of a multi-functional protein also known as Acyl-coenzyme A binding domain containing 3 (ACBD3) or PAP7. Research published ...\n\n## Key Entities\n\n- **uniprot_accession**: Q9H3P7\n- **protein_name**: Golgi resident protein GCP60\n- **organism**: Homo sapiens\n- **pmids**: ['20043945']\n",
+    "tool_path": [
+      "uniprot.search",
+      "sequence_basic_analysis",
+      "uniprot.search",
+      "uniprot.search",
+      "uniprot_lookup",
+      "pubmed.search",
+      "literature_search"
+    ],
+    "metrics": {
+      "accuracy": false,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 12991,
+    "error": null
+  },
+  {
+    "task_id": "harness-protein-03",
+    "split": "multistep",
+    "condition": "react",
+    "input": "Analyze P38398 and find related literature",
+    "summary": "thought\nThe protein associated with accession **P38398** is **Breast cancer type 1 susceptibility protein (BRCA1)** in *Homo sapiens*.\n\n### **Protein Overview**\n*   **Name:** Breast cancer type 1 susceptibility protein (BRCA1)\n*   **Organism:** *Homo sapiens*\n*   **Length:** 1863 amino acids\n*   **Primary Function:** BRCA1 acts as an **E3 ubiquitin-protein ligase** that plays a critical role in maintaining genomic stability. It is central to several cellular processes, most notably:\n    *   **DNA Damage Repair:** It facilitates cellular responses to DNA damage, particularly through **homologous recombination repair (HRR)** by interacting with proteins like PALB2 and BRCA2.\n    *   **Cell Cycle Regulation:** It is required for appropriate cell cycle arrests (specifically in S and G2 phases) following ionizing irradiation.\n    *   **BRCA1-BARD1 Heterodimer:** This complex coordinates DNA repair, ubiquitination, and transcriptional regulation.\n    *   **Other Roles:** It regulates centrosomal microtubule nucleation, inhibits lipid synthesis (by binding to ACACA), and acts as a transcriptional activator.\n\n### **Related Literature**\nRecent research highlights the complex mechanisms by which BRCA1 and its partners manage DNA integrity:\n\n1.  **BRCA1-BARD1 Roles (2020):** A review in *Nature Reviews Molecular Cell Biology* discusses the antitumorigenic roles of the BRCA1-BARD1 complex in DNA repair and replication ([PMID: 32094664](https://pubmed.ncbi.nlm.nih.gov/32094664/)).\n2.  **Recruitment Mechanisms (2024):** Research in *PNAS* describes how DOT1L-mediated methylation of RAP80 promotes the recruitment of BRCA1 to sites of DNA repair ([PMID: 39172790](https://pubmed.ncbi.nlm.nih.gov/39172790/)).\n3.  **DNA End Resection (2024):** A study in *Nature* explores the specific mechanism of the BRCA1-BARD1 complex in DNA end resection and DNA protection ([PMID: 39261728](https://pubmed.ncbi.nlm.nih.gov/39261728/)).\n4.  **Pathway Choice (2025):** Recent work in *Science* examines how the CTC1-STN1-TEN1 complex controls DNA break repair pathway choice by blocking DNA end resection, which is a critical context for understanding how BRCA1-mediated repair is regulated ([PMID: 40403056](https://pubmed.ncbi.nlm.nih.gov/40403056/)).",
+    "tool_path": [
+      "uniprot.fetch",
+      "pubmed.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 17505,
+    "error": null
+  },
+  {
+    "task_id": "harness-mut-03",
+    "split": "multistep",
+    "condition": "no_tool",
+    "input": "What is the impact of p.V600E in BRAF?",
+    "summary": "The **p.V600E** mutation in the **BRAF** gene is a somatic missense mutation where the amino acid valine (V) is replaced by glutamic acid (E) at position 600.\n\nIts primary impacts are:\n\n1.  **Constitutive Activation:** The mutation mimics phosphorylation in the activation loop of the BRAF kinase. This locks the protein in an \"always-on\" active conformation, independent of upstream signals from RAS.\n2.  **Hyperactivation of the MAPK Pathway:** The mutated BRAF protein continuously stimulates the Mitogen-Activated Protein Kinase (MAPK/ERK) signaling pathway. This leads to uncontrolled cellular proliferation, survival, and resistance to apoptosis.\n3.  **Oncogenic Driver:** It acts as a potent driver in various cancers, most notably **melanoma** (found in ~50% of cases), as well as papillary thyroid carcinoma, colorectal cancer, and non-small cell lung cancer.\n4.  **Therapeutic Target:** Because it creates an \"oncogene addiction,\" it is a major target for precision medicine. BRAF inhibitors (e.g., vemurafenib, dabrafenib) are used to treat patients harboring this specific mutation, often in combination with MEK inhibitors to prevent bypass resistance.",
+    "tool_path": [],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": false,
+      "no_fail": true
+    },
+    "latency_ms": 8485,
+    "error": null
+  },
+  {
+    "task_id": "harness-mut-03",
+    "split": "multistep",
+    "condition": "no_template",
+    "input": "What is the impact of p.V600E in BRAF?",
+    "summary": "Based on the provided evidence, there is no information regarding the BRAF protein or the specific p.V600E mutation. The search results for the term \"impact\" returned data related to a protein named IMPACT (also known as YIH1), which functions as a translational regulator in various organisms, including humans, mice, and yeast. This protein acts as a negative regulator of EIF2AK4/GCN2 kinase activity to ensure high levels of translation during stress conditions such as amino acid starvation or glucose deprivation. No connection to BRAF was found in the available data.",
+    "tool_path": [
+      "uniprot.search",
+      "uniprot.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": false,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 6106,
+    "error": null
+  },
+  {
+    "task_id": "harness-mut-03",
+    "split": "multistep",
+    "condition": "react",
+    "input": "What is the impact of p.V600E in BRAF?",
+    "summary": "thought\nThe **p.V600E** mutation in the **BRAF** protein (specifically the human isoform, UniProt **P15056**) is one of the most well-studied and clinically significant oncogenic mutations. It involves a substitution of the amino acid **Valine (V)** with **Glutamic Acid (E)** at position **600** within the kinase domain.\n\n### 1. Molecular Impact\n*   **Constitutive Activation:** Under normal physiological conditions, BRAF is a serine/threonine kinase that requires upstream signaling (typically from RAS) to activate the MAPK/ERK pathway. The V600E mutation mimics the negative charge of a phosphate group (due to the glutamic acid), which stabilizes the kinase in its \"active\" conformation.\n*   **Loss of Regulation:** This mutation causes the BRAF protein to become **constitutively active**, meaning it stays \"turned on\" regardless of whether upstream signals (like growth factors) are present.\n*   **Pathway Hyperactivation:** The mutation leads to the continuous activation of the **MAPK/ERK signaling pathway** (RAS $\\rightarrow$ RAF $\\rightarrow$ MEK $\\rightarrow$ ERK). This pathway is a central driver of cell proliferation, survival, and differentiation.\n\n### 2. Clinical Significance\nThe BRAF V600E mutation is a major driver in several types of cancer, making it a critical biomarker for diagnosis and treatment:\n*   **Melanoma:** It is found in approximately 50% of cutaneous melanomas.\n*   **Thyroid Cancer:** It is a frequent driver in papillary thyroid carcinomas.\n*   **Colorectal Cancer:** It is often associated with a poorer prognosis and specific resistance patterns.\n*   **Other Cancers:** It also occurs in various non-small cell lung cancers (NSCLC) and some types of gliomas.\n\n### 3. Therapeutic Implications\nBecause the mutation creates an \"oncogene addiction\" (where the cancer cell becomes dependent on this specific signaling), it is a primary target for precision medicine:\n*   **BRAF Inhibitors:** Drugs like **Vemurafenib**, **Dabrafenib**, and **Encorafenib** were specifically designed to target the mutated BRAF protein.\n*   **Combination Therapy:** To overcome resistance mechanisms (such as the reactivation of the MAPK pathway via other RAF isoforms), BRAF inhibitors are frequently used in combination with **MEK inhibitors** (e.g., Trametinib).\n\n### Summary Table\n| Feature | Detail |\n| :--- | :--- |\n| **Mutation Type** | Missense (Valine $\\rightarrow$ Glutamic Acid) |\n| **Location** | Activation loop (A-loop) of the kinase domain |\n| **Primary Effect** | Constitutive activation of the MAPK/ERK pathway |\n| **Biological Result** | Uncontrolled cell proliferation and survival |\n| **Key Target Cancers** | Melanoma, Papillary Thyroid Carcinoma, Colorectal Cancer |",
+    "tool_path": [
+      "uniprot.search",
+      "uniprot.fetch",
+      "pubmed.search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 19734,
+    "error": null
+  },
+  {
+    "task_id": "harness-mut-03",
+    "split": "multistep",
+    "condition": "full",
+    "input": "What is the impact of p.V600E in BRAF?",
+    "summary": "# Task Report: What is the impact of p.V600E in BRAF?\n\n## Steps Executed\n\n✅ **step_001**: Compute mutation differences between WT and MT.\n   - Based on the provided evidence, there is insufficient information to compute mutation differences between a wild-type (WT) and a mutant (MT) sequence. The search results for the term \"mutation\" return...\n\n✅ **step_002**: Look up protein annotation for the mutated protein.\n   - The mutated protein is identified as Interferon-induced, double-stranded RNA-activated protein kinase (accession P19525, ID E2AK2_HUMAN) from Homo sapiens. It has a length of 551 amino acids.\n\nFunctio...\n\n✅ **step_003**: Find literature on the mutation and its pathogenicity.\n   - Recent literature explores various mutations and their direct impact on pathogenicity across different pathogens. In influenza research, the emergence of mammalian-adaptive PB2 mutations has been show...\n\n## Key Entities\n\n- **uniprot_accession**: P19525\n- **protein_name**: Interferon-induced, double-stranded RNA-activated protein kinase\n- **organism**: Homo sapiens\n- **pmids**: ['41422038', '37708888', '40715782', '40237499', '34452525']\n",
+    "tool_path": [
+      "uniprot.search",
+      "uniprot.search",
+      "uniprot.search",
+      "mutation_effect",
+      "uniprot.search",
+      "uniprot_lookup",
+      "pubmed.search",
+      "literature_search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 25081,
+    "error": null
+  },
+  {
+    "task_id": "harness-mut-03",
+    "split": "multistep",
+    "condition": "no_cite",
+    "input": "What is the impact of p.V600E in BRAF?",
+    "summary": "# Task Report: What is the impact of p.V600E in BRAF?\n\n## Steps Executed\n\n✅ **step_001**: Compute mutation differences between WT and MT.\n   - Based on the provided evidence, there is insufficient information to compute mutation differences between a wild-type (WT) and a mutant (MT) sequence. The search results for the term \"mutation\" return...\n\n✅ **step_002**: Look up protein annotation for the mutated protein.\n   - The mutated protein is identified as Interferon-induced, double-stranded RNA-activated protein kinase (accession P19525, ID E2AK2_HUMAN) from Homo sapiens. It has a length of 551 amino acids.\n\nFunctio...\n\n✅ **step_003**: Find literature on the mutation and its pathogenicity.\n   - Recent literature explores various ways mutations influence the pathogenicity and evolution of different pathogens. In the context of influenza, research has shown that the emergence of mammalian-adap...\n\n## Key Entities\n\n- **uniprot_accession**: P19525\n- **protein_name**: Interferon-induced, double-stranded RNA-activated protein kinase\n- **organism**: Homo sapiens\n- **pmids**: ['41422038', '37708888', '40715782', '40237499', '34452525']\n",
+    "tool_path": [
+      "uniprot.search",
+      "uniprot.search",
+      "uniprot.search",
+      "mutation_effect",
+      "uniprot.search",
+      "uniprot_lookup",
+      "pubmed.search",
+      "literature_search"
+    ],
+    "metrics": {
+      "accuracy": true,
+      "tool_correctness": true,
+      "citation_presence": false,
+      "trace_completeness": true,
+      "no_fail": true
+    },
+    "latency_ms": 20783,
+    "error": null
+  }
+]

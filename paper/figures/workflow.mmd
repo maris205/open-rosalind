@@ -1,0 +1,51 @@
+flowchart TD
+    user["User Query"]
+    selector{"Mode Selector<br/>(rule-based + LLM-assisted classifier)"}
+
+    agent["Single-step Agent<br/>(direct skill invocation)"]
+    planner["Constrained Planner<br/>(max 5 steps)"]
+
+    tpl1["protein_research"]
+    tpl2["literature_review"]
+    tpl3["mutation_assessment"]
+
+    runner["Multi-step Harness Runner"]
+
+    skills["Skill Registry<br/>sequence_basic_analysis · uniprot_lookup<br/>literature_search · mutation_effect"]
+    tools["Tool Layer<br/>UniProt · PubMed · BioPython · mutation diff"]
+
+    evidence["Evidence + Trace<br/>(JSONL audit log)"]
+    answer["Final Answer<br/>(grounded citations)"]
+
+    user --> selector
+    selector -->|"single-step"| agent
+    selector -->|"multi-step"| planner
+
+    planner --> tpl1
+    planner --> tpl2
+    planner --> tpl3
+    tpl1 --> runner
+    tpl2 --> runner
+    tpl3 --> runner
+
+    agent --> skills
+    runner --> skills
+    skills --> tools
+    tools --> evidence
+    evidence --> answer
+
+    classDef input fill:#10B981,stroke:#065F46,color:#FFFFFF,stroke-width:2px
+    classDef router fill:#7C3AED,stroke:#4C1D95,color:#FFFFFF,stroke-width:2px
+    classDef exec fill:#2563EB,stroke:#1E3A8A,color:#FFFFFF,stroke-width:2px
+    classDef skill fill:#F59E0B,stroke:#92400E,color:#FFFFFF,stroke-width:2px
+    classDef tool fill:#0EA5E9,stroke:#0C4A6E,color:#FFFFFF,stroke-width:2px
+    classDef output fill:#EA580C,stroke:#7C2D12,color:#FFFFFF,stroke-width:2px
+    classDef tpl fill:#E0E7FF,stroke:#4338CA,color:#1E1B4B,stroke-width:1px
+
+    class user input
+    class selector router
+    class agent,planner,runner exec
+    class tpl1,tpl2,tpl3 tpl
+    class skills skill
+    class tools tool
+    class evidence,answer output
