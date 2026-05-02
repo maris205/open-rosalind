@@ -1,0 +1,89 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}From General Agents to Bio-Agents}{2}{section.2}\protected@file@percent }
+\newlabel{sec:bioagent}{{2}{2}{From General Agents to Bio-Agents}{section.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Architectural comparison: general-purpose agents vs.\ reproducible bio-agents. General agents prioritize flexibility with free-form reasoning and optional tool use; bio-agents prioritize accountability with mandatory tool-first execution, evidence grounding, and complete traceability.\relax }}{3}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:agent_compare}{{1}{3}{Architectural comparison: general-purpose agents vs.\ reproducible bio-agents. General agents prioritize flexibility with free-form reasoning and optional tool use; bio-agents prioritize accountability with mandatory tool-first execution, evidence grounding, and complete traceability.\relax }{figure.caption.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Design Principles}{3}{section.3}\protected@file@percent }
+\newlabel{sec:principles}{{3}{3}{Design Principles}{section.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Design contrasts: general-purpose agents vs.\ reproducible bio-agents.\relax }}{4}{table.caption.2}\protected@file@percent }
+\newlabel{tab:compare}{{1}{4}{Design contrasts: general-purpose agents vs.\ reproducible bio-agents.\relax }{table.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Tool-First Execution}{4}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Evidence-Grounded Outputs}{4}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Trace Completeness}{4}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Workflow-Constrained Execution}{4}{subsection.3.4}\protected@file@percent }
+\citation{anthropic2024mcp}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture (Figure\nobreakspace  {}\ref  {fig:arch}).\relax }}{5}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:principles}{{2}{5}{The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture (Figure~\ref {fig:arch}).\relax }{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Framework Architecture}{5}{section.4}\protected@file@percent }
+\newlabel{sec:framework}{{4}{5}{Framework Architecture}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Atomic Tools and MCP Interfaces}{5}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:tools}{{4.1}{5}{Atomic Tools and MCP Interfaces}{subsection.4.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces The Open-Rosalind layered architecture. Atomic tools and MCP-compliant tool interfaces sit at the base; skills compose tools deterministically; the router and agent dispatch single-step queries; and the harness orchestrates bounded multi-step workflows. Each layer carries its own invariant: tools are deterministic and versioned, skills produce typed outputs, the router emits a categorical decision, and the harness enforces a hard step bound.\relax }}{6}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:arch}{{3}{6}{The Open-Rosalind layered architecture. Atomic tools and MCP-compliant tool interfaces sit at the base; skills compose tools deterministically; the router and agent dispatch single-step queries; and the harness orchestrates bounded multi-step workflows. Each layer carries its own invariant: tools are deterministic and versioned, skills produce typed outputs, the router emits a categorical decision, and the harness enforces a hard step bound.\relax }{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Skills as Composed, Deterministic Pipelines}{6}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:skills}{{4.2}{6}{Skills as Composed, Deterministic Pipelines}{subsection.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Hybrid Router}{6}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:router}{{4.3}{6}{Hybrid Router}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Single-Step Agent}{7}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:agent}{{4.4}{7}{Single-Step Agent}{subsection.4.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Multi-Step Harness}{7}{subsection.4.5}\protected@file@percent }
+\newlabel{sec:harness}{{4.5}{7}{Multi-Step Harness}{subsection.4.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Reference Implementation}{7}{section.5}\protected@file@percent }
+\newlabel{sec:system}{{5}{7}{Reference Implementation}{section.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }}{8}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:system}{{4}{8}{Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Open-Rosalind BioBench}{8}{section.6}\protected@file@percent }
+\newlabel{sec:biobench}{{6}{8}{Open-Rosalind BioBench}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Task Categories}{8}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Tiered Difficulty}{9}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Metrics}{9}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Empirical Results}{9}{section.7}\protected@file@percent }
+\newlabel{sec:experiments}{{7}{9}{Empirical Results}{section.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces BioBench results across three tiers. Accuracy varies with task difficulty; the four reproducibility-oriented metrics remain saturated, indicating that the framework's contracts are honored even when the model is wrong about the underlying fact.\relax }}{9}{table.caption.6}\protected@file@percent }
+\newlabel{tab:bench}{{2}{9}{BioBench results across three tiers. Accuracy varies with task difficulty; the four reproducibility-oriented metrics remain saturated, indicating that the framework's contracts are honored even when the model is wrong about the underlying fact.\relax }{table.caption.6}{}}
+\citation{yao2023react}
+\citation{luo2022biogpt}
+\citation{stanford2023biomedlm}
+\citation{singhal2023palm2}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{10}{section.8}\protected@file@percent }
+\newlabel{sec:discussion}{{8}{10}{Discussion}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Position relative to general-purpose agent frameworks.}{10}{paragraph*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Position relative to biomedical LLMs.}{10}{paragraph*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations.}{10}{paragraph*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Future work.}{10}{paragraph*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{10}{section.9}\protected@file@percent }
+\newlabel{sec:conclusion}{{9}{10}{Conclusion}{section.9}{}}
+\bibstyle{plain}
+\bibcite{anthropic2024mcp}{1}
+\bibcite{anthropic2025skills}{2}
+\bibcite{bytedance2025deerflow}{3}
+\bibcite{biofm2025openbiomed}{4}
+\bibcite{singhal2023palm2}{5}
+\bibcite{stanford2023biomedlm}{6}
+\bibcite{luo2022biogpt}{7}
+\bibcite{uniprot2023}{8}
+\bibcite{ncbi2024entrez}{9}
+\bibcite{cock2009biopython}{10}
+\bibcite{yao2023react}{11}
+\bibcite{wang2026emergence}{12}
+\gdef \@abspage@last{11}

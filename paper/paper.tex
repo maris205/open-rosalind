@@ -71,7 +71,16 @@ This paper presents \textbf{Open-Rosalind}, a bio-agent framework built around t
 
 The literature on LLM agents has converged on a small set of recurring patterns: \emph{ReAct}-style interleaved reasoning and acting, \emph{tool-use} protocols, \emph{planner-executor} decompositions, and recursive task decomposition (e.g., AutoGPT-style loops). These patterns share a common philosophical commitment: \emph{flexibility is a virtue}. The agent decides which tool to invoke, when to stop, when to backtrack, and how to summarize. This commitment is well-suited to open-ended environments, where the cost of failure is low and the diversity of tasks resists pre-specification.
 
-Biomedical research is not such an environment. The set of legitimate workflows is small and well-defined: annotate a protein, search the literature on a topic, evaluate the impact of a mutation, compare two sequences. The cost of an unverifiable answer is high. The expectation that another researcher can reproduce the analysis is not optional. Under these conditions, flexibility is not a virtue but a liability: every additional degree of freedom afforded to the agent expands the surface over which errors and ambiguities can enter the result. Table~\ref{tab:compare} contrasts the design assumptions of general agents with those required for bio-agents.
+Biomedical research is not such an environment. The set of legitimate workflows is small and well-defined: annotate a protein, search the literature on a topic, evaluate the impact of a mutation, compare two sequences. The cost of an unverifiable answer is high. The expectation that another researcher can reproduce the analysis is not optional. Under these conditions, flexibility is not a virtue but a liability: every additional degree of freedom afforded to the agent expands the surface over which errors and ambiguities can enter the result. Figure~\ref{fig:agent_compare} illustrates the key architectural differences between general-purpose agents and reproducible bio-agents.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/anget_compare.png}
+\caption{Architectural comparison: general-purpose agents vs.\ reproducible bio-agents. General agents prioritize flexibility with free-form reasoning and optional tool use; bio-agents prioritize accountability with mandatory tool-first execution, evidence grounding, and complete traceability.}
+\label{fig:agent_compare}
+\end{figure}
+
+Table~\ref{tab:compare} contrasts the design assumptions of general agents with those required for bio-agents.
 
 \begin{table}[h]
 \centering
@@ -104,7 +113,7 @@ The framework rests on four principles, summarized in Figure~\ref{fig:principles
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.92\linewidth]{rosalind-principle.png}
+\includegraphics[width=0.95\textwidth]{figures/disign_principle.png}
 \caption{The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture (Figure~\ref{fig:arch}).}
 \label{fig:principles}
 \end{figure}
@@ -159,19 +168,19 @@ The harness orchestrates queries that require more than one skill. Rather than e
 
 The harness enforces three invariants. First, the planner cannot invent new templates; it can only select from the registered set. Second, the runner observes a hard step bound (default five) that terminates execution regardless of the plan. Third, the per-step trace is structurally identical to a single-step trace, so multi-step workflows are reproducible and auditable in the same way as single-step queries.
 
-The combined data flow --- query, mode selection, single-step or harness path, skill execution, evidence and trace generation, and final answer --- is shown in Figure~\ref{fig:workflow}.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.92\linewidth]{figures/workflow.png}
-\caption{End-to-end execution flow. The hybrid mode selector dispatches to either the single-step agent path or the bounded harness path. Both paths converge on the skill registry and the underlying tool layer, and both yield a structured evidence-and-trace bundle that is then summarized into the final answer.}
-\label{fig:workflow}
-\end{figure}
+The combined data flow --- query, mode selection, single-step or harness path, skill execution, evidence and trace generation, and final answer --- ensures that every execution path respects the framework's four principles.
 
 \section{Reference Implementation}
 \label{sec:system}
 
-The reference implementation realizes the architecture as a small server-and-client system: a Python backend exposing a unified chat endpoint, a React-based front-end providing chat and session management, and an embedded SQLite store for users, sessions, messages, and traces. The implementation is intentionally lightweight, in part to reinforce the framework's claim that reproducibility does not require a heavyweight agent stack.
+The reference implementation realizes the architecture as a small server-and-client system: a Python backend exposing a unified chat endpoint, a React-based front-end providing chat and session management, and an embedded SQLite store for users, sessions, messages, and traces. The implementation is intentionally lightweight, in part to reinforce the framework's claim that reproducibility does not require a heavyweight agent stack. Figure~\ref{fig:system} shows the complete system architecture.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/system_structure.png}
+\caption{Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.}
+\label{fig:system}
+\end{figure}
 
 The model layer is pluggable: the system communicates with any OpenAI-compatible endpoint (OpenRouter, vLLM, Azure, on-premise inference servers). The reference deployment uses \texttt{google/gemma-4-26b-a4b-it} via OpenRouter, but no part of the framework is specific to that model. Skills are auto-discovered from a directory layout at startup, and the front-end exposes them through a single chat interface that selects the appropriate execution mode automatically based on the router's decision.
 

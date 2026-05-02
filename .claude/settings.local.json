@@ -93,7 +93,12 @@
       "Bash(pkill -f \"benchmark/run_paired\")",
       "Bash(curl -s --max-time 10 -x http://127.0.0.1:7890 https://api.ipify.org)",
       "Bash(curl -s --max-time 10 https://api.ipify.org)",
-      "Bash(grep -A 50 \"Model: \\\\`google/gemma\")"
+      "Bash(grep -A 50 \"Model: \\\\`google/gemma\")",
+      "Bash(apt-get update *)",
+      "Bash(apt-get install *)",
+      "Bash(pdflatex -interaction=nonstopmode paper.tex)",
+      "Bash(pdfinfo paper.pdf)",
+      "Bash(pdftotext paper.pdf -)"
     ]
   }
 }
