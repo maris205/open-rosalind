@@ -16,6 +16,7 @@ from .orchestrator.mode_selector import select_mode
 from .orchestrator.runner import AgentRunner
 from .skills import SKILLS, list_cards, get_skill
 from .skills_v2 import SKILLS_V2  # MVP3.1 modular skills
+from .skills_v2.executor import execute_skill_v2
 from .storage import Storage  # MVP3.2 SQLite storage
 
 cfg = load_config()
@@ -80,6 +81,17 @@ class AnalyzeResponse(BaseModel):
     trace_steps: list[dict]
 
 
+class SkillV2RunRequest(BaseModel):
+    payload: dict
+    session_id: str | None = None
+
+
+class SkillV2RunResponse(BaseModel):
+    skill: str
+    result: dict
+    trace_steps: list[dict]
+
+
 @app.get("/api/health")
 def health():
     return {
@@ -111,6 +123,38 @@ def list_skills_v2():
         ],
         "count": len(SKILLS_V2),
     }
+
+
+@app.get("/api/skillsv2/{name}")
+def skill_v2_detail(name: str):
+    skill = SKILLS_V2.get(name)
+    if skill is None:
+        raise HTTPException(status_code=404, detail=f"skill not found: {name}")
+    return skill.to_full()
+
+
+@app.post("/api/skillsv2/{name}/run", response_model=SkillV2RunResponse)
+def run_skill_v2(name: str, req: SkillV2RunRequest):
+    skill = SKILLS_V2.get(name)
+    if skill is None:
+        raise HTTPException(status_code=404, detail=f"skill not found: {name}")
+    from .orchestrator.trace import Trace
+    trace = Trace(cfg.get("trace", {}).get("dir", "./traces"), session_id=req.session_id)
+    result = execute_skill_v2(name, req.payload, trace=trace)
+    return SkillV2RunResponse(
+        skill=name,
+        result=result,
+        trace_steps=[
+            {
+                "kind": event.get("kind"),
+                "tool": event.get("tool"),
+                "status": event.get("status"),
+                "latency_ms": event.get("latency_ms"),
+            }
+            for event in trace.events
+            if event.get("kind") in {"tool_call", "tool_result"}
+        ],
+    )
 
 
 @app.get("/api/skills/{name}")
@@ -183,6 +227,29 @@ class TaskRunResponse(BaseModel):
     warnings: list[str]
 
 
+def _task_step_payload(step) -> dict:
+    agent_result = step.agent_result or {}
+    extracted = agent_result.get("extracted_entities") or {}
+    evidence = agent_result.get("evidence")
+    if evidence is None and step.evidence:
+        evidence = step.evidence[0]
+    trace = agent_result.get("trace")
+    if trace is None:
+        trace = step.trace
+    return {
+        "step_id": step.step_id,
+        "instruction": step.instruction,
+        "expected_workflow": step.expected_workflow,
+        "executed_workflow": extracted.get("workflow"),
+        "status": step.status,
+        "latency_ms": step.latency_ms,
+        "summary": agent_result.get("summary", ""),
+        "evidence": evidence or {},
+        "trace": trace or [],
+        "error": step.error or agent_result.get("error"),
+    }
+
+
 @app.post("/api/task/run", response_model=TaskRunResponse)
 def task_run(req: TaskRunRequest):
     """Run a multi-step task."""
@@ -196,16 +263,7 @@ def task_run(req: TaskRunRequest):
     return TaskRunResponse(
         task_id=result.task_id,
         status=result.status,
-        steps=[
-            {
-                "step_id": s.step_id,
-                "instruction": s.instruction,
-                "status": s.status,
-                "latency_ms": s.latency_ms,
-                "summary": s.agent_result.get("summary", "") if s.agent_result else "",
-            }
-            for s in result.steps
-        ],
+        steps=[_task_step_payload(s) for s in result.steps],
         final_report=result.final_report,
         warnings=result.warnings,
     )
@@ -417,12 +475,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             "notes": result.warnings,
             "final_report": result.final_report,
             "steps": [
-                {
-                    "step_id": s.step_id,
-                    "instruction": s.instruction,
-                    "status": s.status,
-                    "summary": s.agent_result.get("summary", "") if s.agent_result else "",
-                }
+                _task_step_payload(s)
                 for s in result.steps
             ],
             "evidence": aggregated_evidence,

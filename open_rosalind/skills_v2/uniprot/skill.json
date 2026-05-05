@@ -1,15 +1,26 @@
 {
   "name": "uniprot_lookup",
+  "display_name": "UniProt Lookup",
   "description": "Query UniProt database for protein information",
   "category": "protein-annotation",
   "version": "1.0.0",
-  "safety_level": "safe",
+  "evidence_schema": {
+    "source": "UniProt",
+    "url": "https://rest.uniprot.org"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
   "tools_used": ["uniprot.fetch", "uniprot.search"],
   "input_schema": {
     "type": "object",
     "properties": {
-      "query": {"type": "string", "description": "Protein name or accession"}
-    }
+      "query": {"type": "string", "description": "Protein name or accession"},
+      "accession": {"type": "string", "description": "Optional explicit accession"}
+    },
+    "required": ["query"]
   },
   "output_schema": {
     "type": "object",
@@ -23,5 +34,8 @@
   "examples": [
     {"input": {"accession": "P38398"}, "expects": "BRCA1_HUMAN"},
     {"input": {"query": "hemoglobin"}, "expects": "Hemoglobin subunit"}
-  ]
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
 }

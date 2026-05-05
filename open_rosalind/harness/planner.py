@@ -15,16 +15,11 @@ class ConstrainedPlanner:
         "protein_research": [
             TaskStep(
                 step_id="step_001",
-                instruction="Analyze the provided protein sequence.",
-                expected_workflow="sequence_basic_analysis",
+                instruction="Analyze the provided protein sequence through the constrained protein annotation workflow.",
+                expected_workflow="workflow_protein_annotation",
             ),
             TaskStep(
                 step_id="step_002",
-                instruction="Search protein annotation using UniProt for {protein_name}.",
-                expected_workflow="uniprot_lookup",
-            ),
-            TaskStep(
-                step_id="step_003",
                 instruction="Find related literature for {protein_name}.",
                 expected_workflow="literature_search",
             ),
@@ -39,18 +34,8 @@ class ConstrainedPlanner:
         "mutation_assessment": [
             TaskStep(
                 step_id="step_001",
-                instruction="Compute mutation differences between WT and MT.",
-                expected_workflow="mutation_effect",
-            ),
-            TaskStep(
-                step_id="step_002",
-                instruction="Look up protein annotation for the mutated protein.",
-                expected_workflow="uniprot_lookup",
-            ),
-            TaskStep(
-                step_id="step_003",
-                instruction="Find literature on the mutation and its pathogenicity.",
-                expected_workflow="literature_search",
+                instruction="Assess the mutation through the constrained mutation assessment workflow.",
+                expected_workflow="workflow_mutation_assessment",
             ),
         ],
     }
@@ -73,9 +58,9 @@ class ConstrainedPlanner:
             if any(kw in goal_lower for kw in ["papers", "literature", "pubmed"]):
                 template_name = "protein_research"
             else:
-                # Just sequence analysis, no literature
+                # Just protein annotation workflow, no literature
                 template_name = "protein_research"
-                max_steps = min(max_steps, 2)  # Skip literature step
+                max_steps = min(max_steps, 1)
         elif any(kw in goal_lower for kw in ["mutation", "wt", "mt", "p.", "variant"]):
             template_name = "mutation_assessment"
         elif any(kw in goal_lower for kw in ["papers", "literature", "pubmed", "review"]):

@@ -1,0 +1,47 @@
+{
+  "name": "pubmed_abstract",
+  "display_name": "PubMed Abstract",
+  "description": "Fetch PubMed abstracts for one or more PMIDs.",
+  "category": "literature",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "PubMed",
+    "url": "https://pubmed.ncbi.nlm.nih.gov"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["pubmed.fetch_abstract"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pmids": {
+        "oneOf": [
+          {"type": "string"},
+          {"type": "array", "items": {"type": "string"}}
+        ]
+      }
+    },
+    "required": ["pmids"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "abstracts": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"pmids": ["38308006"]},
+      "expects": "abstract records"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

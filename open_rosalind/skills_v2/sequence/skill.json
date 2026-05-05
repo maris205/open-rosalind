@@ -1,9 +1,18 @@
 {
   "name": "sequence_basic_analysis",
+  "display_name": "Sequence Basic Analysis",
   "description": "Analyze DNA/RNA/protein sequences and optionally probe UniProt for homology",
   "category": "sequence",
   "version": "1.0.0",
-  "safety_level": "safe",
+  "evidence_schema": {
+    "source": "tool",
+    "details": ["sequence.analyze", "uniprot.search"]
+  },
+  "deterministic": false,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["biopython", "requests"],
   "tools_used": ["sequence.analyze", "uniprot.search"],
   "input_schema": {
     "type": "object",

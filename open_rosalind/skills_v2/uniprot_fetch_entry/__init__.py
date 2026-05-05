@@ -1,0 +1,1 @@
+"""UniProt fetch entry skill."""

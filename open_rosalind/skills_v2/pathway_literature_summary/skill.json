@@ -1,0 +1,52 @@
+{
+  "name": "pathway_literature_summary",
+  "display_name": "Pathway Literature Summary",
+  "description": "Summarize a Reactome pathway together with grounded PubMed literature context.",
+  "category": "knowledge-synthesis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Reactome + PubMed"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "reactome.search_pathways",
+    "reactome.fetch_pathway",
+    "pubmed.search",
+    "pubmed.fetch_metadata",
+    "pubmed.fetch_abstract"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "stable_id": {"type": "string"},
+      "species": {"type": "string", "default": "Homo sapiens"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "pathway_result": {"type": "object"},
+      "literature_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "TP53"},
+      "expects": "Reactome pathway summary plus grounded literature digest"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

@@ -1,0 +1,1 @@
+"""Literature topic summary skill."""

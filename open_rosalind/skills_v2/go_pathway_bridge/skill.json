@@ -1,0 +1,50 @@
+{
+  "name": "go_pathway_bridge",
+  "display_name": "GO Pathway Bridge",
+  "description": "Resolve a GO term and bridge it to a top matching Reactome pathway summary.",
+  "category": "ontology-lookup",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "QuickGO + Reactome"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "quickgo.search_terms",
+    "quickgo.fetch_term",
+    "reactome.search_pathways",
+    "reactome.fetch_pathway"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "term_id": {"type": "string"},
+      "species": {"type": "string", "default": "Homo sapiens"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "go_result": {"type": "object"},
+      "pathway_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "apoptotic process"},
+      "expects": "GO term summary bridged to a Reactome pathway"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

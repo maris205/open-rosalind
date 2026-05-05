@@ -1,0 +1,57 @@
+{
+  "name": "mutation_gene_context",
+  "display_name": "Mutation Gene Context",
+  "description": "Resolve mutation evidence together with Ensembl and NCBI Gene context for the affected gene.",
+  "category": "mutation-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "mutation.diff + UniProt + Ensembl + NCBI Gene"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "mutation.diff",
+    "uniprot.search",
+    "uniprot.fetch",
+    "ensembl.lookup_gene",
+    "ensembl.fetch_xrefs",
+    "ncbi_gene.search_gene",
+    "ncbi_gene.fetch_gene"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "gene_symbol": {"type": "string"},
+      "mutation": {"type": "string"},
+      "wt": {"type": "string"},
+      "mt": {"type": "string"},
+      "wild_type": {"type": "string"},
+      "mutant": {"type": "string"},
+      "query": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "mutation_result": {"type": "object"},
+      "gene_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"gene_symbol": "TP53", "mutation": "p.R175H"},
+      "expects": "mutation evidence with gene-level identifiers"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

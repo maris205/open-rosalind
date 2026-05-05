@@ -1,0 +1,45 @@
+{
+  "name": "mutation_classify_basic",
+  "display_name": "Mutation Classify Basic",
+  "description": "Classify sequence changes into broad categories such as missense, nonsense, or indel using rule-based mutation diff output.",
+  "category": "mutation-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:mutation.diff"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": [],
+  "tools_used": ["mutation.diff"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "wt": {"type": "string"},
+      "mt": {"type": "string"},
+      "wild_type": {"type": "string"},
+      "mutant": {"type": "string"},
+      "mutation": {"type": "string"}
+    },
+    "required": ["wild_type"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "classification": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"wild_type": "MRAAA", "mutation": "p.R2H"},
+      "expects": "missense classification"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

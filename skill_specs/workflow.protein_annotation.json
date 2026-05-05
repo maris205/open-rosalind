@@ -1,0 +1,36 @@
+{
+  "name": "workflow.protein_annotation",
+  "display_name": "Protein Annotation Workflow",
+  "description": "Analyze a protein sequence, probe UniProt, and return structured annotation evidence.",
+  "category": "workflow",
+  "version": "v1",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "evidence": {"type": "array"},
+      "trace": {"type": "array"}
+    }
+  },
+  "evidence_schema": {
+    "source": "workflow.protein_annotation"
+  },
+  "deterministic": false,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "examples": [
+    {
+      "input": {"sequence": "MVKVGVNGFGRIGRLVTRA"},
+      "output_preview": {"annotation": {"kind": "sequence"}}
+    }
+  ]
+}

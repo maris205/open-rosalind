@@ -1,0 +1,45 @@
+{
+  "name": "reactome_pathway_lookup",
+  "display_name": "Reactome Pathway Lookup",
+  "description": "Search Reactome pathways and fetch a structured pathway summary with supporting literature and event counts.",
+  "category": "pathway-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Reactome",
+    "url": "https://reactome.org"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["reactome.search_pathways", "reactome.fetch_pathway"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "stable_id": {"type": "string"},
+      "species": {"type": "string", "default": "Homo sapiens"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "pathway": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "TP53", "species": "Homo sapiens"},
+      "expects": "top matching Reactome pathway summary"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

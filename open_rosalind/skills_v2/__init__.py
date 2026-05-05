@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..skills import Skill
+from .specs import SkillMetadata
 
 
 def discover_skills() -> dict[str, Skill]:
@@ -38,23 +39,23 @@ def discover_skills() -> dict[str, Skill]:
 
         try:
             # Load metadata
-            meta = json.loads(skill_json.read_text())
+            meta = SkillMetadata.model_validate(json.loads(skill_json.read_text()))
 
             # Import handler
             module_name = f"open_rosalind.skills_v2.{skill_dir.name}.handler"
             handler_module = __import__(module_name, fromlist=["handler"])
 
             # Create Skill object
-            skills[meta["name"]] = Skill(
-                name=meta["name"],
-                description=meta["description"],
-                category=meta["category"],
-                input_schema=meta["input_schema"],
-                output_schema=meta["output_schema"],
+            skills[meta.name] = Skill(
+                name=meta.name,
+                description=meta.description,
+                category=meta.category,
+                input_schema=meta.input_schema,
+                output_schema=meta.output_schema,
                 handler=handler_module.handler,
-                examples=meta.get("examples", []),
-                safety_level=meta.get("safety_level", "safe"),
-                tools_used=meta.get("tools_used", []),
+                examples=[example.model_dump(exclude_none=True) for example in meta.examples],
+                safety_level=meta.safety_level,
+                tools_used=meta.tools_used,
             )
         except Exception as e:
             print(f"Warning: Failed to load skill {skill_dir.name}: {e}")

@@ -1,0 +1,47 @@
+{
+  "name": "protein_annotation_summary",
+  "display_name": "Protein Annotation Summary",
+  "description": "Resolve a protein accession or query to a structured UniProt-backed annotation summary.",
+  "category": "protein-annotation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "UniProt",
+    "url": "https://rest.uniprot.org"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["protein.annotation_summary", "uniprot.fetch", "uniprot.search"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "accession": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "entry": {"type": "object"},
+      "search": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"accession": "P38398"},
+      "expects": "BRCA1_HUMAN"
+    },
+    {
+      "input": {"query": "hemoglobin"},
+      "expects": "top UniProt annotation"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

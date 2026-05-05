@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { EvidenceView, TraceView } from './EvidenceView';
 
 function escapeHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -24,6 +25,125 @@ function skillToSource(skill) {
   return map[skill] || skill;
 }
 
+function workflowToLabel(workflow) {
+  const map = {
+    workflow_protein_annotation: 'Protein annotation workflow',
+    workflow_mutation_assessment: 'Mutation assessment workflow',
+    protein_annotation: 'Protein annotation',
+    mutation_assessment: 'Mutation assessment',
+    sequence_basic_analysis: 'Sequence analysis',
+    uniprot_lookup: 'UniProt lookup',
+    literature_search: 'Literature search',
+    mutation_effect: 'Mutation effect',
+  };
+  return map[workflow] || workflow;
+}
+
+function StepDetails({ step }) {
+  const [showEvidence, setShowEvidence] = useState(false);
+  const [showTrace, setShowTrace] = useState(false);
+  const hasEvidence = step.evidence && Object.keys(step.evidence).length > 0;
+  const hasTrace = step.trace && step.trace.length > 0;
+
+  return (
+    <div className="task-step-details">
+      {step.summary && (
+        <div className="task-step-summary markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(step.summary) }} />
+      )}
+
+      {step.error && (
+        <div className="task-step-error">Error: {step.error}</div>
+      )}
+
+      <div className="task-step-meta">
+        {step.latency_ms != null && (
+          <span className="task-step-meta-chip">{step.latency_ms}ms</span>
+        )}
+        {hasEvidence && (
+          <button className="step-toggle" onClick={() => setShowEvidence(!showEvidence)}>
+            {showEvidence ? '▼' : '▶'} Evidence
+          </button>
+        )}
+        {hasTrace && (
+          <button className="step-toggle" onClick={() => setShowTrace(!showTrace)}>
+            {showTrace ? '▼' : '▶'} Trace ({step.trace.length})
+          </button>
+        )}
+      </div>
+
+      {showEvidence && hasEvidence && (
+        <div className="task-step-panel">
+          <EvidenceView evidence={step.evidence} skill={step.executed_workflow || step.expected_workflow} />
+        </div>
+      )}
+
+      {showTrace && hasTrace && (
+        <div className="task-step-panel">
+          <TraceView trace={step.trace} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MessageEvidenceSection({ message }) {
+  if (!message.evidence || Object.keys(message.evidence).length === 0) return null;
+
+  if (message.execution_mode === 'harness' && message.steps?.length) {
+    const stepMap = new Map(message.steps.map((step, index) => [step.step_id, { ...step, index }]));
+
+    return (
+      <div className="evidence-substeps">
+        {Object.entries(message.evidence).map(([stepId, evidence]) => {
+          const step = stepMap.get(stepId);
+          const workflow = step?.executed_workflow || step?.expected_workflow;
+          const workflowLabel = workflow ? workflowToLabel(workflow) : null;
+          return (
+            <div key={stepId} className="evidence-substep">
+              <div className="evidence-substep-title">
+                Step {step ? step.index + 1 : stepId}
+                {workflowLabel ? ` · ${workflowLabel}` : ''}
+              </div>
+              {step?.instruction && <div className="evidence-substep-caption">{step.instruction}</div>}
+              <EvidenceView evidence={evidence} skill={workflow || stepId} />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return <EvidenceView evidence={message.evidence} skill={message.skill} />;
+}
+
+function MessageTraceSection({ message }) {
+  if (message.execution_mode === 'harness' && message.steps?.length) {
+    const stepsWithTrace = message.steps.filter((step) => step.trace && step.trace.length > 0);
+    if (!stepsWithTrace.length) return <div className="evidence-empty">No trace captured</div>;
+
+    return (
+      <div className="evidence-substeps">
+        {stepsWithTrace.map((step, index) => {
+          const workflow = step.executed_workflow || step.expected_workflow;
+          const workflowLabel = workflow ? workflowToLabel(workflow) : null;
+          return (
+            <div key={step.step_id || index} className="evidence-substep">
+              <div className="evidence-substep-title">
+                Step {index + 1}
+                {workflowLabel ? ` · ${workflowLabel}` : ''}
+              </div>
+              {step.instruction && <div className="evidence-substep-caption">{step.instruction}</div>}
+              <TraceView trace={step.trace} />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return <TraceView trace={message.trace_steps} />;
+}
+
 function renderMarkdown(md) {
   if (!md) return '';
   return escapeHtml(md)
@@ -41,6 +161,9 @@ function renderMarkdown(md) {
 function AssistantCard({ message, onSignupClick }) {
   const [showTrace, setShowTrace] = useState(false);
   const [showEvidence, setShowEvidence] = useState(false);
+  const traceCount = message.execution_mode === 'harness' && message.steps?.length
+    ? message.steps.filter((step) => step.trace && step.trace.length > 0).length
+    : (message.trace_steps?.length || 0);
 
   // Special card: requires_signup
   if (message.requires_signup) {
@@ -90,8 +213,25 @@ function AssistantCard({ message, onSignupClick }) {
             <ol>
               {message.steps.map((s, i) => (
                 <li key={i}>
-                  <span className={`step-status step-${s.status}`}>{s.status === 'success' ? '✓' : '✗'}</span>
-                  {' '}{s.instruction}
+                  <div className="step-row">
+                    <span className={`step-status step-${s.status}`}>{s.status === 'success' ? '✓' : '✗'}</span>
+                    <span className="step-text">{s.instruction}</span>
+                  </div>
+                  {(s.expected_workflow || s.executed_workflow) && (
+                    <div className="step-workflows">
+                      {s.expected_workflow && (
+                        <span className="step-badge step-badge-expected">
+                          expected: {workflowToLabel(s.expected_workflow)}
+                        </span>
+                      )}
+                      {s.executed_workflow && (
+                        <span className="step-badge step-badge-executed">
+                          executed: {workflowToLabel(s.executed_workflow)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <StepDetails step={s} />
                 </li>
               ))}
             </ol>
@@ -103,25 +243,23 @@ function AssistantCard({ message, onSignupClick }) {
             <button className="card-toggle" onClick={() => setShowEvidence(!showEvidence)}>
               {showEvidence ? '▼' : '▶'} Evidence
             </button>
-            {showEvidence && <pre className="card-pre">{JSON.stringify(message.evidence, null, 2)}</pre>}
+            {showEvidence && (
+              <div className="card-evidence">
+                <MessageEvidenceSection message={message} />
+              </div>
+            )}
           </div>
         )}
 
-        {message.trace_steps && message.trace_steps.length > 0 && (
+        {traceCount > 0 && (
           <div className="card-section">
             <button className="card-toggle" onClick={() => setShowTrace(!showTrace)}>
-              {showTrace ? '▼' : '▶'} Trace ({message.trace_steps.length} steps)
+              {showTrace ? '▼' : '▶'} Trace ({traceCount} {message.execution_mode === 'harness' ? 'task steps' : 'steps'})
             </button>
             {showTrace && (
-              <ol className="card-trace">
-                {message.trace_steps.map((s, i) => (
-                  <li key={i}>
-                    <code>{s.skill}</code>
-                    {s.latency_ms != null && <span className="trace-meta"> · {s.latency_ms}ms</span>}
-                    <span className={`trace-status status-${s.status}`}> · {s.status}</span>
-                  </li>
-                ))}
-              </ol>
+              <div className="card-evidence">
+                <MessageTraceSection message={message} />
+              </div>
             )}
           </div>
         )}

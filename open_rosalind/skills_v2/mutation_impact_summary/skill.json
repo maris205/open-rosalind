@@ -1,0 +1,52 @@
+{
+  "name": "mutation_impact_summary",
+  "display_name": "Mutation Impact Summary",
+  "description": "Aggregate rule-based mutation analysis, ClinVar evidence, and protein annotation into a structured mutation impact summary.",
+  "category": "mutation-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:mutation.diff + ClinVar + UniProt"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["mutation.diff", "clinvar.search", "uniprot.search", "uniprot.fetch"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "gene_symbol": {"type": "string"},
+      "mutation": {"type": "string"},
+      "wt": {"type": "string"},
+      "mt": {"type": "string"},
+      "wild_type": {"type": "string"},
+      "mutant": {"type": "string"},
+      "query": {"type": "string"},
+      "clinvar_query": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "mutation_result": {"type": "object"},
+      "clinvar_result": {"type": "object"},
+      "protein_result": {"type": "object"},
+      "impact_summary": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"gene_symbol": "TP53", "mutation": "p.R175H"},
+      "expects": "combined mutation impact summary with ClinVar support"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

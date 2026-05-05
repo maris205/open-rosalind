@@ -1,0 +1,47 @@
+{
+  "name": "ncbi_gene_lookup",
+  "display_name": "NCBI Gene Lookup",
+  "description": "Resolve a gene symbol or Gene ID to a structured NCBI Gene summary.",
+  "category": "gene-annotation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "NCBI Gene",
+    "url": "https://www.ncbi.nlm.nih.gov/gene/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["ncbi_gene.search_gene", "ncbi_gene.fetch_gene"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "symbol": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "gene_id": {"type": "string"},
+      "species": {"type": "string", "default": "Homo sapiens"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 20, "default": 3}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "gene": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "TP53", "species": "Homo sapiens"},
+      "expects": "NCBI Gene TP53 summary with map location and aliases"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

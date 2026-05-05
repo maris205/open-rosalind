@@ -1,0 +1,35 @@
+{
+  "name": "protein.basic_stats",
+  "display_name": "Protein Basic Stats",
+  "description": "Compute protein sequence statistics including length, composition, and approximate molecular weight.",
+  "category": "protein-analysis",
+  "version": "v1",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "records": {"type": "array"},
+      "n_records": {"type": "integer"}
+    }
+  },
+  "evidence_schema": {
+    "source": "tool:protein.basic_stats"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": [],
+  "examples": [
+    {
+      "input": {"sequence": "MVKVGVNGFGRIGRLVTRA"},
+      "output_preview": {"records": [{"length": 19}]}
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "pubmed_search",
+  "display_name": "PubMed Search",
+  "description": "Search PubMed directly and return top matching papers.",
+  "category": "literature",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "PubMed",
+    "url": "https://pubmed.ncbi.nlm.nih.gov"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["pubmed.search"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 20, "default": 10}
+    },
+    "required": ["query"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "pubmed": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "CRISPR base editing", "max_results": 5},
+      "expects": "top PubMed hits"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

@@ -1,0 +1,55 @@
+{
+  "name": "gene_literature_summary",
+  "display_name": "Gene Literature Summary",
+  "description": "Resolve a gene to stable identifiers and aggregate a grounded PubMed topic summary for that gene.",
+  "category": "knowledge-synthesis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Ensembl + NCBI Gene + PubMed"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "ensembl.lookup_gene",
+    "ensembl.fetch_xrefs",
+    "ncbi_gene.search_gene",
+    "ncbi_gene.fetch_gene",
+    "pubmed.search",
+    "pubmed.fetch_metadata",
+    "pubmed.fetch_abstract"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "symbol": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "species": {"type": "string", "default": "homo_sapiens"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "gene_result": {"type": "object"},
+      "literature_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "TP53", "max_results": 5},
+      "expects": "gene identifiers plus grounded literature digest"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

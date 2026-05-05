@@ -5,6 +5,8 @@ import re
 from collections import Counter
 from typing import Any
 
+from Bio.Align import PairwiseAligner
+
 from .base import ToolSpec
 
 DNA_ALPHABET = set("ACGTN")
@@ -127,6 +129,60 @@ def _approx_mw(seq: str) -> float:
     return round(total, 2)
 
 
+def align_pairwise(
+    sequence_a: str,
+    sequence_b: str,
+    mode: str = "global",
+    match_score: float = 1.0,
+    mismatch_score: float = 0.0,
+    open_gap_score: float = -1.0,
+    extend_gap_score: float = -0.5,
+) -> dict[str, Any]:
+    """Align two sequences using BioPython's PairwiseAligner."""
+    records_a = _parse_fasta(sequence_a)
+    records_b = _parse_fasta(sequence_b)
+    if not records_a or not records_b:
+        return {"score": 0.0, "mode": mode, "alignment": None, "identity": 0.0}
+
+    header_a, seq_a = records_a[0]
+    header_b, seq_b = records_b[0]
+
+    aligner = PairwiseAligner()
+    aligner.mode = mode
+    aligner.match_score = match_score
+    aligner.mismatch_score = mismatch_score
+    aligner.open_gap_score = open_gap_score
+    aligner.extend_gap_score = extend_gap_score
+
+    alignment = aligner.align(seq_a, seq_b)[0]
+    formatted = str(alignment)
+    lines = formatted.rstrip().splitlines()
+    aligned_a = lines[0].split()[2] if len(lines) >= 1 and len(lines[0].split()) >= 3 else seq_a
+    match_line = lines[1].split()[1] if len(lines) >= 2 and len(lines[1].split()) >= 2 else ""
+    aligned_b = lines[2].split()[2] if len(lines) >= 3 and len(lines[2].split()) >= 3 else seq_b
+
+    match_count = sum(1 for c in match_line if c == "|")
+    comparable = max(len(match_line), 1)
+    identity = round(match_count / comparable, 4)
+
+    return {
+        "mode": mode,
+        "score": float(alignment.score),
+        "sequence_a": {"header": header_a, "length": len(seq_a), "type": _classify(seq_a)},
+        "sequence_b": {"header": header_b, "length": len(seq_b), "type": _classify(seq_b)},
+        "alignment": {
+            "sequence_a": aligned_a,
+            "match_line": match_line,
+            "sequence_b": aligned_b,
+        },
+        "identity": identity,
+        "aligned_spans": {
+            "sequence_a": alignment.aligned[0].tolist(),
+            "sequence_b": alignment.aligned[1].tolist(),
+        },
+    }
+
+
 ANALYZE_SPEC = ToolSpec(
     name="sequence.analyze",
     description="Local basic analysis of a biological sequence (FASTA or raw): detects type (DNA/RNA/protein), length, composition, GC% (nucleic acid) or approximate molecular weight (protein).",
@@ -137,4 +193,25 @@ ANALYZE_SPEC = ToolSpec(
     },
     output_schema={"type": "object"},
     handler=analyze,
+)
+
+
+ALIGN_PAIRWISE_SPEC = ToolSpec(
+    name="sequence.align_pairwise",
+    description="Local pairwise sequence alignment using BioPython PairwiseAligner. Returns score, identity, and a formatted alignment.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "sequence_a": {"type": "string"},
+            "sequence_b": {"type": "string"},
+            "mode": {"type": "string", "enum": ["global", "local"]},
+            "match_score": {"type": "number"},
+            "mismatch_score": {"type": "number"},
+            "open_gap_score": {"type": "number"},
+            "extend_gap_score": {"type": "number"}
+        },
+        "required": ["sequence_a", "sequence_b"],
+    },
+    output_schema={"type": "object"},
+    handler=align_pairwise,
 )

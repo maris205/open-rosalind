@@ -8,59 +8,81 @@ from __future__ import annotations
 from typing import Any
 
 from ..orchestrator import Agent
+from .contracts import StepResult
 
 
 class AgentAdapter:
     """Wraps Open-Rosalind Agent for use by Harness."""
 
+    _WORKFLOW_MODE_MAP = {
+        "sequence_basic_analysis": "sequence",
+        "uniprot_lookup": "uniprot",
+        "literature_search": "literature",
+        "mutation_effect": "mutation",
+    }
+    _WORKFLOW_QUERY_MODE_MAP = {
+        "workflow_protein_annotation": "sequence",
+        "workflow_mutation_assessment": "mutation",
+    }
+
     def __init__(self, agent: Agent):
         self.agent = agent
 
-    def run_step(self, instruction: str, context: dict) -> dict:
+    def run_step(self, instruction: str, context: dict[str, Any], expected_workflow: str) -> StepResult:
         """
         Execute one step by calling the single-step Agent.
 
         Args:
             instruction: Natural-language instruction for this step
             context: Known entities from prior steps (e.g., {"protein_name": "BRCA1"})
+            expected_workflow: Constrained workflow/skill declared by the planner
 
         Returns:
-            {
-                "summary": str,
-                "evidence": dict,
-                "trace": list[dict],
-                "confidence": float,
-                "extracted_entities": dict,  # e.g., {"uniprot_accession": "P38398"}
-                "status": "success" | "failed",
-                "error": str | None
-            }
+            StepResult with summary/evidence/trace/confidence/entity extraction.
         """
         # Inject context into instruction if needed
         enriched_instruction = self._enrich_instruction(instruction, context)
+        analyze_kwargs = self._build_analyze_kwargs(enriched_instruction, expected_workflow)
 
         try:
-            result = self.agent.analyze(enriched_instruction)
+            result = self.agent.analyze(**analyze_kwargs)
             entities = self._extract_entities(result)
 
-            return {
-                "summary": result["summary"],
-                "evidence": result["evidence"],
-                "trace": result.get("trace_steps", []),
-                "confidence": result.get("confidence", 0.0),
-                "extracted_entities": entities,
-                "status": "success",
-                "error": None,
-            }
+            return StepResult(
+                summary=result["summary"],
+                evidence=result["evidence"],
+                trace=result.get("trace_steps", []),
+                confidence=result.get("confidence", 0.0),
+                extracted_entities=entities,
+                status="success",
+                error=None,
+            )
         except Exception as e:
-            return {
-                "summary": "",
-                "evidence": {},
-                "trace": [],
-                "confidence": 0.0,
-                "extracted_entities": {},
-                "status": "failed",
-                "error": f"{type(e).__name__}: {e}",
-            }
+            return StepResult(
+                summary="",
+                evidence={},
+                trace=[],
+                confidence=0.0,
+                extracted_entities={},
+                status="failed",
+                error=f"{type(e).__name__}: {e}",
+            )
+
+    def _build_analyze_kwargs(self, instruction: str, expected_workflow: str) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {"question": instruction}
+        workflow_mode = self._WORKFLOW_MODE_MAP.get(expected_workflow)
+        if workflow_mode:
+            kwargs["mode"] = workflow_mode
+            return kwargs
+
+        workflow_query_mode = self._WORKFLOW_QUERY_MODE_MAP.get(expected_workflow)
+        if workflow_query_mode:
+            kwargs["mode"] = workflow_query_mode
+            kwargs["workflow"] = expected_workflow
+            return kwargs
+
+        kwargs["workflow"] = expected_workflow
+        return kwargs
 
     def _enrich_instruction(self, instruction: str, context: dict) -> str:
         """Replace {entity_name} placeholders with actual values from context."""
@@ -85,5 +107,13 @@ class AgentAdapter:
             entities["organism"] = annotation["organism"]
         if annotation.get("top_pmids"):
             entities["pmids"] = annotation["top_pmids"]
+        if annotation.get("gene_symbol"):
+            entities["gene_symbol"] = annotation["gene_symbol"]
+        if annotation.get("mutation"):
+            entities["mutation"] = annotation["mutation"]
+        if annotation.get("protein_name"):
+            entities["protein_name"] = annotation["protein_name"]
+        if annotation.get("workflow"):
+            entities["workflow"] = annotation["workflow"]
 
         return entities

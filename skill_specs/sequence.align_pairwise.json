@@ -1,0 +1,39 @@
+{
+  "name": "sequence.align_pairwise",
+  "display_name": "Sequence Align Pairwise",
+  "description": "Align two sequences and return a formatted pairwise alignment with identity and score.",
+  "category": "sequence-analysis",
+  "version": "v1",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence_a": {"type": "string"},
+      "sequence_b": {"type": "string"},
+      "mode": {"type": "string", "enum": ["global", "local"]}
+    },
+    "required": ["sequence_a", "sequence_b"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "mode": {"type": "string"},
+      "score": {"type": "number"},
+      "identity": {"type": "number"},
+      "alignment": {"type": "object"}
+    }
+  },
+  "evidence_schema": {
+    "source": "tool:sequence.align_pairwise"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": ["biopython"],
+  "examples": [
+    {
+      "input": {"sequence_a": "ACGT", "sequence_b": "ACCT", "mode": "global"},
+      "output_preview": {"identity": 0.75}
+    }
+  ]
+}

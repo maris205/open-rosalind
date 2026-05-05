@@ -1,0 +1,41 @@
+{
+  "name": "protein_basic_stats",
+  "display_name": "Protein Basic Stats",
+  "description": "Compute protein length, approximate molecular weight, and amino-acid composition.",
+  "category": "protein-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:protein.basic_stats"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": ["biopython"],
+  "tools_used": ["protein.basic_stats"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "protein_stats": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "MVKVGVNGFGRIGRLVTRA"},
+      "expects": "protein composition and approximate molecular weight"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

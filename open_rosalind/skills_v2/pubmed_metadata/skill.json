@@ -1,0 +1,47 @@
+{
+  "name": "pubmed_metadata",
+  "display_name": "PubMed Metadata",
+  "description": "Fetch PubMed metadata for one or more PMIDs.",
+  "category": "literature",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "PubMed",
+    "url": "https://pubmed.ncbi.nlm.nih.gov"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["pubmed.fetch_metadata"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "pmids": {
+        "oneOf": [
+          {"type": "string"},
+          {"type": "array", "items": {"type": "string"}}
+        ]
+      }
+    },
+    "required": ["pmids"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "metadata": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"pmids": ["38308006"]},
+      "expects": "metadata records"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

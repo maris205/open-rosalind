@@ -1,0 +1,41 @@
+{
+  "name": "sequence_reverse_complement",
+  "display_name": "Sequence Reverse Complement",
+  "description": "Compute the reverse complement for a DNA or RNA sequence.",
+  "category": "sequence-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:sequence.reverse_complement"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": ["biopython"],
+  "tools_used": ["sequence.reverse_complement"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "reverse_complement": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "ATGCGTACGTAA"},
+      "expects": "reverse-complement preview"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

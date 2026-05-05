@@ -1,0 +1,1 @@
+"""GO term lookup skill."""

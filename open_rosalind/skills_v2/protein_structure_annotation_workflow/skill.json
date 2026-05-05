@@ -1,0 +1,48 @@
+{
+  "name": "protein_structure_annotation_workflow",
+  "display_name": "Protein Structure Annotation Workflow",
+  "description": "Run a constrained protein annotation plus AlphaFold structure summary workflow.",
+  "category": "workflow",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "UniProt + AlphaFold DB"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "uniprot.search",
+    "uniprot.fetch",
+    "alphafold.fetch_prediction"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "accession": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "protein_result": {"type": "object"},
+      "structure_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"accession": "P04637"},
+      "expects": "protein annotation plus AlphaFold structure metadata"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

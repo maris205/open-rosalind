@@ -1,0 +1,54 @@
+{
+  "name": "gene_pathway_summary",
+  "display_name": "Gene Pathway Summary",
+  "description": "Resolve a gene and summarize the top matching Reactome pathway with event and literature counts.",
+  "category": "pathway-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Ensembl + NCBI Gene + Reactome"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "ensembl.lookup_gene",
+    "ensembl.fetch_xrefs",
+    "ncbi_gene.search_gene",
+    "ncbi_gene.fetch_gene",
+    "reactome.search_pathways",
+    "reactome.fetch_pathway"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "symbol": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "species": {"type": "string", "default": "homo_sapiens"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "gene_result": {"type": "object"},
+      "pathway_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "TP53"},
+      "expects": "gene identifiers plus top Reactome pathway summary"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

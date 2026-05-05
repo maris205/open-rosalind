@@ -1,0 +1,39 @@
+{
+  "name": "workflow.mutation_assessment",
+  "display_name": "Mutation Assessment Workflow",
+  "description": "Assess a mutation through constrained execution: compute mutation evidence, resolve protein context, and gather literature support.",
+  "category": "workflow",
+  "version": "v1",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "wild_type": {"type": "string"},
+      "mutant": {"type": "string"},
+      "mutation": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "query": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "evidence": {"type": "array"},
+      "trace": {"type": "array"}
+    }
+  },
+  "evidence_schema": {
+    "source": "workflow.mutation_assessment"
+  },
+  "deterministic": false,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "examples": [
+    {
+      "input": {"gene_symbol": "TP53", "mutation": "p.R175H"},
+      "output_preview": {"annotation": {"workflow": "mutation_assessment"}}
+    }
+  ]
+}

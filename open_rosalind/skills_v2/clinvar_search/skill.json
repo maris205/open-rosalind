@@ -1,0 +1,45 @@
+{
+  "name": "clinvar_search",
+  "display_name": "ClinVar Search",
+  "description": "Search ClinVar for variant-disease associations and clinical significance summaries.",
+  "category": "mutation-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "ClinVar",
+    "url": "https://www.ncbi.nlm.nih.gov/clinvar/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["clinvar.search"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "mutation": {"type": "string"},
+      "disease": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "clinvar": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"gene_symbol": "TP53", "mutation": "R175H"},
+      "expects": "ClinVar pathogenicity summary for TP53 R175H"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

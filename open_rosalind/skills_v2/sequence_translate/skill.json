@@ -1,0 +1,41 @@
+{
+  "name": "sequence_translate",
+  "display_name": "Sequence Translate",
+  "description": "Translate a DNA or RNA sequence and return the protein translation preview.",
+  "category": "sequence-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:sequence.translate"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": ["biopython"],
+  "tools_used": ["sequence.translate"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "translation": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "ATGGCCAAATTAA"},
+      "expects": "protein translation preview starting with MAK"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

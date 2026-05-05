@@ -51,6 +51,15 @@ def test_dna_translation_and_revcomp():
     assert rec["reverse_complement_preview"].startswith("TTACGT")
 
 
+def test_sequence_align_pairwise():
+    r = seq_tool.align_pairwise("ACGT", "ACCT")
+    assert r["mode"] == "global"
+    assert r["score"] >= 3.0
+    assert r["identity"] == 0.75
+    assert r["alignment"]["sequence_a"] == "ACGT"
+    assert r["alignment"]["sequence_b"] == "ACCT"
+
+
 def test_mutation_hgvs_apply():
     wt = "MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD"
     out = mut_tool.diff_sequences(wild_type=wt, mutation="p.R175H")

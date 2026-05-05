@@ -6,6 +6,7 @@ from typing import Any
 from ..backends import Backend
 from ..session import SessionStore
 from ..skills import SKILL_REGISTRY
+from ..skills_v2 import SKILLS_V2
 from .intent_classifier import llm_classify, needs_llm_classification
 from .router import detect_intent, Intent
 from .trace import Trace
@@ -55,15 +56,35 @@ class Agent:
             )
         return detect_intent(text)
 
+    @staticmethod
+    def _intent_from_workflow(text: str, workflow: str, mode: str | None = None) -> Intent:
+        workflow = workflow.strip()
+        if not workflow:
+            raise ValueError("workflow override must be non-empty")
+
+        if workflow == "workflow_protein_annotation":
+            return Intent(skill=workflow, payload={"sequence": text})
+        if workflow == "workflow_mutation_assessment":
+            base_intent = detect_intent(text)
+            payload = dict(base_intent.payload)
+            payload.setdefault("query", text)
+            if base_intent.skill not in {"mutation_effect", workflow} and mode == "mutation":
+                payload.setdefault("wild_type", text)
+            return Intent(skill=workflow, payload=payload)
+        return Intent(skill=workflow, payload={"query": text})
+
     def analyze(self, question: str, session_id: str | None = None, mode: str | None = None,
-                conversation_history: list[dict] | None = None) -> dict[str, Any]:
+                conversation_history: list[dict] | None = None, workflow: str | None = None) -> dict[str, Any]:
         trace = Trace(self.trace_dir, session_id=session_id)
-        trace.log("user_input", {"question": question, "mode": mode})
+        trace.log("user_input", {"question": question, "mode": mode, "workflow": workflow})
 
         # Session event: start
-        self.session_store.write_event(trace.session_id, "start", user_input=question, mode=mode)
+        self.session_store.write_event(trace.session_id, "start", user_input=question, mode=mode, workflow=workflow)
 
-        if mode and mode not in (None, "", "auto"):
+        if workflow:
+            intent = self._intent_from_workflow(question, workflow, mode=mode)
+            trace.log("router", {"path": "workflow-forced", "skill": intent.skill, "workflow": workflow})
+        elif mode and mode not in (None, "", "auto"):
             intent = self._intent_from_mode(question, mode)
             trace.log("router", {"path": "mode-forced", "skill": intent.skill})
         else:
@@ -94,7 +115,7 @@ class Agent:
         # Session event: skill_call
         self.session_store.write_event(trace.session_id, "skill_call", skill=intent.skill, payload=intent.payload)
 
-        skill_fn = SKILL_REGISTRY[intent.skill]
+        skill_fn = self._resolve_skill_handler(intent.skill)
         evidence = skill_fn(intent.payload, trace=trace)
         trace.log("evidence", {"skill": intent.skill, "evidence": evidence})
 
@@ -152,6 +173,13 @@ class Agent:
             "trace": trace.events,
             "trace_steps": _structured_trace(trace.events),
         }
+
+    @staticmethod
+    def _resolve_skill_handler(skill_name: str):
+        skill_v2 = SKILLS_V2.get(skill_name)
+        if skill_v2 is not None:
+            return skill_v2.handler
+        return SKILL_REGISTRY[skill_name]
 
 
 def _structured_trace(events: list[dict]) -> list[dict]:

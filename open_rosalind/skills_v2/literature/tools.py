@@ -1,29 +1,15 @@
 """PubMed search tools."""
-import requests
+from __future__ import annotations
 
+from ...tools import pubmed as base_pubmed
 
 def search(query: str, max_results: int = 10) -> dict:
-    """Search PubMed."""
-    search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-    params = {"db": "pubmed", "term": query, "retmax": max_results, "retmode": "json"}
-    resp = requests.get(search_url, params=params, timeout=10)
-    resp.raise_for_status()
-    pmids = resp.json()["esearchresult"]["idlist"]
+    return base_pubmed.search(query=query, max_results=max_results)
 
-    if not pmids:
-        return {"hits": [], "count": 0}
 
-    fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-    resp = requests.get(fetch_url, params={"db": "pubmed", "id": ",".join(pmids), "rettype": "abstract", "retmode": "xml"}, timeout=10)
-    resp.raise_for_status()
+def fetch_metadata(pmids: list[str] | str) -> dict:
+    return base_pubmed.fetch_metadata(pmids=pmids)
 
-    import xml.etree.ElementTree as ET
-    root = ET.fromstring(resp.content)
-    hits = []
-    for article in root.findall(".//PubmedArticle"):
-        pmid = article.findtext(".//PMID")
-        title = article.findtext(".//ArticleTitle") or ""
-        abstract = article.findtext(".//AbstractText") or ""
-        hits.append({"pmid": pmid, "title": title, "abstract": abstract})
 
-    return {"hits": hits, "count": len(hits)}
+def fetch_abstract(pmids: list[str] | str) -> dict:
+    return base_pubmed.fetch_abstract(pmids=pmids)

@@ -17,9 +17,9 @@ class TaskStep:
     instruction: str
     expected_workflow: str  # skill name
     status: str = "pending"  # pending | running | success | failed
-    agent_result: dict | None = None
-    evidence: list[dict] = field(default_factory=list)
-    trace: list[dict] = field(default_factory=list)
+    agent_result: dict[str, Any] | None = None
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+    trace: list[dict[str, Any]] = field(default_factory=list)
     error: str | None = None
     latency_ms: int | None = None
 
@@ -66,6 +66,7 @@ class Task:
                     "step_id": s.step_id,
                     "instruction": s.instruction,
                     "expected_workflow": s.expected_workflow,
+                    "executed_workflow": (s.agent_result or {}).get("extracted_entities", {}).get("workflow"),
                     "status": s.status,
                     "latency_ms": s.latency_ms,
                     "error": s.error,

@@ -1,0 +1,44 @@
+{
+  "name": "ensembl_gene_lookup",
+  "display_name": "Ensembl Gene Lookup",
+  "description": "Resolve a gene symbol to an Ensembl gene record with locus and transcript summary fields.",
+  "category": "gene-annotation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Ensembl",
+    "url": "https://rest.ensembl.org"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["ensembl.lookup_gene"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "symbol": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "query": {"type": "string"},
+      "species": {"type": "string", "default": "homo_sapiens"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "gene": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"symbol": "TP53", "species": "homo_sapiens"},
+      "expects": "Ensembl TP53 locus and canonical transcript summary"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

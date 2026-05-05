@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import tools as seq_tools
+from ..runtime import ensure_trace, is_error, run_tool
 
 
 def handler(payload: dict, trace: Any) -> dict:
@@ -33,9 +34,18 @@ def handler(payload: dict, trace: Any) -> dict:
         }
 
     notes = []
+    trace = ensure_trace(trace)
 
     # 1. Analyze sequence locally
-    stats = seq_tools.analyze(sequence)
+    stats = run_tool(trace, "sequence.analyze", seq_tools.analyze, sequence=sequence)
+
+    if is_error(stats):
+        return {
+            "annotation": {"kind": "sequence"},
+            "confidence": 0.0,
+            "notes": [f"Sequence analysis failed: {stats['error']['message']}"],
+            "sequence_stats": {},
+        }
 
     if not stats.get("records"):
         return {
@@ -51,20 +61,23 @@ def handler(payload: dict, trace: Any) -> dict:
     uniprot_hint = {}
     if primary["type"] == "protein" and primary["length"] >= 25:
         probe_len = min(30, primary["length"])
-        probe = primary["sequence"][:probe_len]
+        probe = "".join(
+            line.strip()
+            for line in sequence.splitlines()
+            if line.strip() and not line.strip().startswith(">")
+        )[:probe_len]
 
-        try:
-            from ..uniprot import tools as up_tools
-            result = up_tools.search(query=probe, max_results=3)
-            if result.get("hits"):
-                uniprot_hint = {
-                    "hits": len(result["hits"]),
-                    "top_match": result["hits"][0].get("accession"),
-                    "probe_length": probe_len,
-                }
-                notes.append(f"UniProt probe: {len(result['hits'])} hits")
-        except Exception as e:
-            notes.append(f"UniProt probe failed: {e}")
+        from ..uniprot import tools as up_tools
+        result = run_tool(trace, "uniprot.search", up_tools.search, query=probe, max_results=3)
+        if is_error(result):
+            notes.append(f"UniProt probe failed: {result['error']['message']}")
+        elif result.get("hits"):
+            uniprot_hint = {
+                "hits": len(result["hits"]),
+                "top_match": result["hits"][0].get("accession"),
+                "probe_length": probe_len,
+            }
+            notes.append(f"UniProt probe: {len(result['hits'])} hits")
 
     confidence = 0.85 if primary["type"] in ["dna", "rna"] else 0.7
 

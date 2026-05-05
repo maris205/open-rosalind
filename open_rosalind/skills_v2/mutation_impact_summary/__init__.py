@@ -1,0 +1,1 @@
+"""Mutation impact summary skill."""

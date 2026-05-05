@@ -1,0 +1,45 @@
+{
+  "name": "protein_structure_summary",
+  "display_name": "Protein Structure Summary",
+  "description": "Resolve a protein to AlphaFold DB structure metadata and summarize the best available model.",
+  "category": "protein-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "AlphaFold DB",
+    "url": "https://alphafold.ebi.ac.uk"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["uniprot.search", "uniprot.fetch", "alphafold.fetch_prediction"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "accession": {"type": "string"},
+      "max_models": {"type": "integer", "minimum": 1, "maximum": 10, "default": 3}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "entry": {"type": "object"},
+      "search": {"type": "object"},
+      "structure": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"accession": "P04637"},
+      "expects": "AlphaFold structure metadata for TP53"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

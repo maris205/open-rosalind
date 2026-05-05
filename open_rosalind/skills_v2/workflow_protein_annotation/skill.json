@@ -1,0 +1,49 @@
+{
+  "name": "workflow_protein_annotation",
+  "display_name": "Workflow Protein Annotation",
+  "description": "Analyze a protein sequence and aggregate structured UniProt annotation evidence through a constrained workflow.",
+  "category": "workflow",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "workflow.protein_annotation"
+  },
+  "deterministic": false,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "sequence.analyze",
+    "uniprot.search",
+    "protein.annotation_summary",
+    "uniprot.fetch"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "sequence_result": {"type": "object"},
+      "protein_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "MKWVTFISLLFLFSSAYSRGVFRRDTHKSEIAHRFKDLGE"},
+      "expects": "workflow evidence with sequence and protein annotation"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

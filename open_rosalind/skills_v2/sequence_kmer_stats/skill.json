@@ -1,0 +1,43 @@
+{
+  "name": "sequence_kmer_stats",
+  "display_name": "Sequence K-mer Stats",
+  "description": "Compute k-mer statistics for one or more sequences.",
+  "category": "sequence-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:sequence.kmer_stats"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": ["biopython"],
+  "tools_used": ["sequence.kmer_stats"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"},
+      "k": {"type": "integer", "minimum": 1, "default": 3},
+      "top_n": {"type": "integer", "minimum": 1, "default": 10}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "kmer_stats": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "ATATAT", "k": 2},
+      "expects": "top k-mers including AT and TA"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

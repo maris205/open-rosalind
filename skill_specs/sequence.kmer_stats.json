@@ -1,0 +1,37 @@
+{
+  "name": "sequence.kmer_stats",
+  "display_name": "Sequence k-mer Stats",
+  "description": "Compute k-mer frequency statistics for a biological sequence.",
+  "category": "sequence-analysis",
+  "version": "v1",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"},
+      "k": {"type": "integer"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "records": {"type": "array"},
+      "n_records": {"type": "integer"},
+      "k": {"type": "integer"}
+    }
+  },
+  "evidence_schema": {
+    "source": "tool:sequence.kmer_stats"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": [],
+  "examples": [
+    {
+      "input": {"sequence": "ATATAT", "k": 2},
+      "output_preview": {"records": [{"top_kmers": [["AT", 3], ["TA", 2]]}]}
+    }
+  ]
+}

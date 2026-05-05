@@ -1,0 +1,37 @@
+{
+  "name": "sequence.detect_type",
+  "display_name": "Sequence Detect Type",
+  "description": "Detect whether the input sequence is DNA, RNA, or protein.",
+  "category": "sequence-analysis",
+  "version": "v1",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {
+        "type": "string"
+      }
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "records": {"type": "array"},
+      "n_records": {"type": "integer"}
+    }
+  },
+  "evidence_schema": {
+    "source": "tool:sequence.detect_type"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": [],
+  "examples": [
+    {
+      "input": {"sequence": "ATGGCCAAATTAA"},
+      "output_preview": {"records": [{"type": "dna"}]}
+    }
+  ]
+}

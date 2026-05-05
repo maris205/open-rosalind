@@ -1,0 +1,44 @@
+{
+  "name": "go_term_lookup",
+  "display_name": "GO Term Lookup",
+  "description": "Search Gene Ontology terms and fetch a structured QuickGO term summary.",
+  "category": "ontology-lookup",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "QuickGO",
+    "url": "https://www.ebi.ac.uk/QuickGO/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["quickgo.search_terms", "quickgo.fetch_term"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "term_id": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "term": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "apoptotic process"},
+      "expects": "top matching GO term summary"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

@@ -88,22 +88,55 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .card-steps { margin-top: 12px; padding: 10px; background: #0a0e14; border-radius: 6px; }
 .card-section-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
 .card-steps ol { padding-left: 20px; font-size: 13px; color: #c5cdd9; }
-.card-steps li { margin-bottom: 4px; }
+.card-steps li { margin-bottom: 8px; }
 .step-status { display: inline-block; width: 16px; }
 .step-success { color: #6ee7b7; }
 .step-failed { color: #f87171; }
+.step-row { display: flex; align-items: flex-start; gap: 4px; }
+.step-text { flex: 1; }
+.step-workflows { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0 20px; }
+.step-badge { font-size: 10px; padding: 2px 7px; border-radius: 999px; border: 1px solid transparent; letter-spacing: 0.02em; }
+.step-badge-expected { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.28); color: #93c5fd; }
+.step-badge-executed { background: rgba(110,231,183,0.12); border-color: rgba(110,231,183,0.28); color: #86efac; }
+.task-step-details { margin: 8px 0 0 20px; padding: 10px 12px; background: rgba(15,20,25,0.7); border: 1px solid #1f2937; border-radius: 8px; }
+.task-step-summary { font-size: 12px; color: #d1d5db; }
+.task-step-summary h2, .task-step-summary h3 { font-size: 12px; margin: 8px 0 4px; }
+.task-step-error { margin-top: 8px; color: #fca5a5; font-size: 12px; }
+.task-step-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.task-step-meta-chip { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: rgba(148,163,184,0.14); color: #cbd5e1; }
+.step-toggle { background: none; border: none; color: #93c5fd; cursor: pointer; font-size: 11px; padding: 0; }
+.step-toggle:hover { color: #bfdbfe; }
+.task-step-panel { margin-top: 8px; }
+.kv { display: grid; gap: 6px; }
+.kv-row { display: grid; grid-template-columns: minmax(92px, 140px) 1fr; gap: 10px; align-items: start; font-size: 12px; }
+.k { color: #8b9bb0; }
+.v { color: #dbe5f0; word-break: break-word; overflow-wrap: anywhere; }
+.evidence-empty { font-size: 12px; color: #6b7280; font-style: italic; }
+.evidence-notes { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.evidence-substeps { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.evidence-substep { padding: 10px; border-radius: 8px; background: rgba(10,14,20,0.75); border: 1px solid #1f2937; }
+.evidence-substep-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #93c5fd; margin-bottom: 8px; }
+.evidence-substep-caption { font-size: 12px; color: #c5cdd9; margin-bottom: 8px; }
+.trace-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.trace-card { padding: 10px; border-radius: 8px; background: #0a0e14; border: 1px solid #1f2937; }
+.trace-card-header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.trace-card-header code { background: rgba(251,191,36,0.12); padding: 2px 6px; border-radius: 4px; color: #fde68a; font-size: 11px; }
+.trace-status-badge { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: rgba(148,163,184,0.12); }
+.trace-io { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 12px; color: #cbd5e1; margin-top: 4px; }
+.trace-io-label { color: #6b7280; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
 
 .card-section { margin-top: 10px; }
 .card-toggle { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 12px; padding: 4px 0; }
 .card-toggle:hover { color: #6ee7b7; }
 .card-pre { background: #0a0e14; padding: 10px; border-radius: 6px; font-size: 11px; max-height: 300px; overflow: auto; margin-top: 6px; font-family: 'SF Mono', monospace; color: #9ca3af; }
-.card-trace { padding-left: 20px; font-size: 12px; margin-top: 6px; }
-.card-trace li { margin-bottom: 3px; color: #9ca3af; }
-.card-trace code { background: #0a0e14; padding: 1px 4px; border-radius: 3px; color: #fde68a; font-size: 11px; }
 .trace-meta { color: #6b7280; }
 .trace-status { font-size: 10px; }
 .status-success { color: #6ee7b7; }
 .status-error { color: #f87171; }
+
+@media (max-width: 640px) {
+  .kv-row { grid-template-columns: 1fr; gap: 2px; }
+}
 
 .card-meta { margin-top: 12px; font-size: 11px; color: #6b7280; font-style: italic; border-top: 1px solid #1f2937; padding-top: 8px; }
 

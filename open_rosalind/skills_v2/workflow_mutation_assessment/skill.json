@@ -1,0 +1,57 @@
+{
+  "name": "workflow_mutation_assessment",
+  "display_name": "Workflow Mutation Assessment",
+  "description": "Run a constrained mutation assessment workflow that computes mutation evidence, resolves protein annotation, and gathers grounded literature support.",
+  "category": "workflow",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "workflow.mutation_assessment"
+  },
+  "deterministic": false,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "mutation.diff",
+    "uniprot.search",
+    "uniprot.fetch",
+    "pubmed.search",
+    "pubmed.fetch_metadata",
+    "pubmed.fetch_abstract"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "wt": {"type": "string"},
+      "mt": {"type": "string"},
+      "wild_type": {"type": "string"},
+      "mutant": {"type": "string"},
+      "mutation": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "query": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "mutation_result": {"type": "object"},
+      "protein_result": {"type": "object"},
+      "literature_result": {"type": "object"},
+      "trace": {"type": "array"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"gene_symbol": "TP53", "mutation": "p.R175H", "query": "What is known about TP53 R175H?"},
+      "expects": "workflow evidence with mutation, protein annotation, and literature context"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

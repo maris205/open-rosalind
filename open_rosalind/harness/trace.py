@@ -37,6 +37,7 @@ class TaskTraceStore:
                     "step_id": step.step_id,
                     "instruction": step.instruction,
                     "expected_workflow": step.expected_workflow,
+                    "executed_workflow": (step.agent_result or {}).get("extracted_entities", {}).get("workflow"),
                     "status": step.status,
                     "latency_ms": step.latency_ms,
                     "error": step.error,

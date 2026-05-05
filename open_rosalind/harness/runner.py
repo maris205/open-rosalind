@@ -9,9 +9,8 @@ Principles:
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
 
-from .adapter import AgentAdapter
+from .contracts import StepExecutor, StepResult
 from .planner import ConstrainedPlanner
 from .task import Task, TaskStep
 
@@ -19,7 +18,7 @@ from .task import Task, TaskStep
 class TaskRunner:
     """Orchestrates multi-step task execution."""
 
-    def __init__(self, agent_adapter: AgentAdapter):
+    def __init__(self, agent_adapter: StepExecutor):
         self.agent_adapter = agent_adapter
         self.planner = ConstrainedPlanner()
 
@@ -48,28 +47,35 @@ class TaskRunner:
             result = self.agent_adapter.run_step(
                 instruction=step.instruction,
                 context=task.state.known_entities,
+                expected_workflow=step.expected_workflow,
             )
             step.latency_ms = int((time.time() - t0) * 1000)
 
-            # Update step
-            step.status = result["status"]
-            step.agent_result = result
-            step.evidence = [result["evidence"]]
-            step.trace = result["trace"]
-            step.error = result["error"]
-
-            # Update task state
-            if result["status"] == "success":
-                task.state.known_entities.update(result["extracted_entities"])
-                task.state.evidence_pool.extend(step.evidence)
-                task.state.trace_refs.append(f"{task.task_id}/step_{step.step_id}")
-            else:
-                task.add_warning(step, result["error"] or "Unknown error")
+            self._apply_step_result(task, step, result)
 
         # 3. Build final report
         task.final_report = self._build_report(task)
         task.status = "completed"
         return task
+
+    def _apply_step_result(self, task: Task, step: TaskStep, result: StepResult) -> None:
+        """Apply the adapter result to task/step state.
+
+        TaskRunner only understands StepResult. It never reaches into skills or
+        tools directly.
+        """
+        step.status = result.status
+        step.agent_result = result.to_dict()
+        step.evidence = [result.evidence]
+        step.trace = result.trace
+        step.error = result.error
+
+        if result.status == "success":
+            task.state.known_entities.update(result.extracted_entities)
+            task.state.evidence_pool.extend(step.evidence)
+            task.state.trace_refs.append(f"{task.task_id}/step_{step.step_id}")
+        else:
+            task.add_warning(step, result.error or "Unknown error")
 
     def _build_report(self, task: Task) -> str:
         """

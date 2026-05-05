@@ -1,65 +1,49 @@
 """Sequence analysis tools (local computation)."""
-from Bio.Seq import Seq
-from Bio.SeqUtils import molecular_weight, gc_fraction
+from __future__ import annotations
 
+from ...tools import sequence as base_sequence
+from .helpers import (
+    align_pairwise as _align_pairwise_helper,
+    detect_type as _detect_type_helper,
+    gc_content as _gc_content_helper,
+    kmer_stats as _kmer_stats_helper,
+    protein_basic_stats as _protein_basic_stats_helper,
+    reverse_complement as _reverse_complement_helper,
+    translate as _translate_helper,
+)
 
 def analyze(sequence: str) -> dict:
-    """Analyze DNA/RNA/protein sequence (local computation)."""
-    sequence = sequence.strip()
-
-    # Handle both FASTA and raw sequences
-    if sequence.startswith('>'):
-        blocks = sequence.split('>')[1:]
-    else:
-        blocks = [f"seq\n{sequence}"]
-
-    records = []
-    for block in blocks:
-        lines = block.strip().split('\n')
-        header = lines[0] if lines else 'seq'
-        seq_str = ''.join(lines[1:] if len(lines) > 1 else [lines[0]]).replace(' ', '').replace('\n', '').upper()
-
-        if not seq_str:
-            continue
-
-        seq_obj = Seq(seq_str)
-        seq_type = _detect_type(seq_str)
-
-        rec = {
-            'header': header,
-            'sequence': seq_str,
-            'length': len(seq_str),
-            'type': seq_type,
-            'composition': {base: seq_str.count(base) for base in set(seq_str)},
-        }
-
-        if seq_type == 'dna':
-            rec['gc_content'] = round(gc_fraction(seq_obj) * 100, 2)
-            try:
-                rec['translation'] = str(seq_obj.translate(to_stop=False))
-            except:
-                rec['translation'] = None
-            rec['reverse_complement'] = str(seq_obj.reverse_complement())
-        elif seq_type == 'protein':
-            try:
-                rec['molecular_weight'] = round(molecular_weight(seq_obj, 'protein') / 1000, 2)
-            except:
-                rec['molecular_weight'] = None
-
-        records.append(rec)
-
-    return {'records': records, 'n_records': len(records)}
+    """Analyze DNA/RNA/protein sequence using the shared tool implementation."""
+    result = base_sequence.analyze(sequence)
+    return {
+        "records": result["records"],
+        "n_records": result["total_records"],
+    }
 
 
-def _detect_type(seq: str) -> str:
-    """Detect sequence type (dna, rna, protein)."""
-    seq_upper = seq.upper()
-    dna_bases = set('ATCGN')
-    rna_bases = set('AUCGN')
+def detect_type(sequence: str) -> dict:
+    return _detect_type_helper(sequence)
 
-    if set(seq_upper) <= dna_bases:
-        return 'dna'
-    elif set(seq_upper) <= rna_bases:
-        return 'rna'
-    else:
-        return 'protein'
+
+def gc_content(sequence: str) -> dict:
+    return _gc_content_helper(sequence)
+
+
+def translate(sequence: str) -> dict:
+    return _translate_helper(sequence)
+
+
+def reverse_complement(sequence: str) -> dict:
+    return _reverse_complement_helper(sequence)
+
+
+def kmer_stats(sequence: str, k: int = 3, top_n: int = 10) -> dict:
+    return _kmer_stats_helper(sequence, k=k, top_n=top_n)
+
+
+def protein_basic_stats(sequence: str) -> dict:
+    return _protein_basic_stats_helper(sequence)
+
+
+def align_pairwise(sequence_a: str, sequence_b: str, mode: str = "global") -> dict:
+    return _align_pairwise_helper(sequence_a=sequence_a, sequence_b=sequence_b, mode=mode)

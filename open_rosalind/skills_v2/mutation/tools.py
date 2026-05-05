@@ -1,20 +1,21 @@
 """Mutation analysis tools."""
+from __future__ import annotations
 
-def diff(wt: str, mt: str) -> dict:
-    """Compare WT and MT sequences."""
-    wt = wt.upper().strip()
-    mt = mt.upper().strip()
-    
-    if len(wt) != len(mt):
-        return {"n_differences": -1, "positions": [], "changes": [], "severity": "unknown"}
-    
-    positions = []
-    changes = []
-    for i, (w, m) in enumerate(zip(wt, mt)):
-        if w != m:
-            positions.append(i)
-            changes.append(f"{w}→{m}")
-    
-    severity = "none" if not changes else ("high" if len(changes) > 3 else "moderate")
-    
-    return {"n_differences": len(changes), "positions": positions, "changes": changes, "severity": severity}
+from ...tools import mutation as base_mutation
+
+
+def diff(
+    wild_type: str | None = None,
+    mutant: str | None = None,
+    mutation: str | None = None,
+    wt: str | None = None,
+    mt: str | None = None,
+) -> dict:
+    """Compare WT and MT sequences via the canonical mutation tool."""
+    resolved_wild_type = (wild_type or wt or "").strip()
+    resolved_mutant = (mutant or mt or None)
+    return base_mutation.diff_sequences(
+        wild_type=resolved_wild_type,
+        mutant=resolved_mutant,
+        mutation=mutation,
+    )

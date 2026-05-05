@@ -1,0 +1,41 @@
+{
+  "name": "protein_molecular_weight",
+  "display_name": "Protein Molecular Weight",
+  "description": "Compute the approximate molecular weight of a protein sequence.",
+  "category": "protein-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:protein.basic_stats"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": ["biopython"],
+  "tools_used": ["protein.basic_stats"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "molecular_weight": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "MVKVGVNGFGRIGRLVTRA"},
+      "expects": "approximate molecular weight in daltons"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

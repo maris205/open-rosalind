@@ -1,1 +1,45 @@
-{"name": "mutation_effect", "description": "Analyze mutations", "category": "mutation-analysis", "version": "1.0.0", "safety_level": "safe", "tools_used": ["mutation.diff"], "input_schema": {"type": "object", "properties": {"wt": {"type": "string"}, "mt": {"type": "string"}}}, "output_schema": {"type": "object"}, "examples": [{"input": {"wt": "ATCG", "mt": "ATGG"}, "expects": "1 mutation"}]}
+{
+  "name": "mutation_effect",
+  "display_name": "Mutation Effect",
+  "description": "Analyze a mutation from WT/MT sequences or an HGVS-style change, optionally resolving the canonical wild-type sequence from a gene symbol.",
+  "category": "mutation-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:mutation.diff"
+  },
+  "deterministic": false,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["mutation.diff", "uniprot.search", "uniprot.fetch"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "wt": {"type": "string"},
+      "mt": {"type": "string"},
+      "wild_type": {"type": "string"},
+      "mutant": {"type": "string"},
+      "mutation": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "query": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "mutation": {"type": "object"},
+      "protein_context": {"type": "object"}
+    }
+  },
+  "examples": [
+    {"input": {"wt": "ATCG", "mt": "ATGG"}, "expects": "1 mutation"},
+    {"input": {"gene_symbol": "TP53", "mutation": "p.R175H"}, "expects": "resolved WT sequence and one missense difference"}
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

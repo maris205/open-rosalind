@@ -1,0 +1,42 @@
+{
+  "name": "uniprot_fetch_entry",
+  "display_name": "UniProt Fetch Entry",
+  "description": "Fetch a detailed UniProt entry by accession.",
+  "category": "protein-annotation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "UniProt",
+    "url": "https://rest.uniprot.org"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["uniprot.fetch"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "accession": {"type": "string"}
+    },
+    "required": ["accession"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "entry": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"accession": "P38398"},
+      "expects": "full UniProt entry for BRCA1"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

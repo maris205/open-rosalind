@@ -1,0 +1,53 @@
+{
+  "name": "gene_cross_reference",
+  "display_name": "Gene Cross Reference",
+  "description": "Aggregate Ensembl and NCBI Gene records into a structured gene cross-reference summary with external IDs.",
+  "category": "gene-annotation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Ensembl + NCBI Gene",
+    "url": "https://rest.ensembl.org"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": [
+    "ensembl.lookup_gene",
+    "ensembl.fetch_xrefs",
+    "ncbi_gene.search_gene",
+    "ncbi_gene.fetch_gene"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "symbol": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "gene_id": {"type": "string"},
+      "species": {"type": "string", "default": "homo_sapiens"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "evidence": {"type": "array"},
+      "ensembl_gene": {"type": "object"},
+      "ncbi_gene": {"type": "object"},
+      "cross_references": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "TP53", "species": "homo_sapiens"},
+      "expects": "combined Ensembl and NCBI Gene IDs with HGNC and OMIM cross-references"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

@@ -1,1 +1,41 @@
-{"name": "literature_search", "description": "Search PubMed for papers", "category": "knowledge-retrieval", "version": "1.0.0", "safety_level": "safe", "tools_used": ["pubmed.search"], "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}}, "output_schema": {"type": "object"}, "examples": [{"input": {"query": "CRISPR"}, "expects": "papers"}]}
+{
+  "name": "literature_search",
+  "display_name": "Literature Search",
+  "description": "Search PubMed for papers",
+  "category": "knowledge-retrieval",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "PubMed",
+    "url": "https://pubmed.ncbi.nlm.nih.gov"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["pubmed.search", "pubmed.fetch_metadata", "pubmed.fetch_abstract"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"}
+    },
+    "required": ["query"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "pubmed": {"type": "object"},
+      "metadata": {"type": "object"},
+      "abstracts": {"type": "object"}
+    }
+  },
+  "examples": [
+    {"input": {"query": "CRISPR"}, "expects": "papers"}
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

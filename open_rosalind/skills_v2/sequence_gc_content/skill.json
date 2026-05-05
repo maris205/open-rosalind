@@ -1,0 +1,41 @@
+{
+  "name": "sequence_gc_content",
+  "display_name": "Sequence GC Content",
+  "description": "Compute GC percentage for DNA or RNA inputs and return a structured summary.",
+  "category": "sequence-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "tool:sequence.gc_content"
+  },
+  "deterministic": true,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": ["biopython"],
+  "tools_used": ["sequence.gc_content"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {"type": "string"}
+    },
+    "required": ["sequence"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "gc_content": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"sequence": "GCGCGCATAT"},
+      "expects": "GC percentage summary"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}
