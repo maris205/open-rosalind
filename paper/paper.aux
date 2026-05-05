@@ -47,13 +47,13 @@
 \newlabel{sec:agent}{{4.4}{6}{Single-Step Agent}{subsection.4.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Multi-Step Harness}{6}{subsection.4.5}\protected@file@percent }
 \newlabel{sec:harness}{{4.5}{6}{Multi-Step Harness}{subsection.4.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Reference Implementation}{7}{section.5}\protected@file@percent }
-\newlabel{sec:system}{{5}{7}{Reference Implementation}{section.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Open-Rosalind BioBench}{7}{section.6}\protected@file@percent }
-\newlabel{sec:biobench}{{6}{7}{Open-Rosalind BioBench}{section.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Splits and Provenance}{7}{subsection.6.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }}{8}{figure.caption.5}\protected@file@percent }
-\newlabel{fig:system}{{3}{8}{Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}System Realization}{7}{section.5}\protected@file@percent }
+\newlabel{sec:system}{{5}{7}{System Realization}{section.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }}{7}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:system}{{3}{7}{Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Open-Rosalind BioBench}{8}{section.6}\protected@file@percent }
+\newlabel{sec:biobench}{{6}{8}{Open-Rosalind BioBench}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Splits and Provenance}{8}{subsection.6.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Metric Design}{8}{subsection.6.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Why a Process-Aware Benchmark}{8}{subsection.6.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {7}Empirical Results}{9}{section.7}\protected@file@percent }
@@ -62,13 +62,13 @@
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Strict-scorer results on 59 unique BioBench roots using the reference Open-Rosalind pipeline on Gemma. Trace completeness remains saturated, but accuracy drops materially on Edge inputs, making the benchmark more discriminative than the original loose dashboard scorer.\relax }}{9}{table.caption.6}\protected@file@percent }
 \newlabel{tab:bench}{{2}{9}{Strict-scorer results on 59 unique BioBench roots using the reference Open-Rosalind pipeline on Gemma. Trace completeness remains saturated, but accuracy drops materially on Edge inputs, making the benchmark more discriminative than the original loose dashboard scorer.\relax }{table.caption.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Six-Model Ablations and Paired Replications}{9}{subsection.7.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt  {full} to \texttt  {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }}{10}{table.caption.7}\protected@file@percent }
-\newlabel{tab:ablation}{{3}{10}{Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt {full} to \texttt {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }{table.caption.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt  {full} to \texttt  {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }}{9}{table.caption.7}\protected@file@percent }
+\newlabel{tab:ablation}{{3}{9}{Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt {full} to \texttt {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }{table.caption.7}{}}
+\citation{yao2023react}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.3}External Hold-Out, Diagnosis, and Repair}{10}{subsection.7.3}\protected@file@percent }
 \newlabel{sec:holdout}{{7.3}{10}{External Hold-Out, Diagnosis, and Repair}{subsection.7.3}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt  {full} is no longer significantly worse than \texttt  {no\_tool} after the fixes, although it remains below ReAct.\relax }}{10}{table.caption.8}\protected@file@percent }
 \newlabel{tab:holdout}{{4}{10}{Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt {full} is no longer significantly worse than \texttt {no\_tool} after the fixes, although it remains below ReAct.\relax }{table.caption.8}{}}
-\citation{yao2023react}
 \citation{luo2022biogpt}
 \citation{stanford2023biomedlm}
 \citation{singhal2023palm2}
@@ -86,15 +86,15 @@
 \@writefile{toc}{\contentsline {paragraph}{Position relative to general-purpose agent frameworks.}{11}{paragraph*.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Position relative to biomedical LLMs.}{11}{paragraph*.10}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Position relative to recent bio-agent systems.}{11}{paragraph*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations.}{11}{paragraph*.12}\protected@file@percent }
 \bibstyle{plain}
 \bibcite{anthropic2024mcp}{1}
 \bibcite{anthropic2025skills}{2}
 \bibcite{bytedance2025deerflow}{3}
-\@writefile{toc}{\contentsline {paragraph}{Limitations.}{12}{paragraph*.12}\protected@file@percent }
+\bibcite{biofm2025openbiomed}{4}
 \@writefile{toc}{\contentsline {paragraph}{Future work.}{12}{paragraph*.13}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{12}{section.9}\protected@file@percent }
 \newlabel{sec:conclusion}{{9}{12}{Conclusion}{section.9}{}}
-\bibcite{biofm2025openbiomed}{4}
 \bibcite{singhal2023palm2}{5}
 \bibcite{stanford2023biomedlm}{6}
 \bibcite{luo2022biogpt}{7}
