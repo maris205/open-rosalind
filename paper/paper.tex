@@ -1,4 +1,4 @@
-% Open-Rosalind: A Reproducible Bio-Agent Framework
+% Auditable Bio-Agent Workflows for Biomedical Tasks
 % Compile: pdflatex paper.tex && bibtex paper && pdflatex paper.tex && pdflatex paper.tex
 
 \documentclass[11pt,letterpaper]{article}
@@ -26,7 +26,7 @@
     citecolor=blue!60!black,
 }
 
-\title{\textbf{Open-Rosalind: A Reproducible Bio-Agent Framework with Standardized Skills, Execution Protocols, and Traceable Workflows}}
+\title{\textbf{Open-Rosalind: Tool-First Biomedical LLM Agents with Process-Aware Benchmarking}}
 
 \author[1,*]{Liang Wang}
 \affil[1]{Huazhong University of Science and Technology; \href{mailto:wangliang.f@gmail.com}{wangliang.f@gmail.com}}
@@ -43,28 +43,35 @@
 
 \begin{abstract}
 \noindent
-The rapid progress of large language models (LLMs) has produced a new generation of autonomous agents capable of orchestrating complex scientific tasks. Yet the design philosophy that enables general-purpose agents to thrive on open-ended problems --- free-form reasoning, opportunistic tool use, and best-effort summarization --- is fundamentally at odds with the demands of biomedical research, where every claim must be verifiable and every analysis must be reproducible. We argue that bio-agent systems should not be evaluated by what they \emph{can} attempt, but by what they \emph{must guarantee}. From this premise we derive a framework, \textbf{Open-Rosalind}, organized around four principles: tool-first execution, evidence-grounded outputs, trace completeness, and workflow-constrained execution. The framework instantiates a layered architecture --- atomic tools, MCP-style tool interfaces, deterministic skills, a hybrid router, a single-step agent, and a bounded multi-step harness --- in which every layer enforces a reproducibility-oriented invariant. To assess whether such systems can be evaluated meaningfully, we additionally introduce \textbf{Open-Rosalind BioBench}, a benchmark that measures task accuracy alongside tool correctness, evidence rate, trace completeness, workflow success, and failure rate. Across 91 tasks spanning four task categories and three benchmark tiers, the reference implementation achieves 100\% / 93.9\% / 90\% accuracy on basic, edge-case, and multi-step tasks respectively, while sustaining 100\% trace completeness and evidence grounding. Our results suggest that the limiting factor for trustworthy biomedical agents is not raw model capability, but the \emph{discipline of the protocol that surrounds the model}.
+Large language models are increasingly used as scientific agents, yet the flexibility that benefits general-purpose agents can conflict with the accountability required in biomedical research. We study whether biomedical agents can be organized around auditable constraints rather than unconstrained autonomy. We present \textbf{Open-Rosalind}, a tool-first bio-agent system designed around four operational principles: evidence-grounded outputs, trace completeness, workflow-constrained execution, and explicit tool mediation for factual claims. To evaluate these principles, we introduce \textbf{Open-Rosalind BioBench}, a process-aware benchmark that measures not only task accuracy but also tool correctness, citation presence, trace completeness, and failure rate.
+
+On a strict in-house benchmark, the reference pipeline achieves 81.4\% accuracy with complete execution traces. In multi-model ablations and paired replications, removing tools reduces accuracy by 19.3 to 26.4 percentage points, indicating that tool-first execution is the strongest and most stable contributor to performance. Constrained workflows also reduce lower-tail failures for models that are weak at free-form tool use.
+
+However, an author-independent 30-task hold-out initially revealed severe external-validity collapse on the deployment model. After diagnosing five routing and normalization failures and applying targeted fixes, hold-out accuracy improved from 17.8\% to 53.3\%, and the most concerning negative comparison against a \texttt{no\_tool} baseline disappeared. These results position Open-Rosalind as a systems-and-benchmark resource with an explicit external-validity audit, rather than as a claim that protocol constraints alone guarantee superior biomedical-agent performance.
 
 \smallskip
-\noindent\textbf{Keywords:} bio-agent, large language models, reproducibility, tool-driven AI, scientific workflows, evidence grounding
+\noindent\textbf{Keywords:} biomedical agents, large language models, auditability, tool-driven AI, scientific workflows, evidence grounding, benchmarking
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
 
-Within a span of two years, large language models have evolved from text completion engines into autonomous agents that plan, invoke external tools, and iterate over multi-step tasks. In domains such as software engineering, customer support, and general information work, this transition has produced dramatic gains, in part because mistakes are rapidly visible and easily corrected. The application of LLM agents to biomedical and life-science research has not enjoyed the same trajectory. The problem is not capability: modern models can read a UniProt entry, parse a FASTA sequence, and reason about substitutions in a multi-step manner. The problem is \emph{epistemic accountability}.
+Within a span of two years, large language models have evolved from text completion engines into autonomous agents that plan, invoke external tools, and iterate over multi-step tasks. In domains such as software engineering and general information work, this transition has produced clear gains, in part because mistakes are rapidly visible and easily corrected. Biomedical and life-science research impose a different standard. The problem is not capability: modern models can read a UniProt entry, parse a FASTA sequence, and reason about substitutions. The problem is \emph{epistemic accountability}.
 
 A scientific claim is not merely an assertion; it is a binding to a verifiable source. When a general-purpose LLM agent confidently reports that a protein is located on a particular chromosome arm, or cites a PubMed identifier in support of a mutation pathogenicity claim, the reader has no operational way to distinguish a tool-grounded fact from a hallucinated one. Worse, the agent may itself fail to draw this distinction, freely paraphrasing tool outputs alongside parametric knowledge in a single fluent paragraph. For wet-lab researchers, clinicians, or anyone whose downstream decisions are guided by such answers, this opacity is a fundamental defect, not an implementation gap.
 
 The position taken in this paper is that bio-agent systems require a different kind of design contract than general-purpose agents:
 
 \begin{quote}
-\emph{In biomedical AI, the question is not whether an agent can produce an answer, but whether the answer can be verified, reproduced, and trusted.}
+\emph{In biomedical AI, the question is not whether an agent can produce an answer, but whether the answer can be traced, audited, and replayed.}
 \end{quote}
 
-Pursuing this contract leads to four design constraints that shape every layer of the system: factual content must come from explicit tools rather than parametric memory; every claim in an answer must be cited inline to a tool-derived source; every step of execution must be recorded in a replayable trace; and the agent must operate within bounded, pre-declared workflows rather than free-form planning loops. Each of these constraints sacrifices some capability in exchange for a reproducibility guarantee.
+Pursuing this contract leads to four design constraints that shape every layer of the system: factual content must come from explicit tools rather than parametric memory; every claim in an answer must be cited to a tool-derived source; every step of execution must be recorded in a replayable trace; and the agent must operate within bounded, pre-declared workflows rather than free-form planning loops. Each of these constraints sacrifices some flexibility in exchange for an auditable invariant.
 
-This paper presents \textbf{Open-Rosalind}, a bio-agent framework built around these constraints, together with a reference implementation and a benchmark suite. Rather than enumerating contributions as discrete bullet items, we frame the work as three interlocking artifacts. The first is a \emph{principled framework} (Sections~\ref{sec:principles}--\ref{sec:framework}) that codifies the four design principles into a layered architecture in which atomic tools, MCP-style tool interfaces, deterministic skills, a hybrid router, an agent, and a bounded multi-step harness each carry their own reproducibility invariant. The second is a \emph{reference implementation} (Section~\ref{sec:system}) that demonstrates the framework runs end-to-end on real biological tasks: sequence analysis, protein annotation, literature retrieval, and mutation assessment. The third is \textbf{Open-Rosalind BioBench} (Sections~\ref{sec:biobench}--\ref{sec:experiments}), a benchmark designed not to maximize raw task accuracy but to measure whether bio-agent systems satisfy the framework's reproducibility guarantees in addition to producing correct outputs. We argue that these latter properties --- not single-task accuracy --- are the right yardstick for evaluating agents in regulated and reproducible domains.
+This paper presents \textbf{Open-Rosalind}, a bio-agent framework built around these constraints, together with a reference implementation, a benchmark suite, and an external-validity repair study. We frame the work as three interlocking artifacts. The first is a \emph{principled framework} (Sections~\ref{sec:principles}--\ref{sec:framework}) that codifies the four design principles into a layered architecture in which atomic tools, MCP-style tool interfaces, deterministic skills, a hybrid router, an agent, and a bounded multi-step harness each carry their own reproducibility invariant. The second is a \emph{reference implementation} (Section~\ref{sec:system}) that demonstrates the framework end-to-end on real biological tasks: sequence analysis, protein annotation, literature retrieval, and mutation assessment. The third is \textbf{Open-Rosalind BioBench} together with controlled ablations and a hold-out audit (Sections~\ref{sec:biobench}--\ref{sec:experiments}), designed not merely to maximize raw task accuracy but to measure whether bio-agent systems satisfy the framework's reproducibility guarantees and how those guarantees behave off-distribution.
+
+\paragraph{Scope of claims.}
+We do not argue that protocol discipline alone makes biomedical agents universally better, nor do we present Open-Rosalind as a finished product paper. The paper's empirical claim is narrower. First, on the in-house benchmark, the tool-first design is a measurable accuracy lever relative to \texttt{no\_tool}. Second, constraint appears to reduce lower-tail failures for models that are weak at unconstrained tool orchestration. Third, an external hold-out reveals that these gains are conditional on routing robustness and tool coverage: before repairs, the system collapses badly; after repairs, the most concerning negative comparison disappears, but a gap to ReAct remains. We therefore present the work as a systems-and-resource study with an honest diagnosis-and-repair cycle, rather than as proof that constrained bio-agents dominate more flexible alternatives in every setting.
 
 \section{From General Agents to Bio-Agents}
 \label{sec:bioagent}
@@ -182,44 +189,91 @@ Beyond the chat interface, the system exposes APIs for inspecting registered ski
 \section{Open-Rosalind BioBench}
 \label{sec:biobench}
 
-Conventional agent benchmarks measure task accuracy --- the fraction of queries for which the final answer is correct. For bio-agents, accuracy is necessary but not sufficient: an answer that happens to be right but is delivered through hallucinated tool calls, or with no recoverable trace, fails the framework's contract even when the surface output looks correct. \textbf{Open-Rosalind BioBench} is designed to make this distinction empirically tractable.
+Conventional agent benchmarks measure task accuracy --- the fraction of queries for which the final answer is correct. For auditable bio-agents, accuracy is necessary but not sufficient: an answer that happens to be right but is delivered through hallucinated tool calls, or with no recoverable trace, still fails the framework's contract. \textbf{Open-Rosalind BioBench} is designed to make this distinction empirically tractable.
 
-\subsection{Task Categories}
-The benchmark spans four task categories aligned with the four built-in skills: sequence analysis (e.g., translate a DNA sequence, compute the GC content of a transcript), protein annotation (e.g., what is the function of P38398?), literature retrieval (e.g., recent papers on a method), and mutation assessment (e.g., predicted effect of a substitution). Tasks are drawn from real biological objects --- canonical UniProt accessions, real PubMed-indexed publications, real proteins with documented variants --- so that correctness can be verified against authoritative sources rather than against model-generated ground truth.
+\subsection{Splits and Provenance}
+The benchmark spans four task categories aligned with the four built-in skills: sequence analysis, protein annotation, literature retrieval, and mutation assessment. The repository currently contains 91 task instances across three splits: \textbf{Basic} (canonical inputs), \textbf{Edge} (mixed-modality or follow-up inputs), and \textbf{MultiStep} (queries requiring two or more skills). For the stricter model-comparison experiments in Section~\ref{sec:experiments}, follow-up variants are collapsed to 59 unique benchmark roots (32 Basic, 17 Edge, 10 MultiStep) so that each root question contributes once to paired statistical tests. Tasks are drawn from real biological objects --- canonical UniProt accessions, PubMed-indexed publications, and proteins with documented variants --- so that correctness can be checked against authoritative sources rather than model-generated ground truth.
 
-\subsection{Tiered Difficulty}
-The benchmark is partitioned into three tiers. \textbf{BioBench v0} (32 tasks) covers basic skills that should succeed under correct routing and tool invocation; it is calibrated so that a system that respects the framework's contracts should achieve perfect or near-perfect performance. \textbf{BioBench v1} (49 tasks) introduces edge cases, mixed-modality inputs (natural language interleaved with sequence or accession), and follow-up turns that exercise the in-session-context layer. \textbf{BioBench v0.3} (10 tasks) targets the multi-step harness specifically: each task requires at least two skills to be composed in sequence with entity propagation between them. Together the three tiers contain 91 tasks.
+\subsection{Metric Design}
+Five metrics are reported per run. \emph{Task accuracy} measures whether the final answer satisfies the task rubric. \emph{Tool correctness} measures whether the realized skill or harness template matches the expected execution path. \emph{Citation presence} measures whether factual claims carry recognizable evidence markers. \emph{Trace completeness} measures whether the saved trace contains routing decisions, tool calls, statuses, and synthesis prompts. \emph{Failure rate} measures crashes and timeouts separately from wrong answers. Because citation presence is partly syntactic, we additionally performed a manual validity audit on 20 sampled responses: 19/20 had all cited claims materially supported by the cited source, while 1/20 contained an over-broad paraphrase of a UniProt function field.
 
-\subsection{Metrics}
-Five metrics are reported per run. \emph{Task accuracy} is the fraction of tasks whose final answer is judged correct. \emph{Tool correctness} is the fraction in which the routed skill (and, in the harness case, the chosen template) matches the task's expected execution path. \emph{Evidence rate} is the fraction of factual claims in the final answer that carry a recognizable inline citation. \emph{Trace completeness} is the fraction of tasks for which a structured trace covering all routing and tool-call events is recovered. \emph{Failure rate} is the fraction of tasks that crash or time out; this is reported separately from accuracy because a crash and a wrong answer represent different failure modes for downstream consumers. The framework's claim is that the latter four metrics are at least as important as the first.
+\subsection{Why a Process-Aware Benchmark}
+The benchmark is intended to separate two questions that are often conflated in agent papers: whether a system returns the right answer, and whether it arrived there through a path that can be audited. The latter matters disproportionately in biomedical settings, where a wrong answer with a complete trace can be diagnosed and replayed, but a fluent answer with no trace cannot.
 
 \section{Empirical Results}
 \label{sec:experiments}
 
-We report results from running the reference implementation against all 91 BioBench tasks using \texttt{google/gemma-4-26b-a4b-it} as the underlying LLM. Aggregate results are summarized in Table~\ref{tab:bench}.
+\subsection{Internal Benchmark Under a Strict Scorer}
+We begin with the reference deployment using \texttt{google/gemma-4-26b-a4b-it}. Earlier development dashboards scored the 91 turn-level tasks with a looser keyword-overlap rule and reported 100.0\% / 93.9\% / 90.0\% accuracy on Basic / Edge / MultiStep. For the paper's main experiments, we instead use a stricter scorer on the 59 unique benchmark roots because it discriminates more sharply between conditions and supports paired statistical tests. The strict-scorer results are summarized in Table~\ref{tab:bench}.
 
 \begin{table}[h]
 \centering
 \small
-\caption{BioBench results across three tiers. Accuracy varies with task difficulty; the four reproducibility-oriented metrics remain saturated, indicating that the framework's contracts are honored even when the model is wrong about the underlying fact.}
+\caption{Strict-scorer results on 59 unique BioBench roots using the reference Open-Rosalind pipeline on Gemma. Trace completeness remains saturated, but accuracy drops materially on Edge inputs, making the benchmark more discriminative than the original loose dashboard scorer.}
 \label{tab:bench}
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Tier} & \textbf{Tasks} & \textbf{Accuracy} & \textbf{Tool corr.} & \textbf{Evidence / Trace / No-fail} \\
+\textbf{Split} & \textbf{Tasks} & \textbf{Accuracy} & \textbf{Tool corr.} & \textbf{CitePres} & \textbf{Trace / No-fail} \\
 \midrule
-v0 (basic skills)             & 32 & 100.0\% & 100\% & 100\% / 100\% / 100\% \\
-v1 (edge cases + follow-ups)  & 49 & 93.9\%  & 100\% & 100\% / 100\% / 100\% \\
-v0.3 (multi-step harness)     & 10 & 90.0\%  & 100\% & 100\% / 100\% / 100\% \\
+Basic      & 32 & 87.5\% & 100.0\% & 3.1\% & 100.0\% / 100.0\% \\
+Edge       & 17 & 64.7\% & 76.5\%  & 0.0\% & 100.0\% / 88.2\% \\
+MultiStep  & 10 & 90.0\% & 100.0\% & 0.0\% & 100.0\% / 100.0\% \\
 \midrule
-\textbf{Combined}             & \textbf{91} & \textbf{96.7\%} & \textbf{100\%} & \textbf{100\% / 100\% / 100\%} \\
+\textbf{Combined} & \textbf{59} & \textbf{81.4\%} & \textbf{93.2\%} & \textbf{1.7\%} & \textbf{100.0\% / 96.6\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The pattern in Table~\ref{tab:bench} merits closer reading than a single accuracy number conveys. As task difficulty increases from v0 to v0.3, task accuracy degrades modestly, while the four reproducibility metrics remain saturated. This is the intended behavior of the framework: when the model produces a wrong fact, the surrounding apparatus still routes correctly, cites correctly, traces correctly, and terminates correctly. The framework localizes the failure to the model's reasoning about facts, rather than allowing it to propagate into the routing, citation, or termination machinery. From the standpoint of downstream consumption, this distinction matters: a wrong answer with a complete trace can be diagnosed, replayed, and corrected; a wrong answer with no trace cannot.
+Two patterns matter. First, the Edge split is the real stress test: mixed natural language, embedded identifiers, and follow-up phrasing produce substantially lower accuracy than canonical inputs. Second, trace completeness remains saturated even when accuracy drops, meaning the framework localizes many failures to routing or factual synthesis rather than losing the execution record entirely. The weak point is citation presence under the strict per-sentence check: the current prompt tends to concentrate citations in a final evidence block rather than inline prose, so the metric functions here as an architectural target rather than a saturated success number.
 
-The single class of failure observed on v1 traces to mixed-modality inputs that combine free-form natural language with embedded sequences --- precisely the case the LLM-assisted classifier exists to handle. The remaining errors are concentrated in such inputs, suggesting a clear next step: a stronger constrained classifier rather than a larger underlying model. We view this as evidence in support of the paper's central thesis: progress in trustworthy bio-agents flows from the protocol around the model, not from the model itself.
+\subsection{Six-Model Ablations and Paired Replications}
+To test whether the framework's behavior depends heavily on one underlying model, we ran a five-condition ablation across six LLM families: the full Open-Rosalind pipeline, a free-form ReAct baseline using the same atomic tools, a \texttt{no\_tool} condition, a \texttt{no\_cite} condition, and a \texttt{no\_template} condition. The aggregate results over 1,770 runs are summarized in Table~\ref{tab:ablation}.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt{full} to \texttt{no\_tool}; citation and template ablations change accountability properties much more than average accuracy.}
+\label{tab:ablation}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Condition} & \textbf{Accuracy} & \textbf{Tool corr.} & \textbf{CitePres} & \textbf{TraceComp} & \textbf{NoFail} \\
+\midrule
+\texttt{full}        & 81.4\% & 92.9\% & 0.3\% & 100.0\% & 96.3\% \\
+\texttt{react}       & 71.8\% & 86.2\% & 0.6\% & 82.5\%  & 94.9\% \\
+\texttt{no\_tool}    & 57.3\% & 27.1\% & 0.3\% & 0.0\%   & 100.0\% \\
+\texttt{no\_cite}    & 81.9\% & 93.2\% & 0.0\% & 100.0\% & 96.9\% \\
+\texttt{no\_template}& 80.5\% & 93.2\% & 0.3\% & 100.0\% & 94.9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The cleanest signal is the value of tools. Across models, removing tools collapses accuracy from roughly 80\% to the mid-50s and drives tool correctness down to near-chance overlap with task keywords. To test whether this effect survives a corrected unit of analysis, we ran paired seed replications on the deployment target (Gemma) and on GPT-5-mini, which was the most ReAct-fragile model in the six-model sweep. Under cluster-aware permutation tests, the \texttt{full} pipeline beats \texttt{no\_tool} by 26.4 percentage points on Gemma and 19.3 percentage points on GPT-5-mini (both $p \le 10^{-4}$). The comparison to ReAct is more nuanced. On GPT-5-mini, the constrained pipeline beats ReAct by 35.3 percentage points and reduces catastrophic failures from 84.7\% to 39.0\%. On Gemma, however, \texttt{full} and ReAct are statistically indistinguishable on the in-house benchmark ($p=0.74$). The support for the framework is therefore strongest as a \emph{tool-first} and \emph{lower-tail stability} claim, not as a universal claim that constrained workflows dominate free-form agents on raw accuracy.
+
+\subsection{External Hold-Out, Diagnosis, and Repair}
+\label{sec:holdout}
+To probe external validity beyond the in-house benchmark, we generated a 30-task hold-out set authored by an independent LLM and re-ran three paired conditions (\texttt{full}, \texttt{react}, \texttt{no\_tool}) on Gemma and GPT-5-mini. Table~\ref{tab:holdout} reports the Gemma results because Gemma is the deployment target and because the failure was most consequential there.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt{full} is no longer significantly worse than \texttt{no\_tool} after the fixes, although it remains below ReAct.}
+\label{tab:holdout}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Setting} & \textbf{\texttt{full}} & \textbf{\texttt{react}} & \textbf{\texttt{no\_tool}} \\
+\midrule
+Before fixes & 17.8\% & 48.9\% & 46.7\% \\
+After fixes  & 53.3\% & 70.0\% & 57.8\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The initial hold-out materially changed the scientific interpretation of the system. On Gemma, the constrained pipeline collapsed from internal-benchmark performance to 17.8\% accuracy and was significantly worse than both ReAct ($\Delta=-31.1$ percentage points, $p=0.004$) and \texttt{no\_tool} ($\Delta=-28.9$ percentage points, $p=0.002$). Trace inspection showed that this was not a mysterious model failure. Most of the gap came from five concrete issues: stop-words such as ``information'' and ``characterize'' being preserved in search queries; natural-language mutation forms such as ``KRAS G12D'' failing to trigger the mutation workflow; Greek-vs-ASCII mismatches in keyword matching; embedded sequences going undetected when wrapped in prose; and insufficient coverage of literature keywords such as ``publications'' or ``studies''.
+
+After targeted fixes to the router, query cleaning, and scorer normalization, Gemma improved by 35.5 percentage points to 53.3\%. More importantly, the most concerning negative comparison disappeared: \texttt{full} vs.\ \texttt{no\_tool} became statistically indistinguishable ($p=0.72$, 95\% CI $[-23.3, +13.3]$). The gap to ReAct narrowed but remained significant ($\Delta=-16.7$ percentage points, $p=0.032$). This repair cycle clarifies the right interpretation of Open-Rosalind. Routing robustness is \emph{necessary} for external validity, and several of the original failures were patchable engineering faults. The remaining gap, however, reflects a real design tradeoff: a tool-first system refuses to invent functional claims that its current tools cannot support. We therefore treat the hold-out not as an embarrassment to hide, but as evidence that bio-agent papers should report diagnosis-and-repair cycles rather than only polished in-distribution numbers.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -228,28 +282,28 @@ The single class of failure observed on v1 traces to mixed-modality inputs that 
 ReAct \cite{yao2023react} and its descendants assume that flexibility is intrinsically valuable. For research domains in which the set of legitimate tasks is small, the cost of incorrect outputs is high, and reproducibility is non-negotiable, this assumption inverts. Open-Rosalind is in part an argument that the bio-agent literature should adopt a different default: that flexibility be unlocked deliberately, and that every degree of freedom granted to the agent be paid for in additional verification machinery.
 
 \paragraph{Position relative to biomedical LLMs.}
-A complementary line of work --- BioGPT \cite{luo2022biogpt}, BioMedLM \cite{stanford2023biomedlm}, Med-PaLM \cite{singhal2023palm2} --- improves the LLM's biomedical knowledge through specialized pre-training. Open-Rosalind is orthogonal to this line: the framework remains valid regardless of the underlying model. Indeed, our results suggest that even a general-purpose model, embedded in a sufficiently disciplined framework, can deliver reproducibility properties that no parameter scaling alone provides.
+A complementary line of work --- BioGPT \cite{luo2022biogpt}, BioMedLM \cite{stanford2023biomedlm}, Med-PaLM \cite{singhal2023palm2} --- improves the LLM's biomedical knowledge through specialized pre-training. Open-Rosalind is orthogonal to this line: the framework seeks to restrict what a model may assert without evidence. The experiments suggest that a disciplined protocol can raise the performance floor of smaller models, but they do not imply that protocol alone substitutes for model capability in every regime.
 
 \paragraph{Position relative to recent bio-agent systems.}
 The past year has seen rapid progress in LLM-based biomedical agents. \textbf{Biomni} \cite{huang2025biomni} is a general-purpose biomedical AI agent that unifies reasoning, retrieval, and code execution across diverse biological domains (genomics, immunology, microbiology, neuroscience), emphasizing breadth and autonomous task execution through free-form planning. \textbf{GeneAgent} \cite{geneagent2025} addresses hallucination in gene-set analysis by autonomously interacting with biological databases to verify its own output, introducing a self-verification loop that reduces parametric recall errors. \textbf{STELLA} \cite{stella2025} employs a multi-agent architecture with an evolving template library and dynamic tool ocean, enabling self-improvement through iterative refinement. A recent comprehensive review \cite{llmagents2025biomedicine} surveys the landscape of LLM agents for biomedicine, highlighting methods, evaluations, and challenges across clinical and research applications.
 
 Concurrent work has also addressed reproducibility and evaluation. \textbf{R-LAM} \cite{rlam2025} proposes reproducibility-constrained large action models for scientific workflow automation, introducing structured action schemas and deterministic execution traces. Several benchmarks have emerged: an \textbf{AI Agent Evaluation Suite for Bioinformatics} \cite{bioagenteval2025} evaluates frontier models across multiple agent harnesses using LLM-based graders; a \textbf{Scientific Research Suite} \cite{sciresearch2025} provides rigorous benchmarking for AI agents in scientific contexts; and frameworks for \textbf{multi-agent scientific AI evaluation} \cite{multiagenteval2026} propose process-level metrics, scaling curves, and adversarial robustness tests. A Nature Methods perspective \cite{naturemethods2025agents} surveys the broader landscape, noting the transformative potential of autonomous systems while emphasizing the need for verification mechanisms.
 
-Open-Rosalind's distinct contribution relative to these systems is its focus on \emph{protocol discipline as a first-class design constraint}. Where Biomni and STELLA prioritize capability breadth and self-evolution, and GeneAgent prioritizes self-verification, Open-Rosalind prioritizes \emph{reproducibility guarantees enforced at every architectural layer}: every fact must originate from a tool, every step must be logged, every workflow must terminate within a known bound. The hold-out repair cycle (Section 8.9) demonstrates that these guarantees are not automatic --- they require deliberate architectural choices (tool-first execution, bounded planning, mandatory traces) and careful routing robustness. We view these systems as complementary: Biomni, STELLA, and GeneAgent explore what autonomous bio-agents \emph{can do}, while Open-Rosalind explores what they \emph{must guarantee} to be trusted in scientific workflows. The emerging evaluation frameworks \cite{bioagenteval2025,sciresearch2025,multiagenteval2026} align with our position that process-level metrics (tool correctness, trace completeness, evidence grounding) are as important as task accuracy for scientific agents.
+Open-Rosalind's distinct contribution relative to these systems is its focus on \emph{protocol discipline as a first-class design constraint}. Where Biomni and STELLA prioritize capability breadth and self-evolution, and GeneAgent prioritizes self-verification, Open-Rosalind prioritizes \emph{reproducibility guarantees enforced at every architectural layer}: every fact must originate from a tool, every step must be logged, every workflow must terminate within a known bound. The hold-out repair cycle in Section~\ref{sec:holdout} shows both the value and the limit of this position. These guarantees are not automatic --- they require careful routing robustness and enough tool coverage to support the requested claims. We therefore view recent bio-agent systems as complementary: some explore what autonomous bio-agents \emph{can do}; Open-Rosalind asks what they \emph{must guarantee} to be trusted in scientific workflows.
 
 \paragraph{Limitations.}
-The benchmark is small (91 tasks across three tiers) and skewed toward the four implemented skills. The harness templates are hand-coded; while their fixity is a feature for reproducibility, it bounds the range of multi-step workflows the system can express. The literature retrieval skill depends on PubMed availability and inherits its retrieval biases. Finally, the system has been validated on one model family; we have not yet characterized the dependence of trace completeness on model capability under more aggressive perturbations.
+The benchmark is still small and partly internal: the 91 task instances and 59 unique benchmark roots were authored during development, and the external hold-out, while independent of the system author, was still LLM-authored rather than human-authored. The harness templates are hand-coded; while their fixity is a feature for reproducibility, it bounds the range of workflows the system can express. The literature skill depends on PubMed availability and abstract coverage, and the mutation skill currently supports sequence-grounded assessment more strongly than mechanistic functional prediction. Finally, the hold-out results show that external validity remains only partially recovered: after repairs, the most worrying negative comparison disappears, but the full-vs-ReAct gap remains on Gemma.
 
 \paragraph{Future work.}
-Three directions are immediate. First, expanding the skill registry to include homology search (e.g., BLAST), structure prediction interfaces, and pathway databases. Second, growing BioBench to support adversarial inputs designed to probe specific principles in isolation: claims unsupported by tool output, requests that solicit parametric recall, and follow-up turns that conflict with prior evidence. Third, building a public ``trace registry'' to enable third-party verification of reported results --- treating traces as first-class scientific artifacts rather than internal logs.
+Three directions are immediate. First, expanding tool coverage for the failure classes exposed by the hold-out: richer mutation-effect predictors, broader literature retrieval, and ontology-backed protein annotation fields. Second, replacing the current internal benchmark with a human-authored blind split and multi-rater scoring protocol. Third, pushing reproducibility one step further by caching external tool responses and pinning model versions more tightly, so that traces become not only auditable but closer to bit-level replayable.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-Open-Rosalind shifts the design of bio-agent systems from free-form reasoning to reproducible workflow execution. Its contribution is not a more capable model nor a more elaborate planner; it is the proposition that trustworthy biomedical agents emerge from the discipline of the protocol around the model. By codifying that protocol as four operational principles, instantiating it as a layered framework with explicit invariants at every layer, and evaluating it through a benchmark that measures reproducibility properties alongside accuracy, we offer a reference point for what a reproducible bio-agent should look like. We hope it is useful both as a working system and as an argument for the kinds of guarantees future bio-agent work should be expected to provide.
+Open-Rosalind shifts the design of bio-agent systems from free-form reasoning to bounded, traceable workflow execution. Its main contribution is best read as a systems-and-resource paper with an honest external-validity audit: a layered framework with explicit invariants, a working reference implementation, a process-aware benchmark, and a diagnosis-and-repair cycle that makes the limits of the approach visible rather than implicit. The internal experiments support tool-first execution as a real accuracy lever, especially against \texttt{no\_tool} baselines, and support constrained workflows as a lower-tail stabilizer for models that are weak at free-form tool use. The external hold-out, however, shows that these advantages are conditional on routing robustness and tool coverage. We hope the framework, the benchmark, and the released traces are useful not only as software artifacts, but as a concrete template for how biomedical agent papers can make their accountability claims measurable.
 
 \section*{Code, Data, and Reproducibility}
-The reference implementation, all benchmark tasks, and the framework specification are released open-source under the MIT license at \url{https://github.com/maris205/open-rosalind}. Per-task traces from the experiments reported here are included in the repository.
+The reference implementation, benchmark tasks, hold-out data, and framework specification are released open-source under the MIT license at \url{https://github.com/maris205/open-rosalind}. Per-task traces from the experiments reported here are included in the repository. The current release supports strong auditability through saved routing decisions, tool I/O, statuses, and synthesis prompts; exact replay still depends on live external APIs and hosted model versions, which we list as next-step work rather than a solved property.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{99}

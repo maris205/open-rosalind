@@ -18,22 +18,23 @@
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Scope of claims.}{2}{paragraph*.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}From General Agents to Bio-Agents}{2}{section.2}\protected@file@percent }
 \newlabel{sec:bioagent}{{2}{2}{From General Agents to Bio-Agents}{section.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Architectural comparison: general-purpose agents vs.\ reproducible bio-agents. General agents prioritize flexibility with free-form reasoning and optional tool use; bio-agents prioritize accountability with mandatory tool-first execution, evidence grounding, and complete traceability.\relax }}{3}{figure.caption.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Architectural comparison: general-purpose agents vs.\ reproducible bio-agents. General agents prioritize flexibility with free-form reasoning and optional tool use; bio-agents prioritize accountability with mandatory tool-first execution, evidence grounding, and complete traceability.\relax }}{3}{figure.caption.2}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:agent_compare}{{1}{3}{Architectural comparison: general-purpose agents vs.\ reproducible bio-agents. General agents prioritize flexibility with free-form reasoning and optional tool use; bio-agents prioritize accountability with mandatory tool-first execution, evidence grounding, and complete traceability.\relax }{figure.caption.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Design Principles}{3}{section.3}\protected@file@percent }
-\newlabel{sec:principles}{{3}{3}{Design Principles}{section.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Design contrasts: general-purpose agents vs.\ reproducible bio-agents.\relax }}{4}{table.caption.2}\protected@file@percent }
-\newlabel{tab:compare}{{1}{4}{Design contrasts: general-purpose agents vs.\ reproducible bio-agents.\relax }{table.caption.2}{}}
+\newlabel{fig:agent_compare}{{1}{3}{Architectural comparison: general-purpose agents vs.\ reproducible bio-agents. General agents prioritize flexibility with free-form reasoning and optional tool use; bio-agents prioritize accountability with mandatory tool-first execution, evidence grounding, and complete traceability.\relax }{figure.caption.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Design contrasts: general-purpose agents vs.\ reproducible bio-agents.\relax }}{4}{table.caption.3}\protected@file@percent }
+\newlabel{tab:compare}{{1}{4}{Design contrasts: general-purpose agents vs.\ reproducible bio-agents.\relax }{table.caption.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Design Principles}{4}{section.3}\protected@file@percent }
+\newlabel{sec:principles}{{3}{4}{Design Principles}{section.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Tool-First Execution}{4}{subsection.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Evidence-Grounded Outputs}{4}{subsection.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Trace Completeness}{4}{subsection.3.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Workflow-Constrained Execution}{4}{subsection.3.4}\protected@file@percent }
 \citation{anthropic2024mcp}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture.\relax }}{5}{figure.caption.3}\protected@file@percent }
-\newlabel{fig:principles}{{2}{5}{The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture.\relax }{figure.caption.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture.\relax }}{5}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:principles}{{2}{5}{The four operational principles of Open-Rosalind. Each principle constrains the LLM's role and is enforced by a specific layer of the architecture.\relax }{figure.caption.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Framework Architecture}{5}{section.4}\protected@file@percent }
 \newlabel{sec:framework}{{4}{5}{Framework Architecture}{section.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Atomic Tools and MCP Interfaces}{5}{subsection.4.1}\protected@file@percent }
@@ -48,25 +49,29 @@
 \newlabel{sec:harness}{{4.5}{6}{Multi-Step Harness}{subsection.4.5}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Reference Implementation}{7}{section.5}\protected@file@percent }
 \newlabel{sec:system}{{5}{7}{Reference Implementation}{section.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }}{7}{figure.caption.4}\protected@file@percent }
-\newlabel{fig:system}{{3}{7}{Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }{figure.caption.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Open-Rosalind BioBench}{8}{section.6}\protected@file@percent }
-\newlabel{sec:biobench}{{6}{8}{Open-Rosalind BioBench}{section.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Task Categories}{8}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Tiered Difficulty}{8}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Metrics}{8}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Open-Rosalind BioBench}{7}{section.6}\protected@file@percent }
+\newlabel{sec:biobench}{{6}{7}{Open-Rosalind BioBench}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Splits and Provenance}{7}{subsection.6.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }}{8}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:system}{{3}{8}{Open-Rosalind system architecture. The web UI communicates with a unified chat endpoint that dispatches to either single-step agent or multi-step harness paths. Both paths invoke skills from the registry, which in turn call atomic tools. All executions produce structured traces stored in SQLite.\relax }{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Metric Design}{8}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Why a Process-Aware Benchmark}{8}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Empirical Results}{9}{section.7}\protected@file@percent }
+\newlabel{sec:experiments}{{7}{9}{Empirical Results}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Internal Benchmark Under a Strict Scorer}{9}{subsection.7.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Strict-scorer results on 59 unique BioBench roots using the reference Open-Rosalind pipeline on Gemma. Trace completeness remains saturated, but accuracy drops materially on Edge inputs, making the benchmark more discriminative than the original loose dashboard scorer.\relax }}{9}{table.caption.6}\protected@file@percent }
+\newlabel{tab:bench}{{2}{9}{Strict-scorer results on 59 unique BioBench roots using the reference Open-Rosalind pipeline on Gemma. Trace completeness remains saturated, but accuracy drops materially on Edge inputs, making the benchmark more discriminative than the original loose dashboard scorer.\relax }{table.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Six-Model Ablations and Paired Replications}{9}{subsection.7.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt  {full} to \texttt  {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }}{10}{table.caption.7}\protected@file@percent }
+\newlabel{tab:ablation}{{3}{10}{Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt {full} to \texttt {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }{table.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}External Hold-Out, Diagnosis, and Repair}{10}{subsection.7.3}\protected@file@percent }
+\newlabel{sec:holdout}{{7.3}{10}{External Hold-Out, Diagnosis, and Repair}{subsection.7.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt  {full} is no longer significantly worse than \texttt  {no\_tool} after the fixes, although it remains below ReAct.\relax }}{10}{table.caption.8}\protected@file@percent }
+\newlabel{tab:holdout}{{4}{10}{Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt {full} is no longer significantly worse than \texttt {no\_tool} after the fixes, although it remains below ReAct.\relax }{table.caption.8}{}}
 \citation{yao2023react}
 \citation{luo2022biogpt}
 \citation{stanford2023biomedlm}
 \citation{singhal2023palm2}
-\@writefile{toc}{\contentsline {section}{\numberline {7}Empirical Results}{9}{section.7}\protected@file@percent }
-\newlabel{sec:experiments}{{7}{9}{Empirical Results}{section.7}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces BioBench results across three tiers. Accuracy varies with task difficulty; the four reproducibility-oriented metrics remain saturated, indicating that the framework's contracts are honored even when the model is wrong about the underlying fact.\relax }}{9}{table.caption.5}\protected@file@percent }
-\newlabel{tab:bench}{{2}{9}{BioBench results across three tiers. Accuracy varies with task difficulty; the four reproducibility-oriented metrics remain saturated, indicating that the framework's contracts are honored even when the model is wrong about the underlying fact.\relax }{table.caption.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{9}{section.8}\protected@file@percent }
-\newlabel{sec:discussion}{{8}{9}{Discussion}{section.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{Position relative to general-purpose agent frameworks.}{9}{paragraph*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Position relative to biomedical LLMs.}{9}{paragraph*.7}\protected@file@percent }
 \citation{huang2025biomni}
 \citation{geneagent2025}
 \citation{stella2025}
@@ -76,16 +81,19 @@
 \citation{sciresearch2025}
 \citation{multiagenteval2026}
 \citation{naturemethods2025agents}
-\citation{bioagenteval2025}
-\citation{sciresearch2025}
-\citation{multiagenteval2026}
-\@writefile{toc}{\contentsline {paragraph}{Position relative to recent bio-agent systems.}{10}{paragraph*.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Limitations.}{10}{paragraph*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Future work.}{10}{paragraph*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{11}{section.8}\protected@file@percent }
+\newlabel{sec:discussion}{{8}{11}{Discussion}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Position relative to general-purpose agent frameworks.}{11}{paragraph*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Position relative to biomedical LLMs.}{11}{paragraph*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Position relative to recent bio-agent systems.}{11}{paragraph*.11}\protected@file@percent }
 \bibstyle{plain}
 \bibcite{anthropic2024mcp}{1}
 \bibcite{anthropic2025skills}{2}
 \bibcite{bytedance2025deerflow}{3}
+\@writefile{toc}{\contentsline {paragraph}{Limitations.}{12}{paragraph*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Future work.}{12}{paragraph*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{12}{section.9}\protected@file@percent }
+\newlabel{sec:conclusion}{{9}{12}{Conclusion}{section.9}{}}
 \bibcite{biofm2025openbiomed}{4}
 \bibcite{singhal2023palm2}{5}
 \bibcite{stanford2023biomedlm}{6}
@@ -94,8 +102,6 @@
 \bibcite{geneagent2025}{9}
 \bibcite{stella2025}{10}
 \bibcite{llmagents2025biomedicine}{11}
-\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{11}{section.9}\protected@file@percent }
-\newlabel{sec:conclusion}{{9}{11}{Conclusion}{section.9}{}}
 \bibcite{rlam2025}{12}
 \bibcite{bioagenteval2025}{13}
 \bibcite{sciresearch2025}{14}
@@ -106,4 +112,4 @@
 \bibcite{cock2009biopython}{19}
 \bibcite{yao2023react}{20}
 \bibcite{wang2026emergence}{21}
-\gdef \@abspage@last{12}
+\gdef \@abspage@last{13}
