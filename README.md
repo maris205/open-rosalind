@@ -41,6 +41,10 @@ Open-Rosalind: 🔗 Multi-step auto-detected.
 - **Traceable** — every tool call is logged with input/output/latency
 - **Workflow-constrained** — bounded planner (max 5 steps), no free-form recursion
 
+<p align="center">
+  <img src="paper/figures/disign_principle.png" alt="Open-Rosalind design principles" width="920">
+</p>
+
 ---
 
 ## 🚀 Quick Start
@@ -105,43 +109,9 @@ python -m open_rosalind.cli skills inspect uniprot_lookup
 
 ## 🧩 Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                  React Chat UI (web-react/)                  │
-│       chat timeline · sessions · evidence + trace cards      │
-└────────────────────────────┬─────────────────────────────────┘
-                             │ /api/chat (auto-mode select)
-┌────────────────────────────▼─────────────────────────────────┐
-│                    Mode Selector                             │
-│   "Find papers AND ..." → harness · single sequence → agent  │
-└─────────┬────────────────────────────────────┬───────────────┘
-          │                                    │
-┌─────────▼─────────┐              ┌───────────▼─────────────┐
-│  Single-step      │              │   Multi-step Harness    │
-│  Agent + Router   │              │   ConstrainedPlanner    │
-│  + LLM-classify   │              │   (max 5 steps)         │
-└─────────┬─────────┘              └───────────┬─────────────┘
-          │                                    │
-          └────────────┬───────────────────────┘
-                       │
-            ┌──────────▼──────────────┐
-            │   Skills (skills_v2/)   │
-            │  sequence · uniprot     │
-            │  literature · mutation  │
-            └──────────┬──────────────┘
-                       │
-            ┌──────────▼──────────────┐
-            │   Tools (atomic API)    │
-            │  UniProt · PubMed       │
-            │  BioPython · diff       │
-            └──────────┬──────────────┘
-                       │
-            ┌──────────▼──────────────┐
-            │ SQLite + JSONL traces   │
-            │ users · sessions ·      │
-            │ messages · traces       │
-            └─────────────────────────┘
-```
+<p align="center">
+  <img src="paper/figures/system_structure.png" alt="Open-Rosalind system architecture" width="960">
+</p>
 
 ### Skills are modular
 
@@ -164,6 +134,10 @@ Add a new skill = drop a directory. Auto-discovery picks it up. See [`docs/SKILL
 
 Open-Rosalind ships with **BioBench**, a benchmark suite specifically for bio-agents (not LLM knowledge). Tasks must trigger tool calls — pure-knowledge prompts don't count.
 
+<p align="center">
+  <img src="paper/figures/main_comparison.png" alt="Open-Rosalind main benchmark comparison" width="920">
+</p>
+
 | Benchmark | Tasks | Latest score (gemma-4-26b-a4b-it) |
 |---|---|---|
 | **BioBench v0** (basic skills) | 32 | **100.0%** |
@@ -176,6 +150,14 @@ Five standard metrics (see [`develop/gpt4.md`](./develop/gpt4.md) and [`benchmar
 - Evidence rate
 - Trace completeness
 - Failure rate
+
+<p align="center">
+  <img src="paper/figures/benchmark_results.png" alt="BioBench benchmark results across task suites" width="920">
+</p>
+
+<p align="center">
+  <img src="paper/figures/holdout_repair.png" alt="Open-Rosalind holdout repair evaluation" width="920">
+</p>
 
 ```bash
 # Reproduce
@@ -199,6 +181,10 @@ python benchmark/run_biobench.py --version mine
 ## 🔄 Multi-Step Harness
 
 For tasks that need multiple tools, the **Constrained Planner** picks one of 3 hard-coded templates:
+
+<p align="center">
+  <img src="paper/figures/workflow.png" alt="Open-Rosalind workflow-constrained harness" width="920">
+</p>
 
 | Template | Steps |
 |---|---|
