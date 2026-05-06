@@ -64,11 +64,18 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Six-Model Ablations and Paired Replications}{9}{subsection.7.2}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt  {full} to \texttt  {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }}{9}{table.caption.7}\protected@file@percent }
 \newlabel{tab:ablation}{{3}{9}{Aggregate six-model ablation over 59 unique tasks and five conditions (1,770 runs total). The strongest and most stable effect is the drop from \texttt {full} to \texttt {no\_tool}; citation and template ablations change accountability properties much more than average accuracy.\relax }{table.caption.7}{}}
-\citation{yao2023react}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Main comparison emphasized in the text. The deployment target (Gemma) and the most ReAct-fragile model (GPT-5-mini) capture the paper's two strongest claims: \texttt  {full} substantially outperforms \texttt  {no\_tool} on both models, and it most clearly outperforms \texttt  {react} when unconstrained tool use is unstable.\relax }}{10}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:main_comparison}{{4}{10}{Main comparison emphasized in the text. The deployment target (Gemma) and the most ReAct-fragile model (GPT-5-mini) capture the paper's two strongest claims: \texttt {full} substantially outperforms \texttt {no\_tool} on both models, and it most clearly outperforms \texttt {react} when unconstrained tool use is unstable.\relax }{figure.caption.8}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.3}External Hold-Out, Diagnosis, and Repair}{10}{subsection.7.3}\protected@file@percent }
 \newlabel{sec:holdout}{{7.3}{10}{External Hold-Out, Diagnosis, and Repair}{subsection.7.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt  {full} is no longer significantly worse than \texttt  {no\_tool} after the fixes, although it remains below ReAct.\relax }}{10}{table.caption.8}\protected@file@percent }
-\newlabel{tab:holdout}{{4}{10}{Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt {full} is no longer significantly worse than \texttt {no\_tool} after the fixes, although it remains below ReAct.\relax }{table.caption.8}{}}
+\citation{yao2023react}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Experimental results beyond the architectural diagrams. Left: accuracy of \texttt  {full}, \texttt  {react}, and \texttt  {no\_tool} across six model families, showing that the constrained pipeline most clearly improves the lower-performing tool-use settings. Right: process-aware benchmark metrics aggregated across all models and conditions, illustrating that \texttt  {no\_tool} collapses tool correctness and trace completeness even when it remains failure-free.\relax }}{11}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:benchmark_results}{{5}{11}{Experimental results beyond the architectural diagrams. Left: accuracy of \texttt {full}, \texttt {react}, and \texttt {no\_tool} across six model families, showing that the constrained pipeline most clearly improves the lower-performing tool-use settings. Right: process-aware benchmark metrics aggregated across all models and conditions, illustrating that \texttt {no\_tool} collapses tool correctness and trace completeness even when it remains failure-free.\relax }{figure.caption.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt  {full} is no longer significantly worse than \texttt  {no\_tool} after the fixes, although it remains below ReAct.\relax }}{11}{table.caption.10}\protected@file@percent }
+\newlabel{tab:holdout}{{4}{11}{Gemma results on the 30-task author-independent hold-out before and after the routing/normalization repairs. The most important change is that \texttt {full} is no longer significantly worse than \texttt {no\_tool} after the fixes, although it remains below ReAct.\relax }{table.caption.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{11}{section.8}\protected@file@percent }
+\newlabel{sec:discussion}{{8}{11}{Discussion}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Position relative to general-purpose agent frameworks.}{11}{paragraph*.12}\protected@file@percent }
 \citation{luo2022biogpt}
 \citation{stanford2023biomedlm}
 \citation{singhal2023palm2}
@@ -81,20 +88,19 @@
 \citation{sciresearch2025}
 \citation{multiagenteval2026}
 \citation{naturemethods2025agents}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{11}{section.8}\protected@file@percent }
-\newlabel{sec:discussion}{{8}{11}{Discussion}{section.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{Position relative to general-purpose agent frameworks.}{11}{paragraph*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Position relative to biomedical LLMs.}{11}{paragraph*.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Position relative to recent bio-agent systems.}{11}{paragraph*.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Limitations.}{11}{paragraph*.12}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Gemma hold-out accuracy before and after the routing and normalization repairs. The most important change is not simply the gain in \texttt  {full} accuracy, but the disappearance of the strongly negative \texttt  {full} vs.\ \texttt  {no\_tool} comparison that had undermined the original claim.\relax }}{12}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:holdout_repair}{{6}{12}{Gemma hold-out accuracy before and after the routing and normalization repairs. The most important change is not simply the gain in \texttt {full} accuracy, but the disappearance of the strongly negative \texttt {full} vs.\ \texttt {no\_tool} comparison that had undermined the original claim.\relax }{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {paragraph}{Position relative to biomedical LLMs.}{12}{paragraph*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Position relative to recent bio-agent systems.}{12}{paragraph*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations.}{13}{paragraph*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Future work.}{13}{paragraph*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{13}{section.9}\protected@file@percent }
+\newlabel{sec:conclusion}{{9}{13}{Conclusion}{section.9}{}}
 \bibstyle{plain}
 \bibcite{anthropic2024mcp}{1}
 \bibcite{anthropic2025skills}{2}
 \bibcite{bytedance2025deerflow}{3}
 \bibcite{biofm2025openbiomed}{4}
-\@writefile{toc}{\contentsline {paragraph}{Future work.}{12}{paragraph*.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{12}{section.9}\protected@file@percent }
-\newlabel{sec:conclusion}{{9}{12}{Conclusion}{section.9}{}}
 \bibcite{singhal2023palm2}{5}
 \bibcite{stanford2023biomedlm}{6}
 \bibcite{luo2022biogpt}{7}
@@ -112,4 +118,4 @@
 \bibcite{cock2009biopython}{19}
 \bibcite{yao2023react}{20}
 \bibcite{wang2026emergence}{21}
-\gdef \@abspage@last{13}
+\gdef \@abspage@last{15}

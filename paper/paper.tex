@@ -249,6 +249,20 @@ To test whether the framework's behavior depends heavily on one underlying model
 \end{tabular}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/main_comparison.png}
+\caption{Main comparison emphasized in the text. The deployment target (Gemma) and the most ReAct-fragile model (GPT-5-mini) capture the paper's two strongest claims: \texttt{full} substantially outperforms \texttt{no\_tool} on both models, and it most clearly outperforms \texttt{react} when unconstrained tool use is unstable.}
+\label{fig:main_comparison}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/benchmark_results.png}
+\caption{Experimental results beyond the architectural diagrams. Left: accuracy of \texttt{full}, \texttt{react}, and \texttt{no\_tool} across six model families, showing that the constrained pipeline most clearly improves the lower-performing tool-use settings. Right: process-aware benchmark metrics aggregated across all models and conditions, illustrating that \texttt{no\_tool} collapses tool correctness and trace completeness even when it remains failure-free.}
+\label{fig:benchmark_results}
+\end{figure}
+
 The cleanest signal is the value of tools. Across models, removing tools collapses accuracy from roughly 80\% to the mid-50s and drives tool correctness down to near-chance overlap with task keywords. To test whether this effect survives a corrected unit of analysis, we ran paired seed replications on the deployment target (Gemma) and on GPT-5-mini, which was the most ReAct-fragile model in the six-model sweep. Under cluster-aware permutation tests, the \texttt{full} pipeline beats \texttt{no\_tool} by 26.4 percentage points on Gemma and 19.3 percentage points on GPT-5-mini (both $p \le 10^{-4}$). The comparison to ReAct is more nuanced. On GPT-5-mini, the constrained pipeline beats ReAct by 35.3 percentage points and reduces catastrophic failures from 84.7\% to 39.0\%. On Gemma, however, \texttt{full} and ReAct are statistically indistinguishable on the in-house benchmark ($p=0.74$). The support for the framework is therefore strongest as a \emph{tool-first} and \emph{lower-tail stability} claim, not as a universal claim that constrained workflows dominate free-form agents on raw accuracy.
 
 \subsection{External Hold-Out, Diagnosis, and Repair}
@@ -270,6 +284,13 @@ After fixes  & 53.3\% & 70.0\% & 57.8\% \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.72\textwidth]{figures/holdout_repair.png}
+\caption{Gemma hold-out accuracy before and after the routing and normalization repairs. The most important change is not simply the gain in \texttt{full} accuracy, but the disappearance of the strongly negative \texttt{full} vs.\ \texttt{no\_tool} comparison that had undermined the original claim.}
+\label{fig:holdout_repair}
+\end{figure}
 
 The initial hold-out materially changed the scientific interpretation of the system. On Gemma, the constrained pipeline collapsed from internal-benchmark performance to 17.8\% accuracy and was significantly worse than both ReAct ($\Delta=-31.1$ percentage points, $p=0.004$) and \texttt{no\_tool} ($\Delta=-28.9$ percentage points, $p=0.002$). Trace inspection showed that this was not a mysterious model failure. Most of the gap came from five concrete issues: stop-words such as ``information'' and ``characterize'' being preserved in search queries; natural-language mutation forms such as ``KRAS G12D'' failing to trigger the mutation workflow; Greek-vs-ASCII mismatches in keyword matching; embedded sequences going undetected when wrapped in prose; and insufficient coverage of literature keywords such as ``publications'' or ``studies''.
 
