@@ -8,6 +8,7 @@ Principles:
 """
 from __future__ import annotations
 
+import re
 import time
 
 from .contracts import StepExecutor, StepResult
@@ -48,6 +49,7 @@ class TaskRunner:
                 instruction=step.instruction,
                 context=task.state.known_entities,
                 expected_workflow=step.expected_workflow,
+                payload_hint=step.payload_hint,
             )
             step.latency_ms = int((time.time() - t0) * 1000)
 
@@ -87,29 +89,56 @@ class TaskRunner:
         - Evidence citations
         - Warnings (if any)
         """
-        lines = [f"# Task Report: {task.user_goal}\n"]
+        success_count = sum(1 for step in task.steps if step.status == "success")
+        lines = [
+            f"Task completed with {success_count}/{len(task.steps)} successful step"
+            f"{'' if len(task.steps) == 1 else 's'}.\n"
+        ]
 
-        # Step summaries
-        lines.append("## Steps Executed\n")
         for step in task.steps:
             status_icon = "✅" if step.status == "success" else "❌"
             lines.append(f"{status_icon} **{step.step_id}**: {step.instruction}")
             if step.agent_result and step.agent_result.get("summary"):
-                lines.append(f"   - {step.agent_result['summary'][:200]}...")
+                summary = self._lead_summary(str(step.agent_result["summary"]))
+                if summary:
+                    lines.append(f"   - {summary}")
             lines.append("")
 
         # Key entities
         if task.state.known_entities:
-            lines.append("## Key Entities\n")
+            lines.append("Key entities:\n")
             for key, value in task.state.known_entities.items():
                 lines.append(f"- **{key}**: {value}")
             lines.append("")
 
         # Warnings
         if task.warnings:
-            lines.append("## Warnings\n")
+            lines.append("Warnings:\n")
             for w in task.warnings:
                 lines.append(f"- {w}")
             lines.append("")
 
         return "\n".join(lines)
+
+    @staticmethod
+    def _lead_summary(summary: str, max_len: int = 240) -> str:
+        text = (summary or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+        if not text:
+            return ""
+
+        paragraphs = [part.strip() for part in re.split(r"\n\s*\n", text) if part.strip()]
+        preferred = ""
+        for part in paragraphs:
+            first_line = next((line.strip() for line in part.splitlines() if line.strip()), "")
+            if first_line and not first_line.startswith("|") and not first_line.startswith("##"):
+                preferred = first_line
+                break
+        if not preferred and paragraphs:
+            preferred = paragraphs[0].splitlines()[0].strip()
+
+        preferred = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1", preferred)
+        preferred = re.sub(r"[*`~]", "", preferred)
+        preferred = re.sub(r"\s+", " ", preferred).strip()
+        if not preferred:
+            return ""
+        return preferred[: max_len - 1].rstrip() + "…" if len(preferred) > max_len else preferred

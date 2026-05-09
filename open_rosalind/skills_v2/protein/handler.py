@@ -8,8 +8,8 @@ from ..runtime import ensure_trace, is_error, run_tool
 
 
 def handler(payload: dict, trace: Any) -> dict:
-    query = payload.get("query", "").strip()
-    accession = payload.get("accession", "").strip()
+    query = str(payload.get("query") or "").strip()
+    accession = str(payload.get("accession") or "").strip()
     if not query and not accession:
         return {
             "annotation": {"kind": "protein"},

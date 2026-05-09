@@ -41,3 +41,10 @@ def get_json(url: str, params: dict[str, Any] | None = None, timeout: int = 30) 
     r = s.get(url, params=params, timeout=timeout)
     r.raise_for_status()
     return r.json()
+
+
+def post_json(url: str, json_body: dict[str, Any], timeout: int = 30) -> Any:
+    s = make_session()
+    r = s.post(url, json=json_body, timeout=timeout)
+    r.raise_for_status()
+    return r.json()

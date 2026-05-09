@@ -1,0 +1,43 @@
+{
+  "name": "cellxgene_collection_lookup",
+  "display_name": "CELLxGENE Collection Lookup",
+  "description": "Fetch a CELLxGENE collection by collection ID and summarize datasets and tissue context.",
+  "category": "single-cell",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "CELLxGENE Discover",
+    "url": "https://cellxgene.cziscience.com/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["cellxgene.fetch_collection"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "collection_id": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}
+    },
+    "required": ["collection_id"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "cellxgene": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"collection_id": "db468083-041c-41ca-8f6f-bf991a070adf"},
+      "expects": "CELLxGENE collection summary"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

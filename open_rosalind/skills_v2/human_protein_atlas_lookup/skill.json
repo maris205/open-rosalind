@@ -1,0 +1,44 @@
+{
+  "name": "human_protein_atlas_lookup",
+  "display_name": "Human Protein Atlas Lookup",
+  "description": "Resolve a gene to Ensembl when needed and summarize Human Protein Atlas gene expression and localization fields.",
+  "category": "protein-atlas",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Human Protein Atlas",
+    "url": "https://www.proteinatlas.org/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["ensembl.lookup_gene", "human_protein_atlas.fetch_gene"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "gene_symbol": {"type": "string"},
+      "ensembl_id": {"type": "string"},
+      "species": {"type": "string", "default": "homo_sapiens"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "gene_lookup": {"type": "object"},
+      "hpa": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"gene_symbol": "TP53"},
+      "expects": "Human Protein Atlas summary fields for TP53"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

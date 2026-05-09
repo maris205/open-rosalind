@@ -1,0 +1,47 @@
+{
+  "name": "pharmgkb_clinical_annotation",
+  "display_name": "PharmGKB Clinical Annotation",
+  "description": "Search PharmGKB clinical annotations by drug, gene, or variant and summarize the top evidence-backed annotation.",
+  "category": "pharmacogenomics",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "PharmGKB",
+    "url": "https://api.pharmgkb.org/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["pharmgkb.search_clinical_annotations", "pharmgkb.fetch_clinical_annotation"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "chemical_name": {"type": "string"},
+      "gene_symbol": {"type": "string"},
+      "variant_symbol": {"type": "string"},
+      "accession_id": {"type": "string"},
+      "annotation_id": {"type": ["integer", "string"]},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "pharmgkb": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"chemical_name": "warfarin"},
+      "expects": "top PharmGKB clinical annotation for warfarin"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

@@ -1,0 +1,1 @@
+"""EFO term lookup skill."""

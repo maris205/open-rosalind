@@ -40,5 +40,11 @@ class StepResult:
 class StepExecutor(Protocol):
     """Single execution boundary used by the harness."""
 
-    def run_step(self, instruction: str, context: dict[str, Any], expected_workflow: str) -> StepResult:
+    def run_step(
+        self,
+        instruction: str,
+        context: dict[str, Any],
+        expected_workflow: str,
+        payload_hint: dict[str, Any] | None = None,
+    ) -> StepResult:
         """Execute exactly one step and return normalized results."""

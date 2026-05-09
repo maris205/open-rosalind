@@ -1,0 +1,1 @@
+"""NCBI BLAST search skill."""

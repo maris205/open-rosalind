@@ -16,6 +16,7 @@ class TaskStep:
     step_id: str
     instruction: str
     expected_workflow: str  # skill name
+    payload_hint: dict[str, Any] = field(default_factory=dict)
     status: str = "pending"  # pending | running | success | failed
     agent_result: dict[str, Any] | None = None
     evidence: list[dict[str, Any]] = field(default_factory=list)
@@ -66,6 +67,7 @@ class Task:
                     "step_id": s.step_id,
                     "instruction": s.instruction,
                     "expected_workflow": s.expected_workflow,
+                    "payload_hint": s.payload_hint,
                     "executed_workflow": (s.agent_result or {}).get("extracted_entities", {}).get("workflow"),
                     "status": s.status,
                     "latency_ms": s.latency_ms,

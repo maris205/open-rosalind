@@ -1,0 +1,44 @@
+{
+  "name": "clinvar_variation_lookup",
+  "display_name": "ClinVar Variation Lookup",
+  "description": "Resolve a variant query to ClinVar/dbSNP identifiers and summarize the current RefSNP object.",
+  "category": "variant-interpretation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "ClinVar/dbSNP",
+    "url": "https://clinicaltables.nlm.nih.gov/apidoc/variants/v4/doc.html"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["clinvar_variation.search_clinical_tables", "clinvar_variation.fetch_refsnp"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "terms": {"type": "string"},
+      "refsnp_id": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "refsnp": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "rs7412"},
+      "expects": "RefSNP summary for rs7412"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

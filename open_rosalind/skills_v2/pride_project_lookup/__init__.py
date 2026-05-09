@@ -1,0 +1,1 @@
+"""PRIDE project lookup skill."""

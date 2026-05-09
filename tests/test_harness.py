@@ -3,6 +3,7 @@ from open_rosalind.backends.base import ChatResponse
 from open_rosalind.backends import build_backend
 from open_rosalind.config import load_config
 from open_rosalind.harness import AgentAdapter, Task, TaskRunner
+from open_rosalind.harness.planner import ConstrainedPlanner
 from open_rosalind.orchestrator import Agent
 
 
@@ -129,6 +130,113 @@ def test_harness_protein_research_uses_workflow_override():
     assert first_step.agent_result["extracted_entities"]["workflow"] == "protein_annotation"
     assert result.state.known_entities["workflow"] == "protein_annotation"
     assert result.to_dict()["steps"][0]["executed_workflow"] == "protein_annotation"
+
+
+def test_harness_planner_extracts_sequence_payload_for_homology_request():
+    planner = ConstrainedPlanner()
+    steps = planner.create_plan("Analyze sequence MVKVGVNGFGRIGRLVTRA and find similar proteins", max_steps=5)
+
+    assert len(steps) == 2
+    assert steps[0].expected_workflow == "workflow_protein_annotation"
+    assert steps[0].payload_hint["sequence"] == "MVKVGVNGFGRIGRLVTRA"
+    assert steps[1].expected_workflow == "ncbi_blast_search"
+    assert steps[1].payload_hint["sequence"] == "MVKVGVNGFGRIGRLVTRA"
+
+
+def test_harness_adapter_builds_blast_payload_for_homology_request():
+    class CaptureAgent:
+        def __init__(self):
+            self.calls = []
+
+        def analyze(self, **kwargs):
+            self.calls.append(kwargs)
+            return {
+                "summary": "dummy summary",
+                "evidence": {"annotation": {"kind": "ncbi_blast"}},
+                "trace_steps": [],
+                "confidence": 0.8,
+                "annotation": {"workflow": "ncbi_blast_search"},
+            }
+
+    agent = CaptureAgent()
+    adapter = AgentAdapter(agent)
+
+    result = adapter.run_step(
+        "Search for similar proteins using NCBI BLAST and the grounded sequence query.",
+        {},
+        "ncbi_blast_search",
+        {"sequence": "MVKVGVNGFGRIGRLVTRA"},
+    )
+
+    assert result.status == "success"
+    assert agent.calls[0]["workflow"] == "ncbi_blast_search"
+    payload = agent.calls[0]["payload_override"]
+    assert payload["program"] == "blastp"
+    assert payload["database"] == "swissprot"
+    assert payload["query_fasta"] == ">query\nMVKVGVNGFGRIGRLVTRA\n"
+    assert payload["max_queries"] == 1
+
+
+def test_harness_planner_extracts_mutation_payload():
+    planner = ConstrainedPlanner()
+    steps = planner.create_plan("Assess TP53 p.R175H mutation impact and supporting literature", max_steps=3)
+
+    assert len(steps) == 1
+    assert steps[0].expected_workflow == "workflow_mutation_assessment"
+    assert steps[0].payload_hint["gene_symbol"] == "TP53"
+    assert steps[0].payload_hint["mutation"] == "p.R175H"
+
+
+def test_harness_final_report_uses_lead_summary_only():
+    class StubExecutor:
+        def run_step(self, instruction, context, expected_workflow, payload_hint=None):
+            return type("Result", (), {
+                "status": "success",
+                "summary": (
+                    "**No protein match was found for the provided sequence.**\n\n"
+                    "| Field | Value |\n| :--- | :--- |\n| Hit Count | 0 |\n\n"
+                    "## Key findings\n- No UniProt match was found."
+                ),
+                "evidence": {},
+                "trace": [],
+                "confidence": 0.7,
+                "extracted_entities": {"workflow": "protein_annotation"},
+                "error": None,
+                "to_dict": lambda self=None: {
+                    "summary": (
+                        "**No protein match was found for the provided sequence.**\n\n"
+                        "| Field | Value |\n| :--- | :--- |\n| Hit Count | 0 |\n\n"
+                        "## Key findings\n- No UniProt match was found."
+                    ),
+                    "evidence": {},
+                    "trace": [],
+                    "confidence": 0.7,
+                    "extracted_entities": {"workflow": "protein_annotation"},
+                    "status": "success",
+                    "error": None,
+                },
+            })()
+
+    runner = TaskRunner(StubExecutor())
+    task = Task(
+        task_id="test_006",
+        user_goal="Analyze sequence MVKVGVNGFGRIGRLVTRA and find similar proteins",
+        max_steps=2,
+    )
+
+    result = runner.run(task)
+
+    assert "| Field | Value |" not in (result.final_report or "")
+    assert "## Key findings" not in (result.final_report or "")
+    assert "No protein match was found for the provided sequence." in (result.final_report or "")
+
+
+def test_harness_lead_summary_preserves_tool_citation_identifiers():
+    summary = TaskRunner._lead_summary(
+        "**NCBI BLAST found similar proteins for the submitted sequence [tool:ncbi_blast.run_search].**"
+    )
+
+    assert summary == "NCBI BLAST found similar proteins for the submitted sequence [tool:ncbi_blast.run_search]."
 
 
 if __name__ == "__main__":

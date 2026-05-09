@@ -1,0 +1,53 @@
+{
+  "name": "ncbi_blast_search",
+  "display_name": "NCBI BLAST Search",
+  "description": "Submit an NCBI BLAST search and summarize compact top-hit results with an RID for traceability.",
+  "category": "sequence-homology",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "NCBI BLAST",
+    "url": "https://blast.ncbi.nlm.nih.gov/doc/blast-help/urlapi.html"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["ncbi_blast.run_search"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "program": {"type": "string"},
+      "database": {"type": "string"},
+      "query_fasta": {"type": "string"},
+      "email": {"type": "string"},
+      "max_hits": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5},
+      "max_queries": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5},
+      "wait_timeout_sec": {"type": "integer", "minimum": 1, "maximum": 3600, "default": 900}
+    },
+    "required": ["program", "database", "query_fasta"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "blast": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "program": "blastp",
+        "database": "swissprot",
+        "query_fasta": ">q1\nMEEPQSDPSV",
+        "email": "you@example.com"
+      },
+      "expects": "compact BLAST top-hit summary with RID"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

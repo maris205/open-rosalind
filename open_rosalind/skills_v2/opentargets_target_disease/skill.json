@@ -1,0 +1,43 @@
+{
+  "name": "opentargets_target_disease",
+  "display_name": "Open Targets Target-Disease",
+  "description": "Resolve a target and summarize its top disease associations from Open Targets.",
+  "category": "target-prioritization",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Open Targets",
+    "url": "https://platform.opentargets.org/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["opentargets.search", "opentargets.fetch_target_diseases"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "ensembl_id": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "target_diseases": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "IL6R"},
+      "expects": "top Open Targets diseases for IL6R"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

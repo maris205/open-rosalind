@@ -1,0 +1,43 @@
+{
+  "name": "gnomad_variant_lookup",
+  "display_name": "gnomAD Variant Lookup",
+  "description": "Fetch gnomAD population frequency and transcript consequence summary for a variant.",
+  "category": "variant-interpretation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "gnomAD",
+    "url": "https://gnomad.broadinstitute.org/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["gnomad.fetch_variant"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "variant_id": {"type": "string"},
+      "rsid": {"type": "string"},
+      "dataset": {"type": "string", "default": "gnomad_r4"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "gnomad": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"variant_id": "19-44908822-C-T"},
+      "expects": "gnomAD summary for APOE rs7412-equivalent variant"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

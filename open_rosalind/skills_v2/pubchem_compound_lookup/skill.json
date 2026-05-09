@@ -1,0 +1,42 @@
+{
+  "name": "pubchem_compound_lookup",
+  "display_name": "PubChem Compound Lookup",
+  "description": "Resolve a PubChem compound by name or CID and summarize core properties and descriptions.",
+  "category": "chemistry",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "PubChem",
+    "url": "https://pubchem.ncbi.nlm.nih.gov/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["pubchem.lookup_compound"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "cid": {"type": ["integer", "string"]}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "pubchem": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "aspirin"},
+      "expects": "PubChem compound summary for aspirin"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}
