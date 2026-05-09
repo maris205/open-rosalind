@@ -157,6 +157,24 @@ class AgentAdapter:
             if sequence:
                 return {"question": sequence, "sequence": sequence}
             return {"question": instruction}
+        if expected_workflow == "ncbi_blast_search":
+            sequence = self._extract_sequence_payload(payload, context, instruction)
+            if not sequence:
+                return {"question": instruction}
+
+            blast_payload = {
+                "question": instruction,
+                "program": str(payload.get("program") or "blastp"),
+                "database": str(payload.get("database") or "swissprot"),
+                "query_fasta": f">query\n{sequence}\n",
+                "max_hits": int(payload.get("max_hits", 5) or 5),
+                "max_queries": int(payload.get("max_queries", 1) or 1),
+                "wait_timeout_sec": int(payload.get("wait_timeout_sec", 900) or 900),
+            }
+            email = payload.get("email") or context.get("email")
+            if email not in (None, "", [], {}):
+                blast_payload["email"] = email
+            return blast_payload
         if expected_workflow == "workflow_mutation_assessment":
             mutation_payload = self._extract_mutation_payload(payload, context, instruction)
             if mutation_payload:

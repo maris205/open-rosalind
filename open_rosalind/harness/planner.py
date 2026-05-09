@@ -34,8 +34,8 @@ class ConstrainedPlanner:
             ),
             TaskStep(
                 step_id="step_002",
-                instruction="Search for similar proteins using the grounded sequence query.",
-                expected_workflow="uniprot_lookup",
+                instruction="Search for similar proteins using NCBI BLAST and the grounded sequence query.",
+                expected_workflow="ncbi_blast_search",
             ),
         ],
         "literature_review": [
@@ -102,8 +102,8 @@ class ConstrainedPlanner:
         for step in steps:
             if step.expected_workflow == "workflow_protein_annotation" and extracted_sequence:
                 step.payload_hint["sequence"] = extracted_sequence
-            if step.expected_workflow == "uniprot_lookup" and extracted_sequence:
-                step.payload_hint["query"] = extracted_sequence
+            if step.expected_workflow == "ncbi_blast_search" and extracted_sequence:
+                step.payload_hint["sequence"] = extracted_sequence
             if step.expected_workflow == "workflow_mutation_assessment":
                 step.payload_hint.update(mutation_payload)
             if step.expected_workflow == "literature_search":

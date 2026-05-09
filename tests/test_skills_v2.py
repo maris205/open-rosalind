@@ -2205,6 +2205,79 @@ def test_ncbi_blast_run_search_tool_summarizes_hits():
     assert out["query_summaries"][0]["top_hits"][0]["accession"] == "P04637"
 
 
+def test_ncbi_blast_run_search_tool_allows_missing_email():
+    from open_rosalind.tools import ncbi_blast as ncbi_blast_tools
+
+    class FakeResponse:
+        def __init__(self, text, headers=None, json_data=None):
+            self.text = text
+            self.headers = headers or {"content-type": "application/json"}
+            self._json_data = json_data
+            self.content = text.encode("utf-8")
+            self.status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            if self._json_data is not None:
+                return self._json_data
+            return {}
+
+    class FakeSession:
+        def __init__(self, responses):
+            self.responses = responses
+            self.headers = {}
+
+        def request(self, method, url, **kwargs):
+            return self.responses.pop(0)
+
+        def close(self):
+            return None
+
+    payload = {
+        "BlastOutput2": [
+            {
+                "report": {
+                    "results": {
+                        "search": {
+                            "query_title": "q1",
+                            "hits": [],
+                        }
+                    }
+                }
+            }
+        ]
+    }
+    fake_session = FakeSession(
+        [
+            FakeResponse("RID = TEST123\nRTOE = 3\n", headers={"content-type": "text/plain"}),
+            FakeResponse("Status=READY\nThereAreHits=no\n", headers={"content-type": "text/plain"}),
+            FakeResponse(json.dumps(payload), json_data=payload),
+        ]
+    )
+
+    current = [0.0]
+
+    def clock() -> float:
+        return current[0]
+
+    def sleep(seconds: float) -> None:
+        current[0] += seconds
+
+    out = ncbi_blast_tools.run_search(
+        "blastp",
+        "swissprot",
+        ">q1\nMEEPQSDPSV",
+        session=fake_session,
+        sleep_fn=sleep,
+        clock_fn=clock,
+    )
+    assert out["status"] == "READY"
+    assert out["has_hits"] is False
+    assert out["query_summaries"] == []
+
+
 def test_bgee_expression_lookup_skill_success(monkeypatch):
     from open_rosalind.skills_v2.bgee_expression_lookup import handler as bgee_handler_module
 

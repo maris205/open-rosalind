@@ -5,11 +5,14 @@
 > *A tool-driven bio-agent for reproducible life science research.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![bioRxiv](https://img.shields.io/badge/bioRxiv-10.64898%2F2026.05.06.722404-b31b1b)](https://doi.org/10.64898/2026.05.06.722404)
 [![BioBench v0](https://img.shields.io/badge/BioBench_v0-100%25-brightgreen)](benchmark/BENCHMARK.md)
 [![BioBench v1](https://img.shields.io/badge/BioBench_v1-93.9%25-green)](benchmark/BENCHMARK.md)
 [![BioBench v0.3](https://img.shields.io/badge/BioBench_v0.3_(harness)-90%25-green)](benchmark/BENCHMARK.md)
 
 Ask in natural language → get a structured scientific answer backed by UniProt, PubMed, and local computation. **No hallucinations** — every claim cites a tool output.
+
+Preprint: [Open-Rosalind: Tool-First Biomedical LLM Agents with Process-Aware Benchmarking](https://doi.org/10.64898/2026.05.06.722404).
 
 ```
 You: What is BRCA1?
@@ -34,6 +37,10 @@ Open-Rosalind: 🔗 Multi-step auto-detected.
 | ❌ One-shot prompts | ✅ Multi-step task harness with planner |
 | ❌ Closed-source SaaS | ✅ MIT, self-hostable, model-agnostic |
 | ❌ No benchmark | ✅ BioBench v0/v1/v0.3 with 5 standard metrics |
+
+<p align="center">
+  <img src="paper/figures/anget_compare.png" alt="General-purpose agents vs Open-Rosalind auditable bio-agents" width="920">
+</p>
 
 **Design principles** (see [`docs/DESIGN_PRINCIPLES.md`](./docs/DESIGN_PRINCIPLES.md)):
 - **Tool-first** — every fact comes from a registered tool, never from LLM memory
@@ -339,12 +346,15 @@ MIT — see [LICENSE](LICENSE).
 
 ## 📖 Citation
 
+If you use Open-Rosalind, please cite the bioRxiv preprint:
+
 ```bibtex
-@software{open_rosalind_2026,
-  title  = {Open-Rosalind: A Chat-Based Bio-Agent with Evidence-Grounded Outputs},
+@article{wang2026openrosalind,
+  title  = {Open-Rosalind: Tool-First Biomedical LLM Agents with Process-Aware Benchmarking},
   author = {Wang, Liang},
   year   = {2026},
-  url    = {https://github.com/maris205/open-rosalind},
-  note   = {Tool-first, traceable, model-agnostic. 100% on Mini BioBench v0.}
+  doi    = {10.64898/2026.05.06.722404},
+  url    = {https://doi.org/10.64898/2026.05.06.722404},
+  journal = {bioRxiv}
 }
 ```

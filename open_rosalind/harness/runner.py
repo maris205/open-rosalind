@@ -137,7 +137,7 @@ class TaskRunner:
             preferred = paragraphs[0].splitlines()[0].strip()
 
         preferred = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1", preferred)
-        preferred = re.sub(r"[*_`~]", "", preferred)
+        preferred = re.sub(r"[*`~]", "", preferred)
         preferred = re.sub(r"\s+", " ", preferred).strip()
         if not preferred:
             return ""

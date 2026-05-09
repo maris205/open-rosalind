@@ -49,9 +49,12 @@ class RequestThrottle:
         return response
 
 
-def _blast_session(tool: str, email: str) -> requests.Session:
+def _blast_session(tool: str, email: str | None) -> requests.Session:
     session = make_session()
-    session.headers["User-Agent"] = f"open-rosalind/1.0 tool={tool} email={email}"
+    user_agent = f"open-rosalind/1.0 tool={tool}"
+    if email:
+        user_agent = f"{user_agent} email={email}"
+    session.headers["User-Agent"] = user_agent
     return session
 
 
@@ -163,19 +166,21 @@ def _submit_search(
     tool: str,
     email: str,
 ) -> tuple[str, int]:
+    data = {
+        "CMD": "Put",
+        "PROGRAM": program,
+        "DATABASE": database,
+        "QUERY": query_fasta,
+        "FORMAT_TYPE": "Text",
+        "HITLIST_SIZE": hitlist_size,
+        "tool": tool,
+    }
+    if email:
+        data["email"] = email
     response = throttle.request(
         session,
         "POST",
-        data={
-            "CMD": "Put",
-            "PROGRAM": program,
-            "DATABASE": database,
-            "QUERY": query_fasta,
-            "FORMAT_TYPE": "Text",
-            "HITLIST_SIZE": hitlist_size,
-            "tool": tool,
-            "email": email,
-        },
+        data=data,
         timeout=60,
     )
     rid_match = RID_RE.search(response.text)
@@ -192,16 +197,18 @@ def _search_info(
     tool: str,
     email: str,
 ) -> tuple[str, bool]:
+    params = {
+        "CMD": "Get",
+        "FORMAT_OBJECT": "SearchInfo",
+        "RID": rid,
+        "tool": tool,
+    }
+    if email:
+        params["email"] = email
     response = throttle.request(
         session,
         "GET",
-        params={
-            "CMD": "Get",
-            "FORMAT_OBJECT": "SearchInfo",
-            "RID": rid,
-            "tool": tool,
-            "email": email,
-        },
+        params=params,
         timeout=30,
     )
     status_match = STATUS_RE.search(response.text)
@@ -219,16 +226,18 @@ def _fetch_ready_result(
     max_queries: int,
     max_hits: int,
 ) -> dict[str, Any]:
+    params = {
+        "CMD": "Get",
+        "RID": rid,
+        "FORMAT_TYPE": "JSON2",
+        "tool": tool,
+    }
+    if email:
+        params["email"] = email
     response = throttle.request(
         session,
         "GET",
-        params={
-            "CMD": "Get",
-            "RID": rid,
-            "FORMAT_TYPE": "JSON2",
-            "tool": tool,
-            "email": email,
-        },
+        params=params,
         timeout=60,
     )
     data = _extract_json2_payload(response)
@@ -263,8 +272,6 @@ def run_search(
         raise ValueError("database is required")
     if not clean_query:
         raise ValueError("query_fasta is required")
-    if not clean_email:
-        raise ValueError("email is required for NCBI BLAST or via NCBI_EMAIL")
 
     local_session = session or _blast_session(tool_name, clean_email)
     throttle = RequestThrottle(sleep_fn=sleep_fn, clock_fn=clock_fn)

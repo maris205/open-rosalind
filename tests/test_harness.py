@@ -139,8 +139,42 @@ def test_harness_planner_extracts_sequence_payload_for_homology_request():
     assert len(steps) == 2
     assert steps[0].expected_workflow == "workflow_protein_annotation"
     assert steps[0].payload_hint["sequence"] == "MVKVGVNGFGRIGRLVTRA"
-    assert steps[1].expected_workflow == "uniprot_lookup"
-    assert steps[1].payload_hint["query"] == "MVKVGVNGFGRIGRLVTRA"
+    assert steps[1].expected_workflow == "ncbi_blast_search"
+    assert steps[1].payload_hint["sequence"] == "MVKVGVNGFGRIGRLVTRA"
+
+
+def test_harness_adapter_builds_blast_payload_for_homology_request():
+    class CaptureAgent:
+        def __init__(self):
+            self.calls = []
+
+        def analyze(self, **kwargs):
+            self.calls.append(kwargs)
+            return {
+                "summary": "dummy summary",
+                "evidence": {"annotation": {"kind": "ncbi_blast"}},
+                "trace_steps": [],
+                "confidence": 0.8,
+                "annotation": {"workflow": "ncbi_blast_search"},
+            }
+
+    agent = CaptureAgent()
+    adapter = AgentAdapter(agent)
+
+    result = adapter.run_step(
+        "Search for similar proteins using NCBI BLAST and the grounded sequence query.",
+        {},
+        "ncbi_blast_search",
+        {"sequence": "MVKVGVNGFGRIGRLVTRA"},
+    )
+
+    assert result.status == "success"
+    assert agent.calls[0]["workflow"] == "ncbi_blast_search"
+    payload = agent.calls[0]["payload_override"]
+    assert payload["program"] == "blastp"
+    assert payload["database"] == "swissprot"
+    assert payload["query_fasta"] == ">query\nMVKVGVNGFGRIGRLVTRA\n"
+    assert payload["max_queries"] == 1
 
 
 def test_harness_planner_extracts_mutation_payload():
@@ -195,6 +229,14 @@ def test_harness_final_report_uses_lead_summary_only():
     assert "| Field | Value |" not in (result.final_report or "")
     assert "## Key findings" not in (result.final_report or "")
     assert "No protein match was found for the provided sequence." in (result.final_report or "")
+
+
+def test_harness_lead_summary_preserves_tool_citation_identifiers():
+    summary = TaskRunner._lead_summary(
+        "**NCBI BLAST found similar proteins for the submitted sequence [tool:ncbi_blast.run_search].**"
+    )
+
+    assert summary == "NCBI BLAST found similar proteins for the submitted sequence [tool:ncbi_blast.run_search]."
 
 
 if __name__ == "__main__":
