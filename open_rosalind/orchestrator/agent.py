@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from ..backends import Backend
@@ -25,13 +26,26 @@ Strict rules:
    - PubMed facts  → [PMID:<id>]              e.g. [PMID:38308006]
    - Local compute → [tool:<name>]            e.g. [tool:sequence.analyze]
 3. If EVIDENCE includes a `notes` field, mention any non-trivial fallback
-   ("retried with shorter probe", "no UniProt match found", ...) honestly.
-4. Format:
-   - Start with a 1-2 sentence headline answer.
-   - Then a short Markdown body.
-   - End with a `### Evidence` section bullet-listing the citations used.
-5. Be concise: aim for under ~250 words unless the question demands more.
+   or limitation honestly ("retried with shorter probe", "no UniProt match found", ...).
+4. Preferred Markdown format:
+   - Start with one short bold takeaway sentence.
+   - If it helps readability, add a compact 2-column Markdown table with grounded
+     fields such as accession, organism, length, hit count, mutation, or assessment.
+   - Then add `## Key findings` with 2-4 concise bullets.
+   - If there is ambiguity, no-hit output, fallback behavior, or missing data,
+     add `## Limitations` with 1-2 concise bullets.
+   - Do NOT add sections named `Evidence` or `Trace`.
+   - Do NOT output raw JSON.
+5. Be concise: aim for under ~220 words unless the question demands more.
+6. Do not speculate about mechanisms, homology, or biological relevance unless
+   that claim is explicitly supported in EVIDENCE.
 """
+
+
+_SUMMARY_EVIDENCE_SECTION_RE = re.compile(
+    r"(?:^|\n+)#{2,6}\s+Evidence\s*\n[\s\S]*$",
+    re.IGNORECASE,
+)
 
 
 class Agent:
@@ -73,8 +87,15 @@ class Agent:
             return Intent(skill=workflow, payload=payload)
         return Intent(skill=workflow, payload={"query": text})
 
-    def analyze(self, question: str, session_id: str | None = None, mode: str | None = None,
-                conversation_history: list[dict] | None = None, workflow: str | None = None) -> dict[str, Any]:
+    def analyze(
+        self,
+        question: str,
+        session_id: str | None = None,
+        mode: str | None = None,
+        conversation_history: list[dict] | None = None,
+        workflow: str | None = None,
+        payload_override: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         trace = Trace(self.trace_dir, session_id=session_id)
         trace.log("user_input", {"question": question, "mode": mode, "workflow": workflow})
 
@@ -83,6 +104,8 @@ class Agent:
 
         if workflow:
             intent = self._intent_from_workflow(question, workflow, mode=mode)
+            if payload_override:
+                intent = Intent(skill=intent.skill, payload=dict(payload_override))
             trace.log("router", {"path": "workflow-forced", "skill": intent.skill, "workflow": workflow})
         elif mode and mode not in (None, "", "auto"):
             intent = self._intent_from_mode(question, mode)
@@ -148,7 +171,7 @@ class Agent:
         trace.log("model_request", {"messages": messages})
         try:
             resp = self.backend.chat(messages, temperature=0.2, max_tokens=1024)
-            summary = resp.content
+            summary = self._normalize_summary(resp.content)
             trace.log("model_response", {"content": summary})
         except Exception as e:
             err = f"{type(e).__name__}: {e}"
@@ -180,6 +203,14 @@ class Agent:
         if skill_v2 is not None:
             return skill_v2.handler
         return SKILL_REGISTRY[skill_name]
+
+    @staticmethod
+    def _normalize_summary(summary: str) -> str:
+        text = (summary or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+        if "\\n" in text and "\n" not in text:
+            text = text.replace("\\n", "\n").strip()
+        text = _SUMMARY_EVIDENCE_SECTION_RE.sub("", text).rstrip()
+        return text
 
 
 def _structured_trace(events: list[dict]) -> list[dict]:

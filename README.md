@@ -175,6 +175,25 @@ python benchmark/run_biobench.py --version mine
 | `uniprot_lookup` | Resolve accession or free-text query → structured annotation | `uniprot.fetch` · `uniprot.search` |
 | `literature_search` | PubMed search with query cleaning + year-filter fallback | `pubmed.search` |
 | `mutation_effect` | WT vs MT diff, HGVS parsing, physico-chemical impact heuristic | `mutation.diff` (local) |
+| `clinicaltrials_search` | ClinicalTrials.gov study search with condition and status filters | `clinicaltrials.search_studies` |
+| `string_network` | STRING interaction partners and network edges for protein context | `string.interaction_partners` · `string.network` |
+| `chembl_search` | ChEMBL molecule or target search for drug-discovery context | `chembl.search_molecules` · `chembl.search_targets` |
+| `clinvar_variation_lookup` | ClinVar/dbSNP variant identifier resolution and RefSNP summary | `clinvar_variation.search_clinical_tables` · `clinvar_variation.fetch_refsnp` |
+| `gnomad_variant_lookup` | gnomAD population frequency and transcript consequence lookup | `gnomad.fetch_variant` |
+| `gwas_catalog_search` | GWAS Catalog studies and association evidence by trait or gene | `gwas_catalog.search_studies` · `gwas_catalog.search_associations` |
+| `opentargets_target_disease` | Open Targets target-to-disease evidence summary | `opentargets.search` · `opentargets.fetch_target_diseases` |
+| `civic_variant_evidence` | CIViC cancer-variant evidence item summary | `civic.typeahead` · `civic.fetch_variant_evidence` |
+| `bgee_expression_lookup` | Bgee anatomical expression summary after Ensembl gene resolution | `ensembl.lookup_gene` · `bgee.lookup_expression` |
+| `human_protein_atlas_lookup` | Human Protein Atlas gene localization and expression fields | `ensembl.lookup_gene` · `human_protein_atlas.fetch_gene` |
+| `rcsb_pdb_lookup` | RCSB PDB entry resolution and core structure metadata summary | `rcsb_pdb.search_entries` · `rcsb_pdb.fetch_entry` |
+| `pharmgkb_clinical_annotation` | PharmGKB drug/gene/variant clinical annotation summary | `pharmgkb.search_clinical_annotations` · `pharmgkb.fetch_clinical_annotation` |
+| `ncbi_blast_search` | NCBI BLAST top-hit summary with RID traceability | `ncbi_blast.run_search` |
+| `efo_term_lookup` | EFO / OLS4 term resolution and ontology summary | `efo.search_terms` · `efo.fetch_term` |
+| `pubchem_compound_lookup` | PubChem compound properties and description summary | `pubchem.lookup_compound` |
+| `chebi_compound_lookup` | ChEBI compound definition and ontology relation summary | `chebi.search_compounds` · `chebi.fetch_compound` |
+| `bindingdb_target_ligands` | BindingDB ligand evidence for a UniProt accession or PDB ID | `bindingdb.lookup_ligands` |
+| `cellxgene_collection_lookup` | CELLxGENE collection metadata and dataset summaries | `cellxgene.fetch_collection` |
+| `pride_project_lookup` | PRIDE project discovery and project metadata summary | `pride.search_projects` · `pride.fetch_project` |
 
 ---
 

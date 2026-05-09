@@ -1,0 +1,52 @@
+{
+  "name": "string_network",
+  "display_name": "STRING Network",
+  "description": "Fetch STRING interaction partners or network edges for one or more gene/protein identifiers.",
+  "category": "network-analysis",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "STRING",
+    "url": "https://string-db.org/help/api/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["string.interaction_partners", "string.network"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "identifiers": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "array", "items": {"type": "string"}}
+        ]
+      },
+      "query": {"type": "string"},
+      "mode": {"type": "string", "enum": ["interaction_partners", "network"], "default": "interaction_partners"},
+      "species": {"type": "integer", "default": 9606},
+      "limit": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10},
+      "required_score": {"type": "integer", "minimum": 0, "maximum": 1000, "default": 400},
+      "add_nodes": {"type": "integer", "minimum": 0, "maximum": 25, "default": 0}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "string": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"identifiers": "TP53", "mode": "interaction_partners"},
+      "expects": "top STRING interaction partners for TP53"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

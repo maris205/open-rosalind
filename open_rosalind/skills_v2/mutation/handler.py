@@ -32,6 +32,23 @@ def _pick_best_hit(hits: list[dict[str, Any]]) -> dict[str, Any] | None:
     return hits[0] if hits else None
 
 
+def _resolve_gene_symbol_search(trace: Any, gene_symbol: str, notes: list[str]) -> dict[str, Any]:
+    search = run_tool(trace, "uniprot.search", uniprot_tools.search, query=gene_symbol, max_results=5)
+    if is_error(search):
+        return search
+
+    # Gene symbols such as TP53 can be outranked by related proteins like
+    # TP53BP1 in plain text search, so prefer an exact gene query when possible.
+    gene_query = f"gene_exact:{gene_symbol}"
+    trace.log("fallback", {"reason": f"gene-specific UniProt search for {gene_symbol}"})
+    gene_search = run_tool(trace, "uniprot.search", uniprot_tools.search, query=gene_query, max_results=5)
+    if not is_error(gene_search) and gene_search.get("hits"):
+        notes.append(f"Used gene-specific search fallback for {gene_symbol}")
+        return gene_search
+
+    return search
+
+
 def handler(payload: dict[str, Any], trace: Any) -> dict[str, Any]:
     trace = ensure_trace(trace)
     notes: list[str] = []
@@ -46,7 +63,7 @@ def handler(payload: dict[str, Any], trace: Any) -> dict[str, Any]:
     accession: str | None = None
 
     if not wild_type and gene_symbol:
-        search = run_tool(trace, "uniprot.search", uniprot_tools.search, query=gene_symbol, max_results=5)
+        search = _resolve_gene_symbol_search(trace, gene_symbol, notes)
         if is_error(search):
             return {
                 "annotation": {"kind": "mutation", "gene_symbol": gene_symbol},

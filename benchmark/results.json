@@ -1,12 +1,12 @@
 {
   "meta": {
-    "version": "mvp3-v0-check",
-    "date": "2026-04-28T11:46:39+00:00",
-    "git_sha": "2a79fd7",
+    "version": "v0.1",
+    "date": "2026-05-07T09:16:45+00:00",
+    "git_sha": "6d23425",
     "model": "google/gemma-4-26b-a4b-it",
     "base_url": "http://127.0.0.1:6006",
     "tasks_file": "benchmark/biobench_v0.jsonl",
-    "elapsed_s": 214.6
+    "elapsed_s": 1117.6
   },
   "metrics": {
     "n_tasks": 32,
@@ -83,9 +83,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194304-9a5c0b",
-      "elapsed_s": 5.94
+      "confidence": 0.85,
+      "session_id": "20260507-165807-960f4e",
+      "elapsed_s": 13.59
     },
     {
       "id": "seq-02",
@@ -110,9 +110,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194310-f3a4b6",
-      "elapsed_s": 3.73
+      "confidence": 0.7,
+      "session_id": "20260507-165821-b3bec8",
+      "elapsed_s": 24.09
     },
     {
       "id": "seq-03",
@@ -137,9 +137,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194314-a97c02",
-      "elapsed_s": 3.06
+      "confidence": 0.85,
+      "session_id": "20260507-165845-1d1568",
+      "elapsed_s": 24.43
     },
     {
       "id": "seq-04",
@@ -164,9 +164,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194317-ab0e63",
-      "elapsed_s": 6.69
+      "confidence": 0.85,
+      "session_id": "20260507-165909-1b9cb3",
+      "elapsed_s": 45.18
     },
     {
       "id": "seq-05",
@@ -191,9 +191,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194324-619637",
-      "elapsed_s": 2.8
+      "confidence": 0.85,
+      "session_id": "20260507-165954-4a6b4f",
+      "elapsed_s": 51.74
     },
     {
       "id": "seq-06",
@@ -218,9 +218,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194327-0a7e21",
-      "elapsed_s": 2.9
+      "confidence": 0.85,
+      "session_id": "20260507-170046-3751a6",
+      "elapsed_s": 37.14
     },
     {
       "id": "seq-07",
@@ -245,9 +245,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194330-5fe77b",
-      "elapsed_s": 2.67
+      "confidence": 0.85,
+      "session_id": "20260507-170123-9e2205",
+      "elapsed_s": 13.02
     },
     {
       "id": "seq-08",
@@ -272,9 +272,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194332-8612ce",
-      "elapsed_s": 4.99
+      "confidence": 0.85,
+      "session_id": "20260507-170136-512611",
+      "elapsed_s": 24.74
     },
     {
       "id": "lit-01",
@@ -284,7 +284,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -295,13 +297,13 @@
       "keyword_hit": 2,
       "keyword_total": 2,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194337-9f1a1b",
-      "elapsed_s": 6.09
+      "confidence": 0.8,
+      "session_id": "20260507-170201-b263fc",
+      "elapsed_s": 29.03
     },
     {
       "id": "lit-02",
@@ -311,7 +313,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -322,13 +326,13 @@
       "keyword_hit": 1,
       "keyword_total": 1,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194343-d00dda",
-      "elapsed_s": 6.8
+      "confidence": 0.8,
+      "session_id": "20260507-170230-d99711",
+      "elapsed_s": 53.51
     },
     {
       "id": "lit-03",
@@ -338,7 +342,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -349,13 +355,13 @@
       "keyword_hit": 1,
       "keyword_total": 1,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194350-348797",
-      "elapsed_s": 6.6
+      "confidence": 0.8,
+      "session_id": "20260507-170324-250a2f",
+      "elapsed_s": 36.98
     },
     {
       "id": "lit-04",
@@ -365,7 +371,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -376,13 +384,13 @@
       "keyword_hit": 2,
       "keyword_total": 2,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194357-a53dbe",
-      "elapsed_s": 7.46
+      "confidence": 0.8,
+      "session_id": "20260507-170401-8d8824",
+      "elapsed_s": 33.99
     },
     {
       "id": "lit-05",
@@ -392,7 +400,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -403,13 +413,13 @@
       "keyword_hit": 1,
       "keyword_total": 1,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194404-2a8670",
-      "elapsed_s": 12.63
+      "confidence": 0.8,
+      "session_id": "20260507-170435-197152",
+      "elapsed_s": 70.93
     },
     {
       "id": "lit-06",
@@ -419,7 +429,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -430,13 +442,13 @@
       "keyword_hit": 1,
       "keyword_total": 2,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194417-391483",
-      "elapsed_s": 4.7
+      "confidence": 0.8,
+      "session_id": "20260507-170545-3141cd",
+      "elapsed_s": 88.95
     },
     {
       "id": "ann-01",
@@ -464,8 +476,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260428-194421-8661ed",
-      "elapsed_s": 13.4
+      "session_id": "20260507-170714-137341",
+      "elapsed_s": 11.96
     },
     {
       "id": "ann-02",
@@ -492,8 +504,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260428-194435-97ad15",
-      "elapsed_s": 5.25
+      "session_id": "20260507-170726-4d9e8a",
+      "elapsed_s": 43.58
     },
     {
       "id": "ann-03",
@@ -503,7 +515,9 @@
       "skill_expected": "uniprot_lookup",
       "tool_called": true,
       "tools_got": [
-        "uniprot.search"
+        "uniprot.search",
+        "uniprot.search",
+        "uniprot.fetch"
       ],
       "tools_expected": [
         "uniprot.search"
@@ -514,13 +528,13 @@
       "keyword_hit": 2,
       "keyword_total": 2,
       "check_passed": true,
-      "check_reason": "summary_len=895 needs=['p53']",
+      "check_reason": "summary_len=1827 needs=['p53']",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.95,
-      "session_id": "20260428-194440-e77d30",
-      "elapsed_s": 6.75
+      "confidence": 0.85,
+      "session_id": "20260507-170810-f7436b",
+      "elapsed_s": 70.39
     },
     {
       "id": "ann-04",
@@ -530,7 +544,8 @@
       "skill_expected": "uniprot_lookup",
       "tool_called": true,
       "tools_got": [
-        "uniprot.search"
+        "uniprot.search",
+        "uniprot.fetch"
       ],
       "tools_expected": [
         "uniprot.search"
@@ -541,13 +556,13 @@
       "keyword_hit": 1,
       "keyword_total": 1,
       "check_passed": true,
-      "check_reason": "summary_len=1193 needs=['hemoglobin']",
+      "check_reason": "summary_len=1434 needs=['hemoglobin']",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.95,
-      "session_id": "20260428-194447-3802bc",
-      "elapsed_s": 8.69
+      "confidence": 0.85,
+      "session_id": "20260507-170920-bf886b",
+      "elapsed_s": 163.91
     },
     {
       "id": "ann-05",
@@ -574,8 +589,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260428-194456-b63c0c",
-      "elapsed_s": 10.0
+      "session_id": "20260507-171204-951c24",
+      "elapsed_s": 18.65
     },
     {
       "id": "ann-06",
@@ -602,8 +617,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260428-194506-67d4ab",
-      "elapsed_s": 16.89
+      "session_id": "20260507-171223-3f6cb2",
+      "elapsed_s": 23.2
     },
     {
       "id": "mut-01",
@@ -629,8 +644,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.7,
-      "session_id": "20260428-194522-7ed6b4",
-      "elapsed_s": 2.05
+      "session_id": "20260507-171246-9eab1d",
+      "elapsed_s": 27.74
     },
     {
       "id": "mut-02",
@@ -656,8 +671,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260428-194524-194cc6",
-      "elapsed_s": 3.08
+      "session_id": "20260507-171314-bd1fe6",
+      "elapsed_s": 4.33
     },
     {
       "id": "mut-03",
@@ -683,8 +698,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260428-194528-a4fa87",
-      "elapsed_s": 3.89
+      "session_id": "20260507-171318-c7d5cf",
+      "elapsed_s": 9.95
     },
     {
       "id": "mut-04",
@@ -710,8 +725,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.85,
-      "session_id": "20260428-194531-ebd52b",
-      "elapsed_s": 3.37
+      "session_id": "20260507-171328-314b87",
+      "elapsed_s": 28.47
     },
     {
       "id": "mut-05",
@@ -737,8 +752,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.7,
-      "session_id": "20260428-194535-59a026",
-      "elapsed_s": 11.26
+      "session_id": "20260507-171357-a270c0",
+      "elapsed_s": 4.33
     },
     {
       "id": "mut-06",
@@ -764,8 +779,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.5,
-      "session_id": "20260428-194546-a6556c",
-      "elapsed_s": 3.18
+      "session_id": "20260507-171401-f7347b",
+      "elapsed_s": 34.63
     },
     {
       "id": "pro-01",
@@ -775,7 +790,9 @@
       "skill_expected": "uniprot_lookup",
       "tool_called": true,
       "tools_got": [
-        "uniprot.search"
+        "uniprot.search",
+        "uniprot.search",
+        "uniprot.fetch"
       ],
       "tools_expected": [
         "uniprot.search"
@@ -786,13 +803,13 @@
       "keyword_hit": 3,
       "keyword_total": 3,
       "check_passed": true,
-      "check_reason": "summary_len=654 needs=['p53']",
+      "check_reason": "summary_len=1364 needs=['p53']",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.95,
-      "session_id": "20260428-194549-ba19e5",
-      "elapsed_s": 3.61
+      "confidence": 0.85,
+      "session_id": "20260507-171435-b4954f",
+      "elapsed_s": 8.96
     },
     {
       "id": "pro-02",
@@ -802,7 +819,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -813,13 +832,13 @@
       "keyword_hit": 2,
       "keyword_total": 2,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194553-816c9d",
-      "elapsed_s": 13.85
+      "confidence": 0.8,
+      "session_id": "20260507-171444-5786cc",
+      "elapsed_s": 77.57
     },
     {
       "id": "pro-03",
@@ -830,7 +849,6 @@
       "tool_called": true,
       "tools_got": [
         "uniprot.fetch",
-        "uniprot.search",
         "uniprot.search"
       ],
       "tools_expected": [
@@ -847,8 +865,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260428-194607-76b889",
-      "elapsed_s": 8.02
+      "session_id": "20260507-171602-2e60b6",
+      "elapsed_s": 11.09
     },
     {
       "id": "pro-04",
@@ -859,7 +877,6 @@
       "tool_called": true,
       "tools_got": [
         "uniprot.fetch",
-        "uniprot.search",
         "uniprot.search"
       ],
       "tools_expected": [
@@ -876,8 +893,8 @@
       "failed": false,
       "fail_reason": null,
       "confidence": 0.95,
-      "session_id": "20260428-194615-66e1c7",
-      "elapsed_s": 6.6
+      "session_id": "20260507-171613-37fedc",
+      "elapsed_s": 7.12
     },
     {
       "id": "pro-05",
@@ -902,9 +919,9 @@
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.2,
-      "session_id": "20260428-194621-16c372",
-      "elapsed_s": 2.41
+      "confidence": 0.85,
+      "session_id": "20260507-171620-4425dc",
+      "elapsed_s": 9.92
     },
     {
       "id": "pro-06",
@@ -914,7 +931,9 @@
       "skill_expected": "literature_search",
       "tool_called": true,
       "tools_got": [
-        "pubmed.search"
+        "pubmed.search",
+        "pubmed.fetch_metadata",
+        "pubmed.fetch_abstract"
       ],
       "tools_expected": [
         "pubmed.search"
@@ -925,13 +944,13 @@
       "keyword_hit": 2,
       "keyword_total": 2,
       "check_passed": true,
-      "check_reason": "got=5 min=1",
+      "check_reason": "got=10 min=1",
       "task_passed": true,
       "failed": false,
       "fail_reason": null,
-      "confidence": 0.85,
-      "session_id": "20260428-194624-5dda3c",
-      "elapsed_s": 15.2
+      "confidence": 0.8,
+      "session_id": "20260507-171630-7cdb1c",
+      "elapsed_s": 14.5
     }
   ]
 }

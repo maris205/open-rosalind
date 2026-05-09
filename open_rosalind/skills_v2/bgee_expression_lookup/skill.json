@@ -1,0 +1,45 @@
+{
+  "name": "bgee_expression_lookup",
+  "display_name": "Bgee Expression Lookup",
+  "description": "Resolve a gene to Ensembl when needed and summarize top Bgee anatomical expression calls.",
+  "category": "expression",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "Bgee",
+    "url": "https://www.bgee.org/resources/sparql"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["ensembl.lookup_gene", "bgee.lookup_expression"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "gene_symbol": {"type": "string"},
+      "ensembl_id": {"type": "string"},
+      "species": {"type": "string", "default": "homo_sapiens"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "gene_lookup": {"type": "object"},
+      "bgee": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"gene_symbol": "TP53"},
+      "expects": "top Bgee anatomical expression calls for TP53"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

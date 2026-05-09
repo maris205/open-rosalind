@@ -1,0 +1,43 @@
+{
+  "name": "civic_variant_evidence",
+  "display_name": "CIViC Variant Evidence",
+  "description": "Fetch CIViC cancer-variant evidence items for a named variant.",
+  "category": "cancer-interpretation",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "CIViC",
+    "url": "https://civicdb.org/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["civic.typeahead", "civic.fetch_variant_evidence"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "name": {"type": "string"}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "typeahead": {"type": "object"},
+      "civic": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "V600E"},
+      "expects": "top CIViC evidence for a V600E variant"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

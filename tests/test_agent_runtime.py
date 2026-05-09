@@ -27,3 +27,36 @@ def test_agent_workflow_override_avoids_trace_self_reference():
     assert out["skill"] == "workflow_mutation_assessment"
     assert out["annotation"]["workflow"] == "mutation_assessment"
     assert out["summary"] == "dummy summary"
+
+
+def test_agent_strips_embedded_evidence_section_from_summary():
+    class EvidenceBackend:
+        name = "dummy"
+
+        def chat(self, messages, **kwargs):
+            return ChatResponse(
+                content=(
+                    "BRCA1 is a DNA repair protein [UniProt:P38398].\n\n"
+                    "### Details\n"
+                    "* Human protein [UniProt:P38398]\n\n"
+                    "### Evidence\n"
+                    "* [UniProt:P38398]"
+                )
+            )
+
+    agent = Agent(EvidenceBackend(), trace_dir="./traces", session_dir="./sessions")
+    out = agent.analyze("What is BRCA1?", mode="uniprot")
+    assert "### Evidence" not in out["summary"]
+    assert out["summary"].endswith("* Human protein [UniProt:P38398]")
+
+
+def test_agent_workflow_payload_override_replaces_routed_payload():
+    agent = Agent(DummyBackend(), trace_dir="./traces", session_dir="./sessions")
+    out = agent.analyze(
+        "Analyze the provided protein sequence through the constrained protein annotation workflow.",
+        mode="sequence",
+        workflow="workflow_protein_annotation",
+        payload_override={"sequence": "MVKVGVNGFGRIGRLVTRA"},
+    )
+    assert out["skill"] == "workflow_protein_annotation"
+    assert out["annotation"]["workflow"] == "protein_annotation"

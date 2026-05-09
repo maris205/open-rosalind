@@ -1,8 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { EvidenceView, TraceView } from './EvidenceView';
+import MarkdownContent, { extractLeadSummary } from './MarkdownContent';
 
-function escapeHtml(s) {
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function compactText(text, max = 220) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+}
+
+function buildHarnessSummary(message) {
+  const steps = message.steps || [];
+  const successful = steps.filter((step) => step.status === 'success').length;
+  const firstSummary = extractLeadSummary(steps[0]?.summary || '', 260);
+  const lines = [
+    `Task completed with ${successful}/${steps.length} successful step${steps.length === 1 ? '' : 's'}.`,
+  ];
+  if (firstSummary) {
+    lines.push(firstSummary);
+  }
+  return lines.join('\n\n');
 }
 
 // Convert numeric confidence (0..1) to a human-readable label
@@ -47,8 +63,8 @@ function StepDetails({ step }) {
 
   return (
     <div className="task-step-details">
-      {step.summary && (
-        <div className="task-step-summary markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(step.summary) }} />
+      {step.summary && !showEvidence && !showTrace && (
+        <MarkdownContent content={step.summary} className="task-step-summary" />
       )}
 
       {step.error && (
@@ -144,26 +160,15 @@ function MessageTraceSection({ message }) {
   return <TraceView trace={message.trace_steps} />;
 }
 
-function renderMarkdown(md) {
-  if (!md) return '';
-  return escapeHtml(md)
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.*)$/gm, '<h2>$1</h2>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
-}
-
 function AssistantCard({ message, onSignupClick }) {
   const [showTrace, setShowTrace] = useState(false);
   const [showEvidence, setShowEvidence] = useState(false);
   const traceCount = message.execution_mode === 'harness' && message.steps?.length
     ? message.steps.filter((step) => step.trace && step.trace.length > 0).length
     : (message.trace_steps?.length || 0);
+  const renderedSummary = message.execution_mode === 'harness'
+    ? buildHarnessSummary(message)
+    : message.summary;
 
   // Special card: requires_signup
   if (message.requires_signup) {
@@ -199,7 +204,7 @@ function AssistantCard({ message, onSignupClick }) {
           )}
         </div>
 
-        <div className="card-summary markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(message.summary) }} />
+        <MarkdownContent content={renderedSummary} className="card-summary" />
 
         {message.notes && message.notes.length > 0 && (
           <div className="card-notes">
@@ -238,7 +243,7 @@ function AssistantCard({ message, onSignupClick }) {
           </div>
         )}
 
-        {message.evidence && Object.keys(message.evidence).length > 0 && (
+        {message.evidence && Object.keys(message.evidence).length > 0 && message.execution_mode !== 'harness' && (
           <div className="card-section">
             <button className="card-toggle" onClick={() => setShowEvidence(!showEvidence)}>
               {showEvidence ? '▼' : '▶'} Evidence
@@ -251,7 +256,7 @@ function AssistantCard({ message, onSignupClick }) {
           </div>
         )}
 
-        {traceCount > 0 && (
+        {traceCount > 0 && message.execution_mode !== 'harness' && (
           <div className="card-section">
             <button className="card-toggle" onClick={() => setShowTrace(!showTrace)}>
               {showTrace ? '▼' : '▶'} Trace ({traceCount} {message.execution_mode === 'harness' ? 'task steps' : 'steps'})

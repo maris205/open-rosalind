@@ -1,0 +1,1 @@
+"""ChEBI compound lookup skill."""

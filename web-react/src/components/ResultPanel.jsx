@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { EvidenceView, TraceView } from './EvidenceView';
+import MarkdownContent from './MarkdownContent';
 
 export default function ResultPanel({ result }) {
   const [showTrace, setShowTrace] = useState(false);
@@ -25,7 +26,7 @@ export default function ResultPanel({ result }) {
               <li key={i}>
                 <span className="trace-skill">{s.status === 'success' ? '✅' : '❌'} {s.step_id}</span>
                 <div>{s.instruction}</div>
-                {s.summary && <div className="markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(s.summary.slice(0, 200)) }} />}
+                {s.summary && <MarkdownContent content={s.summary.slice(0, 200)} />}
               </li>
             ))}
           </ol>
@@ -33,7 +34,7 @@ export default function ResultPanel({ result }) {
         {result.final_report && (
           <div className="card">
             <h2>Final Report</h2>
-            <div className="markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(result.final_report) }} />
+            <MarkdownContent content={result.final_report} />
           </div>
         )}
       </div>
@@ -70,7 +71,7 @@ export default function ResultPanel({ result }) {
             </ul>
           </div>
         )}
-        <div className="markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(summary) }} />
+        <MarkdownContent content={summary} />
       </div>
 
       {annotation && annotation.kind && annotation.kind !== 'unknown' && (
@@ -107,19 +108,6 @@ export default function ResultPanel({ result }) {
       )}
     </div>
   );
-}
-
-function renderMarkdown(md) {
-  if (!md) return '';
-  return md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
 }
 
 function renderAnnotation(ann) {

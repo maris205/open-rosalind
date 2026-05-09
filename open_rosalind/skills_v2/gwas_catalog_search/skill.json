@@ -1,0 +1,45 @@
+{
+  "name": "gwas_catalog_search",
+  "display_name": "GWAS Catalog Search",
+  "description": "Search GWAS Catalog studies or associations by trait or mapped gene.",
+  "category": "genetics-association",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "GWAS Catalog",
+    "url": "https://www.ebi.ac.uk/gwas/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["gwas_catalog.search_studies", "gwas_catalog.search_associations"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "efo_trait": {"type": "string"},
+      "mapped_gene": {"type": "string"},
+      "mode": {"type": "string", "enum": ["studies", "associations"], "default": "studies"},
+      "size": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "gwas": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"efo_trait": "asthma", "mode": "studies"},
+      "expects": "top GWAS studies for asthma"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

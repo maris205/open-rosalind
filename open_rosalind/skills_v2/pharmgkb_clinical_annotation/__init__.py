@@ -1,0 +1,1 @@
+"""PharmGKB clinical annotation skill."""

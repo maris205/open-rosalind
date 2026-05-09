@@ -1,0 +1,44 @@
+{
+  "name": "rcsb_pdb_lookup",
+  "display_name": "RCSB PDB Lookup",
+  "description": "Resolve a structure query to an entry and summarize focused RCSB PDB core metadata.",
+  "category": "structure",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "RCSB PDB",
+    "url": "https://www.rcsb.org/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["rcsb_pdb.search_entries", "rcsb_pdb.fetch_entry"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"},
+      "entry_id": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "pdb": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "hemoglobin"},
+      "expects": "top RCSB PDB entry and core structure metadata for hemoglobin"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

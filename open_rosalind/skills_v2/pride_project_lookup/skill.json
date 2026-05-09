@@ -1,0 +1,45 @@
+{
+  "name": "pride_project_lookup",
+  "display_name": "PRIDE Project Lookup",
+  "description": "Resolve a PRIDE project by accession or keyword and summarize its core metadata.",
+  "category": "proteomics",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "PRIDE Archive",
+    "url": "https://www.ebi.ac.uk/pride/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["pride.search_projects", "pride.fetch_project"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "accession": {"type": "string"},
+      "query": {"type": "string"},
+      "keyword": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "search": {"type": "object"},
+      "pride": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"query": "proteomics"},
+      "expects": "PRIDE project summary for proteomics"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

@@ -1,0 +1,44 @@
+{
+  "name": "chembl_search",
+  "display_name": "ChEMBL Search",
+  "description": "Search ChEMBL molecules or targets and return compact structured hit summaries.",
+  "category": "drug-discovery",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "ChEMBL",
+    "url": "https://www.ebi.ac.uk/chembl/"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["chembl.search_molecules", "chembl.search_targets"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "entity": {"type": "string", "enum": ["molecule", "target"], "default": "molecule"},
+      "query": {"type": "string"},
+      "chembl_id": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 25, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "chembl": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"entity": "molecule", "query": "imatinib"},
+      "expects": "top ChEMBL molecule hits for imatinib"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}

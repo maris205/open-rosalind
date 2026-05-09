@@ -1,0 +1,44 @@
+{
+  "name": "clinicaltrials_search",
+  "display_name": "ClinicalTrials.gov Search",
+  "description": "Search ClinicalTrials.gov studies by condition and summarize the top matching trials.",
+  "category": "clinical-evidence",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "ClinicalTrials.gov",
+    "url": "https://clinicaltrials.gov/data-api/about-api"
+  },
+  "deterministic": true,
+  "requires_network": true,
+  "local_available": false,
+  "safety_level": "network",
+  "dependencies": ["requests"],
+  "tools_used": ["clinicaltrials.search_studies"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "condition": {"type": "string"},
+      "query": {"type": "string"},
+      "status": {"type": "string"},
+      "max_results": {"type": "integer", "minimum": 1, "maximum": 25, "default": 5}
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {"type": "object"},
+      "confidence": {"type": "number"},
+      "notes": {"type": "array"},
+      "clinicaltrials": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"condition": "glioblastoma", "status": "RECRUITING"},
+      "expects": "top recruiting glioblastoma studies from ClinicalTrials.gov"
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}
