@@ -80,14 +80,20 @@ function KeyValueTable({ rows }) {
 }
 
 function EvidenceNotes({ notes }) {
-  if (!notes || notes.length === 0) return null;
+  const visibleNotes = (notes || []).filter((note) => !isRoutineNote(note));
+  if (visibleNotes.length === 0) return null;
   return (
     <div className="evidence-notes">
-      {notes.map((note, index) => (
+      {visibleNotes.map((note, index) => (
         <div key={index} className="note">{note}</div>
       ))}
     </div>
   );
+}
+
+function isRoutineNote(note) {
+  const text = String(note || '');
+  return /^Used gene-specific search fallback\b/.test(text) || /^Used search, top hit:/.test(text);
 }
 
 function WorkflowSubsteps({ steps }) {
@@ -234,6 +240,20 @@ function renderFallbackEvidence(evidence) {
   );
 }
 
+function renderModelOnlyEvidence(evidence) {
+  const rows = [
+    ['Route', 'Model-only answer'],
+    ['External tools', 'Not used'],
+    ['Database evidence', 'Not used'],
+  ];
+  return (
+    <>
+      <KeyValueTable rows={rows} />
+      <EvidenceNotes notes={evidence.notes} />
+    </>
+  );
+}
+
 function inferEvidenceKind(skill, evidence) {
   const workflow = evidence?.annotation?.workflow;
   if (workflow === 'protein_annotation') return 'workflow_protein_annotation';
@@ -251,6 +271,7 @@ export function EvidenceView({ evidence, skill }) {
 
   const kind = inferEvidenceKind(skill, evidence);
 
+  if (kind === 'model_only') return renderModelOnlyEvidence(evidence);
   if (kind === 'sequence_basic_analysis') return renderSequenceEvidence(evidence);
   if (kind === 'uniprot_lookup' || kind === 'protein_annotation_summary' || kind === 'protein') {
     return renderProteinEvidence(evidence);

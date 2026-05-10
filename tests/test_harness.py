@@ -143,6 +143,25 @@ def test_harness_planner_extracts_sequence_payload_for_homology_request():
     assert steps[1].payload_hint["sequence"] == "MVKVGVNGFGRIGRLVTRA"
 
 
+def test_harness_planner_routes_gene_plus_papers_to_protein_research():
+    planner = ConstrainedPlanner()
+    steps = planner.create_plan("What is BRCA1 and find papers about it", max_steps=5)
+
+    assert len(steps) == 2
+    assert steps[0].expected_workflow == "uniprot_lookup"
+    assert steps[0].payload_hint["query"] == "BRCA1"
+    assert steps[1].expected_workflow == "literature_search"
+    assert "{protein_name}" not in steps[1].instruction
+    assert steps[1].payload_hint["query"] == "BRCA1"
+
+
+def test_harness_planner_does_not_treat_gene_symbol_as_mutation():
+    planner = ConstrainedPlanner()
+    steps = planner.create_plan("What is BRCA1 and find papers about it", max_steps=5)
+
+    assert all(step.expected_workflow != "workflow_mutation_assessment" for step in steps)
+
+
 def test_harness_adapter_builds_blast_payload_for_homology_request():
     class CaptureAgent:
         def __init__(self):
@@ -187,7 +206,7 @@ def test_harness_planner_extracts_mutation_payload():
     assert steps[0].payload_hint["mutation"] == "p.R175H"
 
 
-def test_harness_final_report_uses_lead_summary_only():
+def test_harness_final_report_starts_with_user_summary_and_structured_support():
     class StubExecutor:
         def run_step(self, instruction, context, expected_workflow, payload_hint=None):
             return type("Result", (), {
@@ -226,6 +245,10 @@ def test_harness_final_report_uses_lead_summary_only():
 
     result = runner.run(task)
 
+    assert (result.final_report or "").startswith("## Summary")
+    assert "## Workflow Trace" in (result.final_report or "")
+    assert "## Confidence" in (result.final_report or "")
+    assert "Task completed with" not in (result.final_report or "").splitlines()[0]
     assert "| Field | Value |" not in (result.final_report or "")
     assert "## Key findings" not in (result.final_report or "")
     assert "No protein match was found for the provided sequence." in (result.final_report or "")

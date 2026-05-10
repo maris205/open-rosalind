@@ -1,0 +1,61 @@
+{
+  "name": "model_only",
+  "display_name": "Model-Only Answer",
+  "description": "Route general, help, conversational, and basic educational questions to the language model without calling scientific tools or external databases.",
+  "category": "meta",
+  "version": "1.0.0",
+  "evidence_schema": {
+    "source": "language_model",
+    "external_tools": false,
+    "external_database_evidence": false
+  },
+  "deterministic": false,
+  "requires_network": false,
+  "local_available": true,
+  "safety_level": "safe",
+  "dependencies": [],
+  "tools_used": [],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "question": {
+        "type": "string",
+        "description": "The user question to answer directly from the model, after first-level routing has decided no scientific tool is required."
+      }
+    },
+    "required": ["question"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "annotation": {
+        "type": "object",
+        "properties": {
+          "kind": {"const": "model_only"},
+          "source": {"const": "language_model"}
+        }
+      },
+      "confidence": {"type": "number"},
+      "notes": {"type": "array", "items": {"type": "string"}},
+      "route": {"type": "object"}
+    }
+  },
+  "examples": [
+    {
+      "input": {"question": "你有什么功能"},
+      "expects": "Direct model answer about Open-Rosalind capabilities, with no external tools."
+    },
+    {
+      "input": {"question": "解释下中心法则"},
+      "expects": "Basic educational explanation, labeled as model-only."
+    },
+    {
+      "input": {"question": "今天天气咋样"},
+      "expects": "General response that does not claim realtime weather lookup."
+    }
+  ],
+  "mcp_compatible": true,
+  "author": "Open-Rosalind",
+  "license": "MIT"
+}
+

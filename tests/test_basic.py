@@ -1,4 +1,7 @@
+import pytest
+
 from open_rosalind.orchestrator.router import detect_intent
+from open_rosalind.orchestrator.mode_selector import select_mode
 from open_rosalind.tools import sequence as seq_tool
 from open_rosalind.tools import mutation as mut_tool
 
@@ -16,8 +19,65 @@ def test_intent_fasta():
     assert detect_intent(fasta).skill == "sequence_basic_analysis"
 
 
+def test_intent_short_dna_translation():
+    intent = detect_intent("Translate this DNA: ATGGCCAAATTAA")
+
+    assert intent.skill == "sequence_basic_analysis"
+    assert intent.payload["sequence"] == "ATGGCCAAATTAA"
+
+
 def test_intent_default_uniprot():
     assert detect_intent("what is BRCA1").skill == "uniprot_lookup"
+
+
+@pytest.mark.parametrize("question", [
+    "解释下中心法则",
+    "解释一下DNA是什么",
+    "介绍一下PCR",
+    "说明一下转录和翻译的区别",
+    "什么是RNA",
+    "What is DNA?",
+    "Explain transcription",
+    "What is gene expression?",
+    "你是谁",
+    "你是什么",
+    "你都能完成什么任务",
+    "可以完成什么任务",
+    "你有什么功能",
+    "你有哪些功能",
+    "你会什么",
+    "你能帮我做什么",
+    "What can you do?",
+    "Who are you?",
+    "Explain the central dogma",
+    "Give me an overview of PCR",
+    "hello",
+    "谢谢",
+    "你能聊天吗",
+    "今天天气咋样",
+    "今天几号",
+    "Open-Rosalind 是什么",
+])
+def test_mode_selector_routes_general_questions_to_model_only(question):
+    assert select_mode(question)[0] == "model_only"
+
+
+@pytest.mark.parametrize(("question", "expected_mode"), [
+    ("What is BRCA1?", "single_step"),
+    ("解释 BRCA1 是什么", "single_step"),
+    ("BRCA1是什么", "single_step"),
+    ("解释BRCA1是什么", "single_step"),
+    ("What does TP53 do?", "single_step"),
+    ("TP53功能", "single_step"),
+    ("Find papers about CRISPR base editing", "single_step"),
+    ("Translate this DNA: ATGGCCAAATTAA", "single_step"),
+    ("这段DNA ATGGCCAAATTAA翻译一下", "single_step"),
+    ("Analyze sequence MVKVGVNGFGRIGRLVTRA and find similar proteins", "harness"),
+    ("What is BRCA1 and find papers about it", "harness"),
+    ("Assess TP53 p.R175H mutation impact", "harness"),
+])
+def test_mode_selector_keeps_research_facts_tool_first(question, expected_mode):
+    assert select_mode(question)[0] == expected_mode
 
 
 def test_sequence_analyze_dna():

@@ -72,6 +72,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .card-header { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
 .exec-mode-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(59,130,246,0.15); color: #93c5fd; }
 .exec-mode-badge[data-mode="harness"] { background: rgba(168,85,247,0.15); color: #c4b5fd; }
+.exec-mode-badge[data-mode="model_only"] { background: rgba(148,163,184,0.15); color: #cbd5e1; }
 .exec-mode-badge[data-mode="error"] { background: rgba(239,68,68,0.15); color: #fca5a5; }
 .confidence-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(110,231,183,0.15); color: #6ee7b7; }
 .skill-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(251,191,36,0.15); color: #fde68a; font-family: 'SF Mono', monospace; }
@@ -167,10 +168,48 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 }
 .markdown tr:last-child td { border-bottom: 0; }
 
+.harness-report { display: flex; flex-direction: column; gap: 12px; }
+.harness-summary { padding-bottom: 4px; }
+.harness-support {
+  padding: 12px;
+  background: rgba(10,14,20,0.72);
+  border: 1px solid #243041;
+  border-radius: 10px;
+}
+.harness-section-markdown { font-size: 13px; }
+.harness-section-markdown .markdown-table-wrap { margin: 6px 0 0; }
+.collapse-section {
+  border: 1px solid #243041;
+  border-radius: 10px;
+  background: rgba(10,14,20,0.52);
+  overflow: hidden;
+}
+.collapse-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  color: #dbeafe;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+.collapse-toggle:hover { background: rgba(59,130,246,0.08); color: #bfdbfe; }
+.collapse-meta { color: #8b9bb0; font-weight: 500; }
+.collapse-body {
+  padding: 0 12px 12px;
+  border-top: 1px solid rgba(31,41,55,0.9);
+}
+
 .card-notes { margin-top: 12px; }
 .note { background: rgba(251,191,36,0.08); border-left: 2px solid #fbbf24; padding: 6px 10px; border-radius: 3px; font-size: 12px; color: #fde68a; margin-bottom: 4px; }
 
-.card-steps { margin-top: 12px; padding: 10px; background: #0a0e14; border-radius: 6px; }
+.card-steps { padding: 10px 0 0; background: transparent; border-radius: 6px; }
 .card-section-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
 .card-steps ol { padding-left: 20px; font-size: 13px; color: #c5cdd9; }
 .card-steps li { margin-bottom: 8px; }
