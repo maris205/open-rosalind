@@ -354,6 +354,7 @@ class ChatResponse(BaseModel):
     trace_steps: list[dict] = []
     final_report: str | None = None
     steps: list[dict] = []
+    model_only_fallback_applied: bool = False
     anon_token: str | None = None  # returned to anonymous users for reuse
     requires_signup: bool = False  # true when anon user tries to start a new session
     is_anonymous: bool = False
@@ -426,7 +427,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
     # Determine the chat session_id (sticky across turns within a conversation)
     chat_session_id = req.session_id
 
-    # 3. Run skill
+    # 3. Run skill or model-only route
     if mode == "harness":
         from datetime import datetime
         task_id = f"task_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:20]}"
@@ -490,6 +491,60 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             for t in (s.trace or []):
                 all_trace_steps.append(t)
         storage.save_traces(chat_session_id, user["user_id"], all_trace_steps)
+
+        return ChatResponse(
+            session_id=chat_session_id,
+            user_id=user["user_id"],
+            **assistant_card,
+            anon_token=new_anon_token or req.anon_token if is_anonymous else None,
+            is_anonymous=is_anonymous,
+        )
+    elif mode == "model_only":
+        from .orchestrator.history import truncate_history
+
+        conv_history = []
+        if req.session_id:
+            prior_msgs = storage.get_messages(req.session_id)
+            conv_history = truncate_history(prior_msgs)
+
+        result = agent.answer_model_only(
+            req.message,
+            session_id=req.session_id,
+            conversation_history=conv_history,
+        )
+
+        if not chat_session_id:
+            chat_session_id = result["session_id"]
+
+        storage.save_session(
+            session_id=chat_session_id,
+            user_id=user["user_id"],
+            user_input=req.message,
+            skill=result.get("skill", "model_only"),
+            summary=result.get("summary", ""),
+            confidence=result.get("confidence") or 0.0,
+            annotation=result.get("annotation") or {},
+            evidence=result.get("evidence") or {},
+            notes=result.get("notes") or [],
+            execution_mode=mode,
+            execution_reason=reason,
+        )
+
+        assistant_card = {
+            "execution_mode": mode,
+            "execution_reason": reason,
+            "skill": result.get("skill"),
+            "summary": result.get("summary", ""),
+            "annotation": result.get("annotation"),
+            "confidence": result.get("confidence"),
+            "notes": result.get("notes") or [],
+            "evidence": result.get("evidence"),
+            "trace_steps": result.get("trace_steps") or [],
+            "model_only_fallback_applied": result.get("model_only_fallback_applied", False),
+        }
+        storage.add_message(chat_session_id, "user", req.message)
+        storage.add_message(chat_session_id, "assistant", result.get("summary", ""), card=assistant_card)
+        storage.save_traces(chat_session_id, user["user_id"], result.get("trace_steps") or [])
 
         return ChatResponse(
             session_id=chat_session_id,
@@ -564,6 +619,7 @@ def chat(req: ChatRequest, authorization: str | None = Header(None)):
             "notes": result.get("notes") or [],
             "evidence": result.get("evidence"),
             "trace_steps": result.get("trace_steps") or [],
+            "model_only_fallback_applied": result.get("model_only_fallback_applied", False),
         }
         storage.add_message(chat_session_id, "user", req.message)
         storage.add_message(chat_session_id, "assistant", result.get("summary", ""), card=assistant_card)

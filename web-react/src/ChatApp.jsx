@@ -100,7 +100,9 @@ export default function ChatApp() {
             return { role: 'user', content: m.content };
           } else {
             // Assistant: spread the saved card so all UI fields work
-            return { role: 'assistant', ...(m.card || {}), summary: m.content || (m.card?.summary || '') };
+            const card = m.card || {};
+            const savedSummary = card.final_report || card.summary || m.content || '';
+            return { role: 'assistant', ...card, summary: savedSummary };
           }
         }));
       } else {

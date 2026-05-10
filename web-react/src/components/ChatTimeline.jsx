@@ -11,14 +11,118 @@ function compactText(text, max = 220) {
 function buildHarnessSummary(message) {
   const steps = message.steps || [];
   const successful = steps.filter((step) => step.status === 'success').length;
-  const firstSummary = extractLeadSummary(steps[0]?.summary || '', 260);
+  const stepSummaries = steps
+    .map((step) => extractLeadSummary(step?.summary || '', 220))
+    .filter(Boolean)
+    .slice(0, 3);
   const lines = [
     `Task completed with ${successful}/${steps.length} successful step${steps.length === 1 ? '' : 's'}.`,
   ];
-  if (firstSummary) {
-    lines.push(firstSummary);
+  if (stepSummaries.length) {
+    lines.push(stepSummaries.join('\n\n'));
   }
   return lines.join('\n\n');
+}
+
+function normalizeMarkdownText(text) {
+  let normalized = String(text || '').replace(/\r\n?/g, '\n').trim();
+  if (normalized.includes('\\n') && !normalized.includes('\n')) {
+    normalized = normalized.replace(/\\n/g, '\n').trim();
+  }
+  return normalized;
+}
+
+function splitMarkdownSections(markdown) {
+  const text = normalizeMarkdownText(markdown);
+  if (!text) return [];
+
+  const headingRe = /^##\s+(.+?)\s*$/gm;
+  const matches = [...text.matchAll(headingRe)];
+  if (!matches.length) return [{ title: 'Summary', body: text }];
+
+  const sections = [];
+  const lead = text.slice(0, matches[0].index).trim();
+  if (lead) sections.push({ title: 'Summary', body: lead });
+
+  matches.forEach((match, index) => {
+    const start = (match.index || 0) + match[0].length;
+    const end = index + 1 < matches.length ? matches[index + 1].index || text.length : text.length;
+    const body = text.slice(start, end).trim();
+    if (body) sections.push({ title: match[1].trim(), body });
+  });
+
+  return sections;
+}
+
+function takeSection(sections, pattern) {
+  const index = sections.findIndex((section) => pattern.test(section.title));
+  if (index < 0) return null;
+  const [section] = sections.splice(index, 1);
+  return section;
+}
+
+function CollapsibleSection({ title, children, defaultOpen = false, meta = '' }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="collapse-section">
+      <button className="collapse-toggle" onClick={() => setOpen(!open)}>
+        <span>{open ? '▼' : '▶'} {title}</span>
+        {meta && <span className="collapse-meta">{meta}</span>}
+      </button>
+      {open && <div className="collapse-body">{children}</div>}
+    </div>
+  );
+}
+
+function HarnessReport({ content }) {
+  const sections = splitMarkdownSections(content);
+  const remaining = [...sections];
+  const summary = takeSection(remaining, /^summary$/i);
+  const annotation = takeSection(remaining, /^annotation$/i);
+  const evidence = takeSection(remaining, /^evidence\b/i);
+  const workflowTrace = takeSection(remaining, /^workflow\s+trace$/i);
+  const confidence = takeSection(remaining, /^confidence$/i);
+  const warnings = takeSection(remaining, /^warnings?$/i);
+
+  if (!sections.length) return null;
+
+  return (
+    <div className="harness-report">
+      {summary && <MarkdownContent content={summary.body} className="card-summary harness-summary" />}
+      {annotation && (
+        <div className="harness-support">
+          <div className="card-section-label">Annotation</div>
+          <MarkdownContent content={annotation.body} className="harness-section-markdown" />
+        </div>
+      )}
+      {warnings && (
+        <CollapsibleSection title="Warnings" defaultOpen>
+          <MarkdownContent content={warnings.body} className="harness-section-markdown" />
+        </CollapsibleSection>
+      )}
+      {evidence && (
+        <CollapsibleSection title={evidence.title}>
+          <MarkdownContent content={evidence.body} className="harness-section-markdown" />
+        </CollapsibleSection>
+      )}
+      {workflowTrace && (
+        <CollapsibleSection title={workflowTrace.title}>
+          <MarkdownContent content={workflowTrace.body} className="harness-section-markdown" />
+        </CollapsibleSection>
+      )}
+      {confidence && (
+        <CollapsibleSection title={confidence.title}>
+          <MarkdownContent content={confidence.body} className="harness-section-markdown" />
+        </CollapsibleSection>
+      )}
+      {remaining.map((section) => (
+        <CollapsibleSection key={section.title} title={section.title}>
+          <MarkdownContent content={section.body} className="harness-section-markdown" />
+        </CollapsibleSection>
+      ))}
+    </div>
+  );
 }
 
 // Convert numeric confidence (0..1) to a human-readable label
@@ -33,6 +137,7 @@ function confidenceLabel(c) {
 // Map internal skill name → user-facing source label
 function skillToSource(skill) {
   const map = {
+    model_only: 'Model only',
     sequence_basic_analysis: 'Sequence (BioPython)',
     uniprot_lookup: 'UniProt',
     literature_search: 'PubMed',
@@ -43,6 +148,7 @@ function skillToSource(skill) {
 
 function workflowToLabel(workflow) {
   const map = {
+    model_only: 'Model-only answer',
     workflow_protein_annotation: 'Protein annotation workflow',
     workflow_mutation_assessment: 'Mutation assessment workflow',
     protein_annotation: 'Protein annotation',
@@ -63,7 +169,7 @@ function StepDetails({ step }) {
 
   return (
     <div className="task-step-details">
-      {step.summary && !showEvidence && !showTrace && (
+      {step.summary && (
         <MarkdownContent content={step.summary} className="task-step-summary" />
       )}
 
@@ -167,8 +273,13 @@ function AssistantCard({ message, onSignupClick }) {
     ? message.steps.filter((step) => step.trace && step.trace.length > 0).length
     : (message.trace_steps?.length || 0);
   const renderedSummary = message.execution_mode === 'harness'
-    ? buildHarnessSummary(message)
+    ? (message.final_report || message.summary || buildHarnessSummary(message))
     : message.summary;
+  const modeLabel = message.execution_mode === 'harness'
+    ? '🔗 Multi-step research'
+    : message.execution_mode === 'model_only'
+      ? '💬 Model answer'
+      : '⚡ Quick analysis';
 
   // Special card: requires_signup
   if (message.requires_signup) {
@@ -190,7 +301,7 @@ function AssistantCard({ message, onSignupClick }) {
       <div className="card-result">
         <div className="card-header">
           <span className="exec-mode-badge" data-mode={message.execution_mode}>
-            {message.execution_mode === 'harness' ? '🔗 Multi-step research' : '⚡ Quick analysis'}
+            {modeLabel}
           </span>
           {message.confidence != null && (
             <span className="confidence-badge" title={`Score: ${message.confidence.toFixed(2)}`}>
@@ -199,12 +310,14 @@ function AssistantCard({ message, onSignupClick }) {
           )}
           {message.skill && message.skill !== 'harness' && (
             <span className="skill-badge" title={`Skill: ${message.skill}`}>
-              🔬 Source: {skillToSource(message.skill)}
+              {message.skill === 'model_only' ? '💬 Source: No external tools' : `🔬 Source: ${skillToSource(message.skill)}`}
             </span>
           )}
         </div>
 
-        <MarkdownContent content={renderedSummary} className="card-summary" />
+        {message.execution_mode === 'harness'
+          ? <HarnessReport content={renderedSummary} />
+          : <MarkdownContent content={renderedSummary} className="card-summary" />}
 
         {message.notes && message.notes.length > 0 && (
           <div className="card-notes">
@@ -213,34 +326,35 @@ function AssistantCard({ message, onSignupClick }) {
         )}
 
         {message.steps && message.steps.length > 0 && (
-          <div className="card-steps">
-            <div className="card-section-label">Steps</div>
-            <ol>
-              {message.steps.map((s, i) => (
-                <li key={i}>
-                  <div className="step-row">
-                    <span className={`step-status step-${s.status}`}>{s.status === 'success' ? '✓' : '✗'}</span>
-                    <span className="step-text">{s.instruction}</span>
-                  </div>
-                  {(s.expected_workflow || s.executed_workflow) && (
-                    <div className="step-workflows">
-                      {s.expected_workflow && (
-                        <span className="step-badge step-badge-expected">
-                          expected: {workflowToLabel(s.expected_workflow)}
-                        </span>
-                      )}
-                      {s.executed_workflow && (
-                        <span className="step-badge step-badge-executed">
-                          executed: {workflowToLabel(s.executed_workflow)}
-                        </span>
-                      )}
+          <CollapsibleSection title="Steps" meta={`${message.steps.length} step${message.steps.length === 1 ? '' : 's'}`}>
+            <div className="card-steps">
+              <ol>
+                {message.steps.map((s, i) => (
+                  <li key={i}>
+                    <div className="step-row">
+                      <span className={`step-status step-${s.status}`}>{s.status === 'success' ? '✓' : '✗'}</span>
+                      <span className="step-text">{s.instruction}</span>
                     </div>
-                  )}
-                  <StepDetails step={s} />
-                </li>
-              ))}
-            </ol>
-          </div>
+                    {(s.expected_workflow || s.executed_workflow) && (
+                      <div className="step-workflows">
+                        {s.expected_workflow && (
+                          <span className="step-badge step-badge-expected">
+                            expected: {workflowToLabel(s.expected_workflow)}
+                          </span>
+                        )}
+                        {s.executed_workflow && (
+                          <span className="step-badge step-badge-executed">
+                            executed: {workflowToLabel(s.executed_workflow)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <StepDetails step={s} />
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </CollapsibleSection>
         )}
 
         {message.evidence && Object.keys(message.evidence).length > 0 && message.execution_mode !== 'harness' && (

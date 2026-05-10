@@ -41,6 +41,39 @@ Strict rules:
    that claim is explicitly supported in EVIDENCE.
 """
 
+MODEL_ONLY_SYSTEM_PROMPT = """You are Open-Rosalind, a biology and life-science agent.
+In Chinese, you can describe yourself as: "我是一个生物学/生命科学 Agent".
+
+This route is explicitly MODEL-ONLY: no external biological databases, tools,
+or skill outputs were used. Use it only for product/help questions, conversational
+identity questions, and basic educational explanations.
+
+Rules:
+1. Be clear that the answer is from the model itself when relevant; do not imply
+   that a database or tool was queried.
+2. Do not claim database-backed evidence, citations, or tool verification.
+3. If the user asks for a concrete gene/protein/variant/sequence/literature fact,
+   tell them you should use tools for that and ask them to submit the specific query.
+4. Keep answers concise and useful. Use Chinese if the user asks in Chinese.
+5. For "what can you do" style questions, describe Open-Rosalind's tool-first
+   capabilities: protein/gene lookup, sequence analysis, literature search,
+   mutation assessment, BLAST-like similarity search, pathways/GO/clinical data,
+   structured evidence, and traceable workflows.
+"""
+
+MODEL_ONLY_FALLBACK_PROMPT = """The scientific tool route returned no usable
+or low-confidence evidence. Provide a short fallback answer from the language
+model itself.
+
+Rules:
+1. Clearly state that this fallback is not verified by external tools or
+   database evidence.
+2. Do not cite UniProt, PubMed, or tool evidence unless it was provided.
+3. If the question needs current or database-backed facts, say what tool-backed
+   query would be needed.
+4. Keep the answer concise and use the user's language.
+"""
+
 
 _SUMMARY_EVIDENCE_SECTION_RE = re.compile(
     r"(?:^|\n+)#{2,6}\s+Evidence\s*\n[\s\S]*$",
@@ -53,6 +86,24 @@ class Agent:
         self.backend = backend
         self.trace_dir = trace_dir
         self.session_store = SessionStore(session_dir)
+
+    def _backend_context(self) -> dict[str, str | None]:
+        return {
+            "backend": getattr(self.backend, "name", None),
+            "model": getattr(self.backend, "model", None),
+        }
+
+    def _model_only_system_prompt(self) -> str:
+        ctx = self._backend_context()
+        model = ctx.get("model") or "not exposed by the current backend"
+        backend = ctx.get("backend") or "unknown"
+        return (
+            f"{MODEL_ONLY_SYSTEM_PROMPT}\n\n"
+            f"Runtime context for identity/model questions:\n"
+            f"- Backend provider: {backend}\n"
+            f"- Configured backend model id: {model}\n"
+            "Never expose API keys, secrets, or environment variables."
+        )
 
     @staticmethod
     def _intent_from_mode(text: str, mode: str) -> Intent:
@@ -169,6 +220,7 @@ class Agent:
             ),
         })
         trace.log("model_request", {"messages": messages})
+        fallback_applied = False
         try:
             resp = self.backend.chat(messages, temperature=0.2, max_tokens=1024)
             summary = self._normalize_summary(resp.content)
@@ -177,6 +229,19 @@ class Agent:
             err = f"{type(e).__name__}: {e}"
             trace.log("model_error", {"error": err})
             summary = self._evidence_fallback_summary(question, intent.skill, evidence)
+
+        if self._needs_model_only_fallback(evidence):
+            fallback = self._generate_model_only_fallback(question, conversation_history, trace)
+            if fallback:
+                fallback_applied = True
+                evidence.setdefault("notes", []).append(
+                    "Tool route returned low-confidence or no-result evidence; added a model-only fallback."
+                )
+                summary = self._append_model_only_fallback(summary, fallback)
+                trace.log(
+                    "model_only_fallback_applied",
+                    {"skill": intent.skill, "confidence": evidence.get("confidence")},
+                )
 
         # Session event: summary
         self.session_store.write_event(trace.session_id, "summary", text=summary)
@@ -187,11 +252,76 @@ class Agent:
             "summary": summary,
             "annotation": evidence.get("annotation"),
             "confidence": evidence.get("confidence"),
-            "notes": evidence.get("notes", []),
+            "notes": self._user_visible_notes(evidence.get("notes", [])),
             "evidence": evidence,
+            "model_only_fallback_applied": fallback_applied,
             "trace_path": str(trace.path),
             "trace": trace.events,
             "trace_steps": _structured_trace(trace.events),
+        }
+
+    def answer_model_only(
+        self,
+        question: str,
+        session_id: str | None = None,
+        conversation_history: list[dict] | None = None,
+    ) -> dict[str, Any]:
+        """Answer without calling skills/tools, with explicit no-tool labeling."""
+        trace = Trace(self.trace_dir, session_id=session_id)
+        trace.log("user_input", {"question": question, "mode": "model_only"})
+        self.session_store.write_event(trace.session_id, "start", user_input=question, mode="model_only")
+
+        messages = [{"role": "system", "content": self._model_only_system_prompt()}]
+        if conversation_history:
+            messages.extend(conversation_history)
+        messages.append({
+            "role": "user",
+            "content": (
+                f"USER QUESTION:\n{question}\n\n"
+                "Answer now. Remember: no external tools or database evidence were used."
+            ),
+        })
+        trace.log("model_request", {"messages": messages, "route": "model_only"})
+
+        try:
+            resp = self.backend.chat(messages, temperature=0.3, max_tokens=700)
+            summary = self._normalize_summary(resp.content)
+            trace.log("model_response", {"content": summary, "route": "model_only"})
+        except Exception as e:
+            err = f"{type(e).__name__}: {e}"
+            trace.log("model_error", {"error": err, "route": "model_only"})
+            ctx = self._backend_context()
+            summary = self._model_only_fallback_summary(question, backend_name=ctx.get("backend"), model_id=ctx.get("model"))
+
+        evidence = self._resolve_skill_handler("model_only")({"question": question}, trace=trace)
+        self.session_store.write_event(
+            trace.session_id,
+            "summary",
+            text=summary,
+            annotation=evidence["annotation"],
+            confidence=evidence["confidence"],
+            notes=evidence["notes"],
+        )
+
+        return {
+            "session_id": trace.session_id,
+            "skill": "model_only",
+            "summary": summary,
+            "annotation": evidence["annotation"],
+            "confidence": evidence["confidence"],
+            "notes": evidence["notes"],
+            "evidence": evidence,
+            "trace_path": str(trace.path),
+            "trace": trace.events,
+            "trace_steps": [
+                {
+                    "skill": "model_only",
+                    "input": {"question": question},
+                    "output": {"summary": summary, "source": "language_model"},
+                    "status": "success",
+                    "latency_ms": None,
+                }
+            ],
         }
 
     @staticmethod
@@ -208,6 +338,22 @@ class Agent:
             text = text.replace("\\n", "\n").strip()
         text = _SUMMARY_EVIDENCE_SECTION_RE.sub("", text).rstrip()
         return text
+
+    @staticmethod
+    def _is_routine_note(note: str) -> bool:
+        text = str(note or "")
+        return bool(
+            re.search(r"^Used gene-specific search fallback\b", text)
+            or re.search(r"^Used search, top hit:", text)
+        )
+
+    @classmethod
+    def _user_visible_notes(cls, notes: list[Any]) -> list[str]:
+        """Hide routine routing notes from the main answer card.
+
+        The raw `evidence.notes` field still keeps these notes for auditability.
+        """
+        return [str(note) for note in (notes or []) if not cls._is_routine_note(str(note))]
 
     @classmethod
     def _evidence_fallback_summary(cls, question: str, skill: str, evidence: dict[str, Any]) -> str:
@@ -246,6 +392,94 @@ class Agent:
             lines.append("\n## Limitations")
             lines.append("- The available structured evidence does not include a specialized local formatter for this skill.")
         return "\n".join(lines)
+
+    @staticmethod
+    def _model_only_fallback_summary(
+        question: str,
+        backend_name: str | None = None,
+        model_id: str | None = None,
+    ) -> str:
+        text = (question or "").strip().lower()
+        if (
+            "基座模型" in question
+            or "什么模型" in question
+            or "模型是啥" in question
+            or "模型是什么" in question
+            or "model are you using" in text
+            or "base model" in text
+            or "underlying model" in text
+        ):
+            backend = backend_name or "当前后端"
+            model = model_id or "当前配置未暴露具体模型 ID"
+            return (
+                f"**我当前通过 {backend} 后端调用模型，配置的模型 ID 是 `{model}`。**\n\n"
+                "这个回答来自运行配置上下文，未调用外部生物数据库或科研工具；我不会暴露 API key 或环境变量。"
+            )
+        if "中心法则" in question or "central dogma" in text:
+            return (
+                "**中心法则描述遗传信息通常从 DNA 传递到 RNA，再由 RNA 指导蛋白质合成。**\n\n"
+                "简单说：DNA 像长期保存的说明书；转录把其中一段信息写成 RNA；翻译再根据 RNA 的信息合成蛋白质。"
+                "这个回答没有调用外部数据库或工具。"
+            )
+        if re.search(r"\bdna\b", text):
+            return (
+                "**DNA 是细胞中主要的遗传信息载体。**\n\n"
+                "它由核苷酸组成，序列中保存了构建和调控生命活动所需的信息。"
+                "这个回答来自模型自身，未调用外部数据库或工具。"
+            )
+        if re.search(r"\brna\b|\bmrna\b|\btrna\b|\brrna\b", text) or "什么是rna" in question.lower():
+            return (
+                "**RNA 是参与遗传信息读取、传递和调控的一类核酸分子。**\n\n"
+                "常见类型包括 mRNA、tRNA 和 rRNA；它们分别参与信息传递、氨基酸转运和核糖体功能。"
+                "这个回答来自模型自身，未调用外部数据库或工具。"
+            )
+        if "pcr" in text:
+            return (
+                "**PCR 是一种在体外扩增特定 DNA 片段的基础分子生物学技术。**\n\n"
+                "它通常通过变性、引物退火和延伸三个温度循环步骤，使目标片段数量快速增加。"
+                "这个回答来自模型自身，未调用外部数据库或工具。"
+            )
+        if "transcription" in text or "转录" in question:
+            return (
+                "**转录是把 DNA 中某段遗传信息复制成 RNA 的过程。**\n\n"
+                "在基因表达中，转录通常发生在翻译之前，为后续蛋白质合成提供 RNA 模板。"
+                "这个回答来自模型自身，未调用外部数据库或工具。"
+            )
+        if "translation" in text or "翻译" in question:
+            return (
+                "**翻译是核糖体根据 mRNA 序列合成蛋白质的过程。**\n\n"
+                "它把核酸序列中的密码子信息转换为氨基酸序列。这个回答来自模型自身，未调用外部数据库或工具。"
+            )
+        if "gene expression" in text or "基因表达" in question:
+            return (
+                "**基因表达是遗传信息被读取并产生功能产物的过程。**\n\n"
+                "对编码蛋白的基因来说，常见流程包括转录生成 RNA，以及翻译生成蛋白质。"
+                "这个回答来自模型自身，未调用外部数据库或工具。"
+            )
+        if any(phrase in text for phrase in ["who are you", "what are you"]) or "你是谁" in question or "你是什么" in question:
+            return (
+                "**我是 Open-Rosalind，一个面向生命科学研究的工具优先型 AI 助手。**\n\n"
+                "对于基因、蛋白、序列、文献和突变等具体科研问题，我会优先调用工具并给出 evidence/trace；"
+                "对于身份、帮助和基础概念问题，我可以直接用模型回答，并明确标注未使用外部工具。"
+            )
+        if (
+            any(phrase in text for phrase in ["what can you do", "capabilities", "help"])
+            or "能做什么" in question
+            or "完成什么任务" in question
+            or "有什么功能" in question
+            or "有哪些功能" in question
+            or "会什么" in question
+            or "能帮我做什么" in question
+        ):
+            return (
+                "**我可以帮助做可追溯的生命科学问答和分析。**\n\n"
+                "常见任务包括：蛋白/基因查询、序列分析、相似蛋白搜索、PubMed 文献检索、突变影响评估、"
+                "通路/GO/结构/临床相关数据查询，以及多步骤研究工作流。具体科研结论会尽量通过工具、evidence 和 trace 支撑。"
+            )
+        return (
+            "**这是一个模型自身回答，未调用外部工具或数据库。**\n\n"
+            "如果你问的是具体基因、蛋白、序列、突变或文献问题，我可以改用工具优先模式给出带 evidence 和 trace 的结果。"
+        )
 
     @classmethod
     def _summarize_blast_evidence(cls, evidence: dict[str, Any]) -> str:
@@ -302,17 +536,21 @@ class Agent:
         annotation = evidence.get("annotation") or {}
         entry = evidence.get("entry") or {}
         search = evidence.get("search") or {}
-        notes = evidence.get("notes") or []
+        notes = cls._user_visible_notes(evidence.get("notes") or [])
         source = entry or annotation
         accession = source.get("accession") or annotation.get("accession")
         name = source.get("name") or annotation.get("name")
         organism = source.get("organism") or annotation.get("organism")
         length = source.get("length")
         function = entry.get("function") or source.get("function")
+        target = cls._query_label(search.get("query")) or annotation.get("gene_symbol")
 
         if accession or name:
             citation = f"[UniProt:{accession}]" if accession else "[tool:uniprot.search]"
-            lines = [f"**The top UniProt-supported protein match is {name or accession} {citation}.**"]
+            if target and name:
+                lines = [f"**{target} resolves to {name}{f' in {organism}' if organism else ''} {citation}.**"]
+            else:
+                lines = [f"**The UniProt-supported protein match is {name or accession} {citation}.**"]
         else:
             lines = ["**UniProt did not return a supported protein match for this request [tool:uniprot.search].**"]
 
@@ -326,11 +564,12 @@ class Agent:
 
         if function:
             citation = f"[UniProt:{accession}]" if accession else "[tool:uniprot.search]"
+            function_summary = cls._strip_parenthetical_citations(function)
             lines.append("\n## Key findings")
-            lines.append(f"- Function evidence: {cls._truncate(function, 360)} {citation}")
+            lines.append(f"- Function evidence: {cls._truncate(function_summary, 300)} {citation}")
 
         if notes:
-            lines.append("\n## Limitations")
+            lines.append("\n## Notes")
             lines.extend(f"- {note}" for note in notes[:3])
         return "\n".join(lines)
 
@@ -443,6 +682,116 @@ class Agent:
             lines.extend(f"- {note}" for note in notes[:3])
         return "\n".join(lines)
 
+    @classmethod
+    def _needs_model_only_fallback(cls, evidence: dict[str, Any]) -> bool:
+        """Use model-only fallback only when tools returned no usable answer."""
+        annotation = evidence.get("annotation") or {}
+        if annotation.get("kind") == "model_only":
+            return False
+
+        confidence = evidence.get("confidence")
+        try:
+            if confidence is not None and float(confidence) <= 0.0:
+                return True
+        except (TypeError, ValueError):
+            pass
+
+        notes = " ".join(str(note) for note in evidence.get("notes") or []).lower()
+        no_result_markers = [
+            "no results found",
+            "no valid sequence found",
+            "no protein records found",
+            "no uniprot match",
+            "did not return usable",
+            "search failed",
+            "fetch failed",
+            "missing program",
+            "empty query",
+            "empty sequence",
+        ]
+        if any(marker in notes for marker in no_result_markers):
+            return True
+
+        return cls._evidence_has_no_records(evidence)
+
+    @classmethod
+    def _evidence_has_no_records(cls, value: Any) -> bool:
+        if not isinstance(value, dict):
+            return False
+
+        checked_any_count = False
+        for key in ("count", "n_hits", "n_records", "hit_count_returned"):
+            if key in value:
+                checked_any_count = True
+                try:
+                    if int(value.get(key) or 0) > 0:
+                        return False
+                except (TypeError, ValueError):
+                    pass
+
+        for key in ("hits", "records", "top_hits", "query_summaries"):
+            if key in value:
+                checked_any_count = True
+                if value.get(key):
+                    return False
+
+        if checked_any_count:
+            return True
+
+        nested = [
+            item
+            for item in value.values()
+            if isinstance(item, dict)
+        ]
+        return bool(nested) and all(cls._evidence_has_no_records(item) for item in nested)
+
+    def _generate_model_only_fallback(
+        self,
+        question: str,
+        conversation_history: list[dict] | None,
+        trace: Trace,
+    ) -> str:
+        messages = [{"role": "system", "content": MODEL_ONLY_FALLBACK_PROMPT}]
+        if conversation_history:
+            messages.extend(conversation_history)
+        messages.append({
+            "role": "user",
+            "content": (
+                f"USER QUESTION:\n{question}\n\n"
+                "The tool route did not return usable evidence. Give a clearly labeled model-only fallback."
+            ),
+        })
+        trace.log("model_only_fallback_request", {"messages": messages})
+        try:
+            resp = self.backend.chat(messages, temperature=0.3, max_tokens=500)
+            fallback = self._normalize_summary(resp.content)
+            trace.log("model_only_fallback_response", {"content": fallback})
+            return fallback
+        except Exception as e:
+            err = f"{type(e).__name__}: {e}"
+            trace.log("model_only_fallback_error", {"error": err})
+            ctx = self._backend_context()
+            return self._model_only_fallback_summary(
+                question,
+                backend_name=ctx.get("backend"),
+                model_id=ctx.get("model"),
+            )
+
+    @staticmethod
+    def _append_model_only_fallback(summary: str, fallback: str) -> str:
+        clean_summary = (summary or "").strip()
+        clean_fallback = (fallback or "").strip()
+        if not clean_fallback:
+            return clean_summary
+        block = (
+            "## Model-only fallback\n"
+            "The tool route did not return usable evidence. The following text is from the model itself and is not database-verified.\n\n"
+            f"{clean_fallback}"
+        )
+        if not clean_summary:
+            return block
+        return f"{clean_summary}\n\n{block}"
+
     @staticmethod
     def _markdown_table(rows: list[tuple[str, Any]]) -> list[str]:
         lines = ["", "| Field | Value |", "| --- | --- |"]
@@ -462,6 +811,22 @@ class Agent:
         if len(text) <= max_len:
             return text
         return text[: max_len - 1].rstrip() + "…"
+
+    @staticmethod
+    def _strip_parenthetical_citations(value: Any) -> str:
+        text = str(value or "")
+        text = re.sub(r"\s*\((?:PubMed:\d+(?:,\s*)?)+\)", "", text)
+        return re.sub(r"\s+", " ", text).strip()
+
+    @staticmethod
+    def _query_label(value: Any) -> str | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        if text.startswith("gene_exact:"):
+            text = text.split(":", 1)[1]
+            text = text.split(" AND ", 1)[0]
+        return text.strip() or None
 
 
 def _structured_trace(events: list[dict]) -> list[dict]:

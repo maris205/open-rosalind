@@ -19,6 +19,11 @@ from dataclasses import dataclass
 
 SEQUENCE_RE = re.compile(r"^[ACGTUNacgtun\s]{20,}$")
 PROTEIN_RE = re.compile(r"^[ACDEFGHIKLMNPQRSTVWYBXZacdefghiklmnpqrstvwybxz\s\*]{20,}$")
+SHORT_NUCLEOTIDE_RE = re.compile(r"\b([ACGTUNacgtun]{8,})\b")
+EXPLICIT_SEQUENCE_TASK_RE = re.compile(
+    r"\b(translate|translation|gc|reverse[-\s]*complement|revcomp|length|sequence|dna|rna|nucleotide|base)\b",
+    re.I,
+)
 ACCESSION_RE = re.compile(r"\b([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})\b")
 LIT_RE = re.compile(r"\b(paper|papers|literature|pubmed|cite|citation|publication|publications|review|reviews|studies|study|research|article|articles)\b", re.I)
 HGVS_RE = re.compile(r"\b(?:p\.)?([A-Z])(\d+)([A-Z\*])\b")
@@ -60,6 +65,10 @@ def detect_intent(text: str) -> Intent:
 
     if stripped.startswith(">"):
         return Intent(skill="sequence_basic_analysis", payload={"sequence": stripped})
+
+    explicit_short_sequence = _extract_explicit_short_nucleotide_sequence(stripped)
+    if explicit_short_sequence:
+        return Intent(skill="sequence_basic_analysis", payload={"sequence": explicit_short_sequence})
 
     # Embedded long sequence (even if surrounded by prose): "Characterize this protein: MKRIS..."
     # Extract any continuous letter-string ≥20 chars that looks like DNA/RNA/protein.
@@ -190,3 +199,18 @@ def _extract_embedded_sequence(text: str) -> str | None:
                 best = c
                 best_len = len(c)
     return best
+
+
+def _extract_explicit_short_nucleotide_sequence(text: str) -> str | None:
+    """Extract short DNA/RNA strings when the user explicitly asks sequence ops.
+
+    This covers prompts such as "Translate this DNA: ATGGCCAAATTAA" where the
+    sequence is biologically valid but too short for the generic long-sequence
+    heuristic.
+    """
+    if not EXPLICIT_SEQUENCE_TASK_RE.search(text):
+        return None
+    candidates = SHORT_NUCLEOTIDE_RE.findall(text)
+    if not candidates:
+        return None
+    return max(candidates, key=len).upper()

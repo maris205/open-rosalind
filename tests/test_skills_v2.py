@@ -65,6 +65,7 @@ def test_skills_v2_registry_shape():
         "bindingdb_target_ligands",
         "cellxgene_collection_lookup",
         "pride_project_lookup",
+        "model_only",
     }.issubset(set(SKILLS_V2))
 
 
@@ -106,6 +107,15 @@ def test_execute_skill_v2_local():
     out = execute_skill_v2("sequence_basic_analysis", {"sequence": "ATGGCCAAATTAA"})
     assert out["annotation"]["kind"] == "sequence"
     assert out["annotation"]["primary_type"] == "dna"
+
+
+def test_execute_model_only_skill_returns_no_tool_evidence():
+    out = execute_skill_v2("model_only", {"question": "你有什么功能"})
+    assert out["annotation"]["kind"] == "model_only"
+    assert out["annotation"]["source"] == "language_model"
+    assert out["route"]["scientific_tools_used"] is False
+    assert out["route"]["external_database_evidence_used"] is False
+    assert out["notes"] == ["No external tools or database evidence were used for this answer."]
 
 
 def test_literature_fetch_metadata_empty():
