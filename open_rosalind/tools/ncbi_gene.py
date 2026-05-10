@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..localdb import get_local_biodb
 from ._http import get_json
 from .base import ToolSpec
 
@@ -30,7 +31,7 @@ def _split_csv(text: str | None) -> list[str]:
     return values
 
 
-def search_gene(query: str, species: str = "Homo sapiens", max_results: int = 3) -> dict[str, Any]:
+def _remote_search_gene(query: str, species: str = "Homo sapiens", max_results: int = 3) -> dict[str, Any]:
     """Search NCBI Gene IDs by symbol or free-text query."""
     clean_query = query.strip()
     if not clean_query:
@@ -54,7 +55,23 @@ def search_gene(query: str, species: str = "Homo sapiens", max_results: int = 3)
     }
 
 
-def fetch_gene(gene_id: str) -> dict[str, Any]:
+def search_gene(query: str, species: str = "Homo sapiens", max_results: int = 3) -> dict[str, Any]:
+    """Search NCBI Gene IDs by symbol or free-text query."""
+    clean_query = query.strip()
+    if not clean_query:
+        raise ValueError("query is required")
+
+    localdb = get_local_biodb()
+    local = localdb.search_ncbi_gene(query=clean_query, species=species, max_results=max_results)
+    if local["count"] or localdb.offline:
+        return local
+    try:
+        return _remote_search_gene(query=clean_query, species=species, max_results=max_results)
+    except Exception:
+        return local
+
+
+def _remote_fetch_gene(gene_id: str) -> dict[str, Any]:
     """Fetch a compact NCBI Gene summary by Gene ID."""
     clean_id = gene_id.strip()
     if not clean_id:
@@ -108,6 +125,24 @@ def fetch_gene(gene_id: str) -> dict[str, Any]:
         },
         "url": f"https://www.ncbi.nlm.nih.gov/gene/{clean_id}",
     }
+
+
+def fetch_gene(gene_id: str) -> dict[str, Any]:
+    """Fetch a compact NCBI Gene summary by Gene ID."""
+    clean_id = gene_id.strip()
+    if not clean_id:
+        raise ValueError("gene_id is required")
+
+    localdb = get_local_biodb()
+    local = localdb.fetch_ncbi_gene(clean_id)
+    if local is not None:
+        return local
+    if localdb.offline:
+        return {"gene_id": clean_id, "found": False}
+    try:
+        return _remote_fetch_gene(clean_id)
+    except Exception:
+        return {"gene_id": clean_id, "found": False}
 
 
 SEARCH_GENE_SPEC = ToolSpec(

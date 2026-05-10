@@ -4,13 +4,14 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import Any
 
+from ..localdb import get_local_biodb
 from ._http import get_json, make_session
 from .base import ToolSpec
 
 BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 
 
-def search(query: str, max_results: int = 5) -> dict[str, Any]:
+def _remote_search(query: str, max_results: int = 5) -> dict[str, Any]:
     es = get_json(
         f"{BASE_URL}/esearch.fcgi",
         params={"db": "pubmed", "term": query, "retmode": "json", "retmax": max_results, "sort": "relevance"},
@@ -42,11 +43,32 @@ def search(query: str, max_results: int = 5) -> dict[str, Any]:
     return {"query": query, "count": len(hits), "hits": hits}
 
 
-def fetch_metadata(pmids: list[str] | str) -> dict[str, Any]:
+def _normalize_pmids(pmids: list[str] | str) -> list[str]:
     if isinstance(pmids, str):
-        pmid_list = [pmids]
+        raw_values = [pmids]
     else:
-        pmid_list = [str(p).strip() for p in pmids if str(p).strip()]
+        raw_values = list(pmids or [])
+    out: list[str] = []
+    for raw in raw_values:
+        pmid = str(raw).strip()
+        if pmid and pmid not in out:
+            out.append(pmid)
+    return out
+
+
+def search(query: str, max_results: int = 5) -> dict[str, Any]:
+    localdb = get_local_biodb()
+    local = localdb.search_pubmed(query=query, max_results=max_results)
+    if local["count"] or localdb.offline:
+        return local
+    try:
+        return _remote_search(query=query, max_results=max_results)
+    except Exception:
+        return local
+
+
+def _remote_fetch_metadata(pmids: list[str] | str) -> dict[str, Any]:
+    pmid_list = _normalize_pmids(pmids)
     if not pmid_list:
         return {"count": 0, "records": []}
 
@@ -76,11 +98,26 @@ def fetch_metadata(pmids: list[str] | str) -> dict[str, Any]:
     return {"count": len(records), "records": records}
 
 
-def fetch_abstract(pmids: list[str] | str) -> dict[str, Any]:
-    if isinstance(pmids, str):
-        pmid_list = [pmids]
-    else:
-        pmid_list = [str(p).strip() for p in pmids if str(p).strip()]
+def fetch_metadata(pmids: list[str] | str) -> dict[str, Any]:
+    pmid_list = _normalize_pmids(pmids)
+    if not pmid_list:
+        return {"count": 0, "records": []}
+
+    localdb = get_local_biodb()
+    local = localdb.fetch_pubmed_metadata(pmid_list)
+    if local["count"] == len(pmid_list) or localdb.offline:
+        return local
+
+    missing = [pmid for pmid in pmid_list if pmid not in {record["pmid"] for record in local["records"]}]
+    try:
+        remote = _remote_fetch_metadata(missing)
+    except Exception:
+        return local
+    return {"count": local["count"] + remote["count"], "records": local["records"] + remote["records"]}
+
+
+def _remote_fetch_abstract(pmids: list[str] | str) -> dict[str, Any]:
+    pmid_list = _normalize_pmids(pmids)
     if not pmid_list:
         return {"count": 0, "records": []}
 
@@ -110,6 +147,24 @@ def fetch_abstract(pmids: list[str] | str) -> dict[str, Any]:
             "abstract": "\n".join(abstract_parts).strip(),
         })
     return {"count": len(records), "records": records}
+
+
+def fetch_abstract(pmids: list[str] | str) -> dict[str, Any]:
+    pmid_list = _normalize_pmids(pmids)
+    if not pmid_list:
+        return {"count": 0, "records": []}
+
+    localdb = get_local_biodb()
+    local = localdb.fetch_pubmed_abstract(pmid_list)
+    if local["count"] == len(pmid_list) or localdb.offline:
+        return local
+
+    missing = [pmid for pmid in pmid_list if pmid not in {record["pmid"] for record in local["records"]}]
+    try:
+        remote = _remote_fetch_abstract(missing)
+    except Exception:
+        return local
+    return {"count": local["count"] + remote["count"], "records": local["records"] + remote["records"]}
 
 
 SEARCH_SPEC = ToolSpec(

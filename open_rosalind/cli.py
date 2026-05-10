@@ -176,6 +176,9 @@ def cmd_db_init(args):
         if dataset:
             print(f"  dataset: {dataset.get('dataset_name')}@{dataset.get('dataset_version')}")
             print(f"  records: {status.get('uniprot_records', 0)}")
+            print(f"  pubmed: {status.get('pubmed_records', 0)}")
+            print(f"  ncbi_gene: {status.get('ncbi_gene_records', 0)}")
+            print(f"  ensembl_gene: {status.get('ensembl_gene_records', 0)}")
 
 
 def cmd_db_status(args):
@@ -190,7 +193,11 @@ def cmd_db_status(args):
     dataset = status.get("dataset") or {}
     if dataset:
         print(f"dataset: {dataset.get('dataset_name')}@{dataset.get('dataset_version')}")
-        print(f"records: {status.get('uniprot_records', 0)}")
+        print(f"uniprot_records: {status.get('uniprot_records', 0)}")
+        print(f"pubmed_records: {status.get('pubmed_records', 0)}")
+        print(f"ncbi_gene_records: {status.get('ncbi_gene_records', 0)}")
+        print(f"ensembl_gene_records: {status.get('ensembl_gene_records', 0)}")
+        print(f"ensembl_xref_records: {status.get('ensembl_xref_records', 0)}")
 
 
 def cmd_db_search(args):

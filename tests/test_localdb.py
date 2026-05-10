@@ -3,6 +3,9 @@ from __future__ import annotations
 import pytest
 
 from open_rosalind.localdb import LocalBioDB
+from open_rosalind.tools import ensembl as ensembl_tools
+from open_rosalind.tools import ncbi_gene as ncbi_gene_tools
+from open_rosalind.tools import pubmed as pubmed_tools
 from open_rosalind.tools import uniprot as uniprot_tools
 
 
@@ -10,8 +13,11 @@ def test_localdb_seeds_minimal_uniprot_records(tmp_path):
     db = LocalBioDB(db_path=tmp_path / "local.db")
     status = db.status()
     assert status["uniprot_records"] == 5
-    assert status["dataset"]["dataset_name"] == "uniprot_minimal"
-    assert status["dataset"]["dataset_version"] == "2026-05-10.seed.v2"
+    assert status["pubmed_records"] == 5
+    assert status["ncbi_gene_records"] == 6
+    assert status["ensembl_gene_records"] == 6
+    assert status["dataset"]["dataset_name"] == "bio_minimal"
+    assert status["dataset"]["dataset_version"] == "2026-05-10.seed.v3"
 
     record = db.fetch_uniprot("P38398")
     assert record is not None
@@ -37,6 +43,31 @@ def test_localdb_search_supports_high_frequency_demo_queries(tmp_path):
     assert alpha["hits"][0]["accession"] == "P69905"
 
 
+def test_localdb_supports_pubmed_gene_and_ensembl(tmp_path):
+    db = LocalBioDB(db_path=tmp_path / "local.db")
+
+    pubmed = db.search_pubmed("BRCA1 DNA repair", max_results=3)
+    assert pubmed["hits"][0]["pmid"] == "25956865"
+
+    metadata = db.fetch_pubmed_metadata(["25956865"])
+    assert metadata["records"][0]["title"].startswith("BRCA1")
+
+    abstracts = db.fetch_pubmed_abstract(["25956865"])
+    assert "BRCA1" in abstracts["records"][0]["abstract"]
+
+    gene = db.fetch_ncbi_gene("7157")
+    assert gene["symbol"] == "TP53"
+
+    gene_search = db.search_ncbi_gene("TP53", species="Homo sapiens", max_results=3)
+    assert gene_search["ids"][0] == "7157"
+
+    ensembl = db.lookup_ensembl_gene("TP53", species="homo_sapiens")
+    assert ensembl["ensembl_gene_id"] == "ENSG00000141510"
+
+    xrefs = db.fetch_ensembl_xrefs("ENSG00000141510")
+    assert any(record["primary_id"] == "7157" for record in xrefs["records"])
+
+
 def test_uniprot_tools_use_localdb_before_remote(monkeypatch, tmp_path):
     monkeypatch.setenv("OPEN_ROSALIND_LOCALDB_PATH", str(tmp_path / "local.db"))
     monkeypatch.setenv("OPEN_ROSALIND_OFFLINE", "1")
@@ -51,6 +82,40 @@ def test_uniprot_tools_use_localdb_before_remote(monkeypatch, tmp_path):
     record = uniprot_tools.fetch("P04637")
     assert record["accession"] == "P04637"
     assert record["id"] == "P53_HUMAN"
+
+
+def test_pubmed_and_gene_tools_use_localdb_before_remote(monkeypatch, tmp_path):
+    monkeypatch.setenv("OPEN_ROSALIND_LOCALDB_PATH", str(tmp_path / "local.db"))
+    monkeypatch.setenv("OPEN_ROSALIND_OFFLINE", "1")
+
+    monkeypatch.setattr(pubmed_tools, "_remote_search", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("remote pubmed search should not run")))
+    monkeypatch.setattr(pubmed_tools, "_remote_fetch_metadata", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("remote pubmed metadata should not run")))
+    monkeypatch.setattr(pubmed_tools, "_remote_fetch_abstract", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("remote pubmed abstract should not run")))
+    monkeypatch.setattr(ncbi_gene_tools, "_remote_search_gene", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("remote ncbi gene search should not run")))
+    monkeypatch.setattr(ncbi_gene_tools, "_remote_fetch_gene", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("remote ncbi gene fetch should not run")))
+    monkeypatch.setattr(ensembl_tools, "_remote_lookup_gene", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("remote ensembl lookup should not run")))
+    monkeypatch.setattr(ensembl_tools, "_remote_fetch_xrefs", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("remote ensembl xrefs should not run")))
+
+    pubmed = pubmed_tools.search("BRCA1 DNA repair", max_results=3)
+    assert pubmed["hits"][0]["pmid"] == "25956865"
+
+    metadata = pubmed_tools.fetch_metadata(["25956865"])
+    assert metadata["records"][0]["pmid"] == "25956865"
+
+    abstract = pubmed_tools.fetch_abstract(["25956865"])
+    assert "BRCA1" in abstract["records"][0]["abstract"]
+
+    gene_search = ncbi_gene_tools.search_gene("TP53", species="Homo sapiens", max_results=3)
+    assert gene_search["ids"][0] == "7157"
+
+    gene = ncbi_gene_tools.fetch_gene("7157")
+    assert gene["symbol"] == "TP53"
+
+    ensembl = ensembl_tools.lookup_gene("TP53", species="homo_sapiens")
+    assert ensembl["ensembl_gene_id"] == "ENSG00000141510"
+
+    xrefs = ensembl_tools.fetch_xrefs("ENSG00000141510")
+    assert any(record["primary_id"] == "7157" for record in xrefs["records"])
 
 
 def test_uniprot_tools_offline_missing_accession_raises(monkeypatch, tmp_path):

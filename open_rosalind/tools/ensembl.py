@@ -5,6 +5,7 @@ from typing import Any
 
 import requests
 
+from ..localdb import get_local_biodb
 from ._http import make_session
 from .base import ToolSpec
 
@@ -42,7 +43,7 @@ def _normalize_transcript(raw: dict[str, Any], canonical_transcript: str | None)
     }
 
 
-def lookup_gene(symbol: str, species: str = "homo_sapiens") -> dict[str, Any]:
+def _remote_lookup_gene(symbol: str, species: str = "homo_sapiens") -> dict[str, Any]:
     """Look up an Ensembl gene by symbol."""
     clean_symbol = symbol.strip()
     if not clean_symbol:
@@ -86,6 +87,28 @@ def lookup_gene(symbol: str, species: str = "homo_sapiens") -> dict[str, Any]:
     }
 
 
+def lookup_gene(symbol: str, species: str = "homo_sapiens") -> dict[str, Any]:
+    """Look up an Ensembl gene by symbol."""
+    clean_symbol = symbol.strip()
+    if not clean_symbol:
+        raise ValueError("symbol is required")
+
+    clean_species = _species_name(species)
+    localdb = get_local_biodb()
+    local = localdb.lookup_ensembl_gene(symbol=clean_symbol, species=clean_species)
+    if local is not None:
+        return local
+    if localdb.offline:
+        return {"query": clean_symbol, "species": clean_species, "found": False}
+    try:
+        return _remote_lookup_gene(symbol=clean_symbol, species=clean_species)
+    except requests.HTTPError as exc:
+        status_code = exc.response.status_code if exc.response is not None else None
+        if status_code == 404:
+            return {"query": clean_symbol, "species": clean_species, "found": False}
+        raise
+
+
 def _normalize_xref(raw: dict[str, Any]) -> dict[str, Any]:
     return {
         "dbname": raw.get("dbname"),
@@ -99,7 +122,7 @@ def _normalize_xref(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def fetch_xrefs(ensembl_id: str, external_db: str | None = None) -> dict[str, Any]:
+def _remote_fetch_xrefs(ensembl_id: str, external_db: str | None = None) -> dict[str, Any]:
     """Fetch Ensembl cross-references for a stable Ensembl ID."""
     clean_id = ensembl_id.strip()
     if not clean_id:
@@ -116,6 +139,24 @@ def fetch_xrefs(ensembl_id: str, external_db: str | None = None) -> dict[str, An
         "count": len(normalized),
         "records": normalized,
     }
+
+
+def fetch_xrefs(ensembl_id: str, external_db: str | None = None) -> dict[str, Any]:
+    """Fetch Ensembl cross-references for a stable Ensembl ID."""
+    clean_id = ensembl_id.strip()
+    if not clean_id:
+        raise ValueError("ensembl_id is required")
+
+    localdb = get_local_biodb()
+    local = localdb.fetch_ensembl_xrefs(clean_id, external_db=external_db)
+    if local is not None:
+        return local
+    if localdb.offline:
+        return {"ensembl_id": clean_id, "count": 0, "records": []}
+    try:
+        return _remote_fetch_xrefs(clean_id, external_db=external_db)
+    except Exception:
+        return {"ensembl_id": clean_id, "count": 0, "records": []}
 
 
 LOOKUP_GENE_SPEC = ToolSpec(

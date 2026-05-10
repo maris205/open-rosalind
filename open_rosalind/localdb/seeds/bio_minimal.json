@@ -1,0 +1,743 @@
+{
+  "dataset": "bio_minimal",
+  "version": "2026-05-10.seed.v3",
+  "source": "Hybrid reviewed seed",
+  "source_url": "local-curated-hybrid-seed",
+  "records": [
+    {
+      "accession": "P38398",
+      "id": "BRCA1_HUMAN",
+      "genes": ["BRCA1"],
+      "name": "Breast cancer type 1 susceptibility protein",
+      "organism": "Homo sapiens",
+      "length": 1863,
+      "sequence": "MDLSALRVEEVQNVINAMQKILECPICLELIKEPVSTKCDHIFCKFCMLKLLNQKKGPSQCPLCKNDITKRSLQESTRFSQLVEELLKIICAFQLDTGLEYANSYNFAKKENNSPEHLKDEVSIIQSMGYRNRAKRLLQSEPENPSLQETSLSVQLSNLGTVRTLRTKQRIQPQKTSVYIELGSDSSEDTVNKATYCSVGDQELLQITPQGTRDEISLDSAKKAACEFSETDVTNTEHHQPSNNDLNTTEKRAAERHPEKYQGSSVSNLHVEPCGTNTHASSLQHENSSLLLTKDRMNVEKAEFCNKSKQPGLARSQHNRWAGSKETCNDRRTPSTEKKVDLNADPLCERKEWNKQKLPCSENPRDTEDVPWITLNSSIQKVNEWFSRSDELLGSDDSHDGESESNAKVADVLDVLNEVDEYSGSSEKIDLLASDPHEALICKSERVHSKSVESNIEDKIFGKTYRKKASLPNLSHVTENLIIGAFVTEPQIIQERPLTNKLKRKRRPTSGLHPEDFIKKADLAVQKTPEMINQGTNQTEQNGQVMNITNSGHENKTKGDSIQNEKNPNPIESLEKESAFKTKAEPISSSISNMELELNIHNSKAPKKNRLRRKSSTRHIHALELVVSRNLSPPNCTELQIDSCSSSEEIKKKKYNQMPVRHSRNLQLMEGKEPATGAKKSNKPNEQTSKRHDSDTFPELKLTNAPGSFTKCSNTSELKEFVNPSLPREEKEEKLETVKVSNNAEDPKDLMLSGERVLQTERSVESSSISLVPGTDYGTQESISLLEVSTLGKAKTEPNKCVSQCAAFENPKGLIHGCSKDNRNDTEGFKYPLGHEVNHSRETSIEMEESELDAQYLQNTFKVSKRQSFAPFSNPGNAEEECATFSAHSGSLKKQSPKVTFECEQKEENQGKNESNIKPVQTVNITAGFPVVGQKDKPVDNAKCSIKGGSRFCLSSQFRGNETGLITPNKHGLLQNPYRIPPLFPIKSFVKTKCKKNLLEENFEEHSMSPEREMGNENIPSTVSTISRNNIRENVFKEASSSNINEVGSSTNEVGSSINEIGSSDENIQAELGRNRGPKLNAMLRLGVLQPEVYKQSLPGSNCKHPEIKKQEYEEVVQTVNTDFSPYLISDNLEQPMGSSHASQVCSETPDDLLDDGEIKEDTSFAENDIKESSAVFSKSVQKGELSRSPSPFTHTHLAQGYRRGAKKLESSEENLSSEDEELPCFQHLLFGKVNNIPSQSTRHSTVATECLSKNTEENLLSLKNSLNDCSNQVILAKASQEHHLSEETKCSASLFSSQCSELEDLTANTNTQDPFLIGSSKQMRHQSESQGVGLSDKELVSDDEERGTGLEENNQEEQSMDSNLGEAASGCESETSVSEDCSGLSSQSDILTTQQRDTMQHNLIKLQQEMAELEAVLEQHGSQPSNSYPSIISDSSALEDLRNPEQSTSEKAVLTSQKSSEYPISQNPEGLSADKFEVSADSSTSKNKEPGVERSSPSKCPSLDDRWYMHSCSGSLQNRNYPSQEELIKVVDVEEQQLEESGPHDLTETSYLPRQDLEGTPYLESGISLFSDDPESDPSEDRAPESARVGNIPSSTSALKVPQLKVAESAQSPAAAHTTDTAGYNAMEESVSREKPELTASTERVNKRMSMVVSGLTPEEFMLVYKFARKHHITLTNLITEETTHVVMKTDAEFVCERTLKYFLGIAGGKWVVSYFWVTQSIKERKMLNEHDFEVRGDVVNGRNHQGPKRARESQDRKIFRGLEICCYGPFTNMPTDQLEWMVQLCGASVVKELSSFTLGTGVHPIVVVQPDAWTEDNGFHAIGQMCEAPVVTREWVLDSVALYQCQELDTYLIPQIPHSHY",
+      "function": "E3 ubiquitin-protein ligase central to DNA repair, ubiquitination, and transcriptional regulation. Contributes to homologous recombination repair and supports cell-cycle checkpoints after DNA damage.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P38398.json"
+    },
+    {
+      "accession": "P04637",
+      "id": "P53_HUMAN",
+      "genes": ["TP53"],
+      "name": "Cellular tumor antigen p53",
+      "organism": "Homo sapiens",
+      "length": 393,
+      "sequence": "MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD",
+      "function": "Multifunctional transcription factor that induces cell cycle arrest, DNA repair, or apoptosis. Acts as a tumor suppressor and regulates many stress-response genes.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P04637.json"
+    },
+    {
+      "accession": "P01308",
+      "id": "INS_HUMAN",
+      "genes": ["INS"],
+      "name": "Insulin",
+      "organism": "Homo sapiens",
+      "length": 110,
+      "sequence": "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCN",
+      "function": "Insulin decreases blood glucose concentration and promotes uptake of monosaccharides, amino acids, and fatty acids.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P01308.json"
+    },
+    {
+      "accession": "P68871",
+      "id": "HBB_HUMAN",
+      "genes": ["HBB"],
+      "name": "Hemoglobin subunit beta",
+      "organism": "Homo sapiens",
+      "length": 147,
+      "sequence": "MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH",
+      "function": "Involved in oxygen transport from the lung to peripheral tissues.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P68871.json"
+    },
+    {
+      "accession": "P69905",
+      "id": "HBA_HUMAN",
+      "genes": ["HBA1", "HBA2"],
+      "name": "Hemoglobin subunit alpha",
+      "organism": "Homo sapiens",
+      "length": 142,
+      "sequence": "MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR",
+      "function": "Involved in oxygen transport from the lung to peripheral tissues.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P69905.json"
+    }
+  ],
+  "pubmed": [
+    {
+      "pmid": "25956865",
+      "title": "BRCA1: Beyond double-strand break repair",
+      "authors": ["Elizabeth Alli", "James M Ford"],
+      "journal": "DNA Repair (Amst)",
+      "year": "2015",
+      "doi": "10.1016/j.dnarep.2015.04.028",
+      "abstract": "Review of BRCA1 roles beyond double-strand break repair, including base-excision repair and broader DNA damage response pathways.",
+      "terms": ["BRCA1", "DNA repair", "breast cancer", "homologous recombination", "base-excision repair"],
+      "source": "PubMed curated seed",
+      "source_url": "https://pubmed.ncbi.nlm.nih.gov/25956865/"
+    },
+    {
+      "pmid": "31835844",
+      "title": "The Emerging Landscape of p53 Isoforms in Physiology, Cancer and Degenerative Diseases",
+      "authors": ["Thineskrishna Anbarasan", "Jean-Christophe Bourdon"],
+      "journal": "Int J Mol Sci",
+      "year": "2019",
+      "doi": "10.3390/ijms20246257",
+      "abstract": "Review of p53 isoforms in physiology, cancer, neurodegeneration, and stress responses.",
+      "terms": ["TP53", "p53", "isoforms", "cancer", "DNA repair"],
+      "source": "PubMed curated seed",
+      "source_url": "https://pubmed.ncbi.nlm.nih.gov/31835844/"
+    },
+    {
+      "pmid": "3315622",
+      "title": "Human insulin. A review of its biological activity, pharmacokinetics and therapeutic use",
+      "authors": ["R N Brogden", "R C Heel"],
+      "journal": "Drugs",
+      "year": "1987",
+      "doi": "10.2165/00003495-198734030-00003",
+      "abstract": "Review of human insulin biological activity, pharmacokinetics, and therapeutic use.",
+      "terms": ["INS", "human insulin", "diabetes", "glucose", "pharmacokinetics"],
+      "source": "PubMed curated seed",
+      "source_url": "https://pubmed.ncbi.nlm.nih.gov/3315622/"
+    },
+    {
+      "pmid": "32189307",
+      "title": "Hemoglobin: Structure, Function and Allostery",
+      "authors": ["Mostafa H Ahmed", "Mohini S Ghatge", "Martin K Safo"],
+      "journal": "Subcell Biochem",
+      "year": "2020",
+      "doi": "10.1007/978-3-030-41769-7_14",
+      "abstract": "Review of hemoglobin structure, allostery, and oxygen-binding function.",
+      "terms": ["HBB", "hemoglobin", "oxygen transport", "allostery", "beta globin"],
+      "source": "PubMed curated seed",
+      "source_url": "https://pubmed.ncbi.nlm.nih.gov/32189307/"
+    },
+    {
+      "pmid": "34915685",
+      "title": "Molecular Detection of Alpha Thalassemia: A Review of Prevalent Techniques",
+      "authors": [
+        "Divashini Vijian",
+        "Wan Suriana Wan Ab Rahman",
+        "Kannan Thirumulu Ponnuraj",
+        "Zefarina Zulkafli",
+        "Noor Haslina Mohd Noor"
+      ],
+      "journal": "Medeni Med J",
+      "year": "2021",
+      "doi": "10.5222/MMJ.2021.14603",
+      "abstract": "Review of molecular techniques used to detect alpha thalassemia and their main tradeoffs.",
+      "terms": ["HBA1", "HBA2", "alpha globin", "alpha thalassemia", "molecular diagnosis"],
+      "source": "PubMed curated seed",
+      "source_url": "https://pubmed.ncbi.nlm.nih.gov/34915685/"
+    }
+  ],
+  "ncbi_gene": [
+    {
+      "gene_id": "672",
+      "symbol": "BRCA1",
+      "name": "BRCA1 DNA repair associated",
+      "description": "breast cancer type 1 susceptibility protein",
+      "summary": "DNA repair and tumor suppressor gene with roles in homologous recombination.",
+      "species": "Homo sapiens",
+      "chromosome": "17",
+      "map_location": "17q21.31",
+      "aliases": ["BRCC1", "FANCS", "PPP1R53", "RNF53"],
+      "other_designations": ["breast cancer type 1 susceptibility protein"],
+      "nomenclature_name": "BRCA1 DNA repair associated",
+      "nomenclature_status": "Official",
+      "mim_ids": ["113705"],
+      "genomic_location": {
+        "chraccver": "NC_000017.11",
+        "chromosome": "17",
+        "start": null,
+        "end": null,
+        "strand": null,
+        "exon_count": null
+      },
+      "source": "NCBI Gene curated seed",
+      "source_url": "https://www.ncbi.nlm.nih.gov/gene/672"
+    },
+    {
+      "gene_id": "7157",
+      "symbol": "TP53",
+      "name": "tumor protein p53",
+      "description": "cellular tumor antigen p53",
+      "summary": "Major tumor suppressor involved in cell cycle arrest, apoptosis, and DNA repair.",
+      "species": "Homo sapiens",
+      "chromosome": "17",
+      "map_location": "17p13.1",
+      "aliases": ["P53", "BCC7"],
+      "other_designations": ["cellular tumor antigen p53"],
+      "nomenclature_name": "TP53 tumor protein p53",
+      "nomenclature_status": "Official",
+      "mim_ids": ["191170"],
+      "genomic_location": {
+        "chraccver": "NC_000017.11",
+        "chromosome": "17",
+        "start": null,
+        "end": null,
+        "strand": null,
+        "exon_count": null
+      },
+      "source": "NCBI Gene curated seed",
+      "source_url": "https://www.ncbi.nlm.nih.gov/gene/7157"
+    },
+    {
+      "gene_id": "3630",
+      "symbol": "INS",
+      "name": "insulin",
+      "description": "preproinsulin",
+      "summary": "Hormone that lowers blood glucose and promotes nutrient uptake.",
+      "species": "Homo sapiens",
+      "chromosome": "11",
+      "map_location": "11p15.5",
+      "aliases": ["INS"],
+      "other_designations": ["insulin"],
+      "nomenclature_name": "INS insulin",
+      "nomenclature_status": "Official",
+      "mim_ids": ["176730"],
+      "genomic_location": {
+        "chraccver": "NC_000011.10",
+        "chromosome": "11",
+        "start": null,
+        "end": null,
+        "strand": null,
+        "exon_count": null
+      },
+      "source": "NCBI Gene curated seed",
+      "source_url": "https://www.ncbi.nlm.nih.gov/gene/3630"
+    },
+    {
+      "gene_id": "3043",
+      "symbol": "HBB",
+      "name": "hemoglobin subunit beta",
+      "description": "beta-globin",
+      "summary": "Oxygen transport subunit of adult hemoglobin.",
+      "species": "Homo sapiens",
+      "chromosome": "11",
+      "map_location": "11p15.4",
+      "aliases": ["BETA-GLOBIN", "CD113T-C", "HBB"],
+      "other_designations": ["hemoglobin subunit beta"],
+      "nomenclature_name": "HBB hemoglobin subunit beta",
+      "nomenclature_status": "Official",
+      "mim_ids": ["141900"],
+      "genomic_location": {
+        "chraccver": "NC_000011.10",
+        "chromosome": "11",
+        "start": null,
+        "end": null,
+        "strand": null,
+        "exon_count": null
+      },
+      "source": "NCBI Gene curated seed",
+      "source_url": "https://www.ncbi.nlm.nih.gov/gene/3043"
+    },
+    {
+      "gene_id": "3039",
+      "symbol": "HBA1",
+      "name": "hemoglobin subunit alpha 1",
+      "description": "alpha-globin chain 1",
+      "summary": "Alpha-globin subunit of adult hemoglobin.",
+      "species": "Homo sapiens",
+      "chromosome": "16",
+      "map_location": "16p13.3",
+      "aliases": ["HBA1", "HBA-1"],
+      "other_designations": ["hemoglobin subunit alpha 1"],
+      "nomenclature_name": "HBA1 hemoglobin subunit alpha 1",
+      "nomenclature_status": "Official",
+      "mim_ids": ["141800"],
+      "genomic_location": {
+        "chraccver": "NC_000016.10",
+        "chromosome": "16",
+        "start": null,
+        "end": null,
+        "strand": null,
+        "exon_count": null
+      },
+      "source": "NCBI Gene curated seed",
+      "source_url": "https://www.ncbi.nlm.nih.gov/gene/3039"
+    },
+    {
+      "gene_id": "3040",
+      "symbol": "HBA2",
+      "name": "hemoglobin subunit alpha 2",
+      "description": "alpha-globin chain 2",
+      "summary": "Alpha-globin subunit of adult hemoglobin.",
+      "species": "Homo sapiens",
+      "chromosome": "16",
+      "map_location": "16p13.3",
+      "aliases": ["HBA2", "HBA-T2"],
+      "other_designations": ["hemoglobin subunit alpha 2"],
+      "nomenclature_name": "HBA2 hemoglobin subunit alpha 2",
+      "nomenclature_status": "Official",
+      "mim_ids": [],
+      "genomic_location": {
+        "chraccver": "NC_000016.10",
+        "chromosome": "16",
+        "start": null,
+        "end": null,
+        "strand": null,
+        "exon_count": null
+      },
+      "source": "NCBI Gene curated seed",
+      "source_url": "https://www.ncbi.nlm.nih.gov/gene/3040"
+    }
+  ],
+  "ensembl_gene": [
+    {
+      "query": "BRCA1",
+      "ensembl_gene_id": "ENSG00000012048",
+      "symbol": "BRCA1",
+      "description": "BRCA1 DNA repair associated [Source:HGNC Symbol;Acc:HGNC:1100]",
+      "biotype": "protein_coding",
+      "object_type": "Gene",
+      "assembly_name": "GRCh38",
+      "seq_region_name": "17",
+      "start": 43044292,
+      "end": 43170245,
+      "strand": -1,
+      "canonical_transcript": "ENST00000357654.9",
+      "transcripts": [
+        {
+          "id": "ENST00000497488",
+          "display_name": "BRCA1-222",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 6335,
+          "translation_id": "ENSP00000418986",
+          "protein_length": 1567
+        },
+        {
+          "id": "ENST00000489037",
+          "display_name": "BRCA1-216",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 7056,
+          "translation_id": "ENSP00000420781",
+          "protein_length": 1837
+        },
+        {
+          "id": "ENST00000478531",
+          "display_name": "BRCA1-214",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 3765,
+          "translation_id": "ENSP00000420412",
+          "protein_length": 759
+        },
+        {
+          "id": "ENST00000357654",
+          "display_name": "BRCA1-203",
+          "biotype": "protein_coding",
+          "is_canonical": true,
+          "length": 7088,
+          "translation_id": "ENSP00000350283",
+          "protein_length": 1863
+        },
+        {
+          "id": "ENST00000473961",
+          "display_name": "BRCA1-211",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 6962,
+          "translation_id": "ENSP00000420201",
+          "protein_length": 1821
+        }
+      ],
+      "xrefs": [
+        {
+          "dbname": "EntrezGene",
+          "primary_id": "672",
+          "display_id": "BRCA1",
+          "description": "BRCA1 DNA repair associated",
+          "synonyms": [],
+          "info_type": "DEPENDENT",
+          "db_display_name": "NCBI gene (formerly Entrezgene)",
+          "linkage_types": []
+        },
+        {
+          "dbname": "HGNC",
+          "primary_id": "HGNC:1100",
+          "display_id": "BRCA1",
+          "description": "BRCA1 DNA repair associated",
+          "synonyms": ["BRCC1", "FANCS", "PPP1R53", "RNF53"],
+          "info_type": "DIRECT",
+          "db_display_name": "HGNC Symbol",
+          "linkage_types": []
+        }
+      ],
+      "species": "homo_sapiens",
+      "source": "Ensembl REST curated seed",
+      "source_url": "https://rest.ensembl.org/lookup/symbol/homo_sapiens/BRCA1?expand=1"
+    },
+    {
+      "query": "TP53",
+      "ensembl_gene_id": "ENSG00000141510",
+      "symbol": "TP53",
+      "description": "tumor protein p53 [Source:HGNC Symbol;Acc:HGNC:11998]",
+      "biotype": "protein_coding",
+      "object_type": "Gene",
+      "assembly_name": "GRCh38",
+      "seq_region_name": "17",
+      "start": 7661779,
+      "end": 7687546,
+      "strand": -1,
+      "canonical_transcript": "ENST00000269305.9",
+      "transcripts": [
+        {
+          "id": "ENST00000413465",
+          "display_name": "TP53-203",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 1018,
+          "translation_id": "ENSP00000410739",
+          "protein_length": 285
+        },
+        {
+          "id": "ENST00000635293",
+          "display_name": "TP53-227",
+          "biotype": "nonsense_mediated_decay",
+          "is_canonical": false,
+          "length": 1883,
+          "translation_id": "ENSP00000488924",
+          "protein_length": 410
+        },
+        {
+          "id": "ENST00000714356",
+          "display_name": "TP53-228",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 1645,
+          "translation_id": "ENSP00000519623",
+          "protein_length": 347
+        },
+        {
+          "id": "ENST00000359597",
+          "display_name": "TP53-202",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 1152,
+          "translation_id": "ENSP00000352610",
+          "protein_length": 343
+        },
+        {
+          "id": "ENST00000504290",
+          "display_name": "TP53-208",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 2331,
+          "translation_id": "ENSP00000484409",
+          "protein_length": 214
+        }
+      ],
+      "xrefs": [
+        {
+          "dbname": "EntrezGene",
+          "primary_id": "7157",
+          "display_id": "TP53",
+          "description": "tumor protein p53",
+          "synonyms": [],
+          "info_type": "DEPENDENT",
+          "db_display_name": "NCBI gene (formerly Entrezgene)",
+          "linkage_types": []
+        },
+        {
+          "dbname": "HGNC",
+          "primary_id": "HGNC:11998",
+          "display_id": "TP53",
+          "description": "tumor protein p53",
+          "synonyms": ["P53", "BCC7"],
+          "info_type": "DIRECT",
+          "db_display_name": "HGNC Symbol",
+          "linkage_types": []
+        },
+        {
+          "dbname": "MIM_GENE",
+          "primary_id": "191170",
+          "display_id": "TP53",
+          "description": "tumor protein p53",
+          "synonyms": [],
+          "info_type": "DEPENDENT",
+          "db_display_name": "OMIM Gene",
+          "linkage_types": []
+        }
+      ],
+      "species": "homo_sapiens",
+      "source": "Ensembl REST curated seed",
+      "source_url": "https://rest.ensembl.org/lookup/symbol/homo_sapiens/TP53?expand=1"
+    },
+    {
+      "query": "INS",
+      "ensembl_gene_id": "ENSG00000254647",
+      "symbol": "INS",
+      "description": "insulin [Source:HGNC Symbol;Acc:HGNC:6081]",
+      "biotype": "protein_coding",
+      "object_type": "Gene",
+      "assembly_name": "GRCh38",
+      "seq_region_name": "11",
+      "start": 2159779,
+      "end": 2161221,
+      "strand": -1,
+      "canonical_transcript": "ENST00000381330.5",
+      "transcripts": [
+        {
+          "id": "ENST00000397262",
+          "display_name": "INS-203",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 639,
+          "translation_id": "ENSP00000380432",
+          "protein_length": 110
+        },
+        {
+          "id": "ENST00000381330",
+          "display_name": "INS-202",
+          "biotype": "protein_coding",
+          "is_canonical": true,
+          "length": 465,
+          "translation_id": "ENSP00000370731",
+          "protein_length": 110
+        },
+        {
+          "id": "ENST00000250971",
+          "display_name": "INS-201",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 503,
+          "translation_id": "ENSP00000250971",
+          "protein_length": 110
+        },
+        {
+          "id": "ENST00000421783",
+          "display_name": "INS-204",
+          "biotype": "non_stop_decay",
+          "is_canonical": false,
+          "length": 464,
+          "translation_id": "ENSP00000408400",
+          "protein_length": 92
+        },
+        {
+          "id": "ENST00000512523",
+          "display_name": "INS-205",
+          "biotype": "protein_coding",
+          "is_canonical": false,
+          "length": 297,
+          "translation_id": "ENSP00000424008",
+          "protein_length": 98
+        }
+      ],
+      "xrefs": [
+        {
+          "dbname": "EntrezGene",
+          "primary_id": "3630",
+          "display_id": "INS",
+          "description": "insulin",
+          "synonyms": [],
+          "info_type": "DEPENDENT",
+          "db_display_name": "NCBI gene (formerly Entrezgene)",
+          "linkage_types": []
+        },
+        {
+          "dbname": "HGNC",
+          "primary_id": "HGNC:6081",
+          "display_id": "INS",
+          "description": "insulin",
+          "synonyms": [],
+          "info_type": "DIRECT",
+          "db_display_name": "HGNC Symbol",
+          "linkage_types": []
+        },
+        {
+          "dbname": "MIM_GENE",
+          "primary_id": "176730",
+          "display_id": "INS",
+          "description": "insulin",
+          "synonyms": [],
+          "info_type": "DEPENDENT",
+          "db_display_name": "OMIM Gene",
+          "linkage_types": []
+        }
+      ],
+      "species": "homo_sapiens",
+      "source": "Ensembl REST curated seed",
+      "source_url": "https://rest.ensembl.org/lookup/symbol/homo_sapiens/INS?expand=1"
+    },
+    {
+      "query": "HBB",
+      "ensembl_gene_id": "ENSG00000244734",
+      "symbol": "HBB",
+      "description": "hemoglobin subunit beta [Source:HGNC Symbol;Acc:HGNC:4827]",
+      "biotype": "protein_coding",
+      "object_type": "Gene",
+      "assembly_name": "GRCh38",
+      "seq_region_name": "11",
+      "start": 5225464,
+      "end": 5227071,
+      "strand": -1,
+      "canonical_transcript": "ENST00000335295.4",
+      "transcripts": [
+        {
+          "id": "ENST00000335295",
+          "display_name": "HBB-201",
+          "biotype": "protein_coding",
+          "is_canonical": true,
+          "length": 628,
+          "translation_id": "ENSP00000333994",
+          "protein_length": 147
+        }
+      ],
+      "xrefs": [
+        {
+          "dbname": "EntrezGene",
+          "primary_id": "3043",
+          "display_id": "HBB",
+          "description": "hemoglobin subunit beta",
+          "synonyms": ["BETA-GLOBIN", "CD113T-C"],
+          "info_type": "DEPENDENT",
+          "db_display_name": "NCBI gene (formerly Entrezgene)",
+          "linkage_types": []
+        },
+        {
+          "dbname": "HGNC",
+          "primary_id": "HGNC:4827",
+          "display_id": "HBB",
+          "description": "hemoglobin subunit beta",
+          "synonyms": ["BETA-GLOBIN", "CD113T-C"],
+          "info_type": "DIRECT",
+          "db_display_name": "HGNC Symbol",
+          "linkage_types": []
+        },
+        {
+          "dbname": "MIM_GENE",
+          "primary_id": "141900",
+          "display_id": "HBB",
+          "description": "hemoglobin subunit beta",
+          "synonyms": [],
+          "info_type": "DEPENDENT",
+          "db_display_name": "OMIM Gene",
+          "linkage_types": []
+        }
+      ],
+      "species": "homo_sapiens",
+      "source": "Ensembl REST curated seed",
+      "source_url": "https://rest.ensembl.org/lookup/symbol/homo_sapiens/HBB?expand=1"
+    },
+    {
+      "query": "HBA1",
+      "ensembl_gene_id": "ENSG00000206172",
+      "symbol": "HBA1",
+      "description": "hemoglobin subunit alpha 1 [Source:HGNC Symbol;Acc:HGNC:4823]",
+      "biotype": "protein_coding",
+      "object_type": "Gene",
+      "assembly_name": "GRCh38",
+      "seq_region_name": "16",
+      "start": 176680,
+      "end": 177522,
+      "strand": 1,
+      "canonical_transcript": "ENST00000320868.9",
+      "transcripts": [
+        {
+          "id": "ENST00000320868",
+          "display_name": "HBA1-201",
+          "biotype": "protein_coding",
+          "is_canonical": true,
+          "length": 577,
+          "translation_id": "ENSP00000322421",
+          "protein_length": 142
+        }
+      ],
+      "xrefs": [
+        {
+          "dbname": "EntrezGene",
+          "primary_id": "3039",
+          "display_id": "HBA1",
+          "description": "hemoglobin subunit alpha 1",
+          "synonyms": ["HBA-1"],
+          "info_type": "DEPENDENT",
+          "db_display_name": "NCBI gene (formerly Entrezgene)",
+          "linkage_types": []
+        },
+        {
+          "dbname": "HGNC",
+          "primary_id": "HGNC:4823",
+          "display_id": "HBA1",
+          "description": "hemoglobin subunit alpha 1",
+          "synonyms": ["HBA-T3"],
+          "info_type": "DIRECT",
+          "db_display_name": "HGNC Symbol",
+          "linkage_types": []
+        },
+        {
+          "dbname": "MIM_GENE",
+          "primary_id": "141800",
+          "display_id": "HBA1",
+          "description": "hemoglobin subunit alpha 1",
+          "synonyms": [],
+          "info_type": "DEPENDENT",
+          "db_display_name": "OMIM Gene",
+          "linkage_types": []
+        }
+      ],
+      "species": "homo_sapiens",
+      "source": "Ensembl REST curated seed",
+      "source_url": "https://rest.ensembl.org/lookup/symbol/homo_sapiens/HBA1?expand=1"
+    },
+    {
+      "query": "HBA2",
+      "ensembl_gene_id": "ENSG00000188536",
+      "symbol": "HBA2",
+      "description": "hemoglobin subunit alpha 2 [Source:HGNC Symbol;Acc:HGNC:4824]",
+      "biotype": "protein_coding",
+      "object_type": "Gene",
+      "assembly_name": "GRCh38",
+      "seq_region_name": "16",
+      "start": 172876,
+      "end": 173710,
+      "strand": 1,
+      "canonical_transcript": "ENST00000251595.11",
+      "transcripts": [
+        {
+          "id": "ENST00000251595",
+          "display_name": "HBA2-201",
+          "biotype": "protein_coding",
+          "is_canonical": true,
+          "length": 576,
+          "translation_id": "ENSP00000251595",
+          "protein_length": 142
+        }
+      ],
+      "xrefs": [
+        {
+          "dbname": "EntrezGene",
+          "primary_id": "3040",
+          "display_id": "HBA2",
+          "description": "hemoglobin subunit alpha 2",
+          "synonyms": ["HBA-T2"],
+          "info_type": "DEPENDENT",
+          "db_display_name": "NCBI gene (formerly Entrezgene)",
+          "linkage_types": []
+        },
+        {
+          "dbname": "HGNC",
+          "primary_id": "HGNC:4824",
+          "display_id": "HBA2",
+          "description": "hemoglobin subunit alpha 2",
+          "synonyms": ["HBA-T2"],
+          "info_type": "DIRECT",
+          "db_display_name": "HGNC Symbol",
+          "linkage_types": []
+        }
+      ],
+      "species": "homo_sapiens",
+      "source": "Ensembl REST curated seed",
+      "source_url": "https://rest.ensembl.org/lookup/symbol/homo_sapiens/HBA2?expand=1"
+    }
+  ]
+}
