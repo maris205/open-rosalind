@@ -8,6 +8,7 @@ import uvicorn
 
 from .backends import build_backend
 from .config import load_config
+from .localdb import LocalBioDB
 from .harness import AgentAdapter, Task, TaskRunner, TaskTraceStore
 from .orchestrator import Agent
 from .skills import SKILLS, list_cards, get_skill
@@ -162,6 +163,54 @@ def cmd_task_report(args):
         print("❌ No final report available")
 
 
+def cmd_db_init(args):
+    db = LocalBioDB(db_path=args.db_path)
+    if args.force:
+        db.initialize(force_seed=True)
+    status = db.status()
+    if args.json:
+        print(json.dumps(status, indent=2, ensure_ascii=False))
+    else:
+        print(f"Local DB initialized at {status['db_path']}")
+        dataset = status.get("dataset") or {}
+        if dataset:
+            print(f"  dataset: {dataset.get('dataset_name')}@{dataset.get('dataset_version')}")
+            print(f"  records: {status.get('uniprot_records', 0)}")
+
+
+def cmd_db_status(args):
+    db = LocalBioDB(db_path=args.db_path)
+    status = db.status()
+    if args.json:
+        print(json.dumps(status, indent=2, ensure_ascii=False))
+        return
+    print(f"db_path: {status['db_path']}")
+    print(f"offline: {status['offline']}")
+    print(f"seed_path: {status['seed_path']}")
+    dataset = status.get("dataset") or {}
+    if dataset:
+        print(f"dataset: {dataset.get('dataset_name')}@{dataset.get('dataset_version')}")
+        print(f"records: {status.get('uniprot_records', 0)}")
+
+
+def cmd_db_search(args):
+    db = LocalBioDB(db_path=args.db_path)
+    out = db.search_uniprot(args.query, max_results=args.max_results)
+    if args.json:
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+    else:
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+
+
+def cmd_db_fetch(args):
+    db = LocalBioDB(db_path=args.db_path)
+    out = db.fetch_uniprot(args.accession)
+    if args.json:
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+    else:
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+
+
 def main():
     p = argparse.ArgumentParser(prog="open-rosalind")
     p.add_argument("--config", default=None)
@@ -217,6 +266,30 @@ def main():
     ptrep = pt_sub.add_parser("report", help="Show final report")
     ptrep.add_argument("task_id")
     ptrep.set_defaults(func=cmd_task_report)
+
+    pdb = sub.add_parser("db", help="Manage the local bio database")
+    pdb.add_argument("--db-path", default=None)
+    pdb_sub = pdb.add_subparsers(dest="db_cmd", required=True)
+
+    pdb_init = pdb_sub.add_parser("init", help="Initialize and seed the local database")
+    pdb_init.add_argument("--force", action="store_true", help="Reseed even if the dataset is already present")
+    pdb_init.add_argument("--json", action="store_true")
+    pdb_init.set_defaults(func=cmd_db_init)
+
+    pdb_status = pdb_sub.add_parser("status", help="Show local database status")
+    pdb_status.add_argument("--json", action="store_true")
+    pdb_status.set_defaults(func=cmd_db_status)
+
+    pdb_search = pdb_sub.add_parser("search", help="Search the local UniProt mirror")
+    pdb_search.add_argument("query")
+    pdb_search.add_argument("--max-results", type=int, default=5)
+    pdb_search.add_argument("--json", action="store_true")
+    pdb_search.set_defaults(func=cmd_db_search)
+
+    pdb_fetch = pdb_sub.add_parser("fetch", help="Fetch a local UniProt record by accession")
+    pdb_fetch.add_argument("accession")
+    pdb_fetch.add_argument("--json", action="store_true")
+    pdb_fetch.set_defaults(func=cmd_db_fetch)
 
     args = p.parse_args()
     args.func(args)
