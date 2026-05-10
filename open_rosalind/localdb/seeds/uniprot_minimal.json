@@ -1,6 +1,6 @@
 {
   "dataset": "uniprot_minimal",
-  "version": "2026-05-10.seed",
+  "version": "2026-05-10.seed.v2",
   "source": "UniProtKB reviewed seed",
   "source_url": "https://rest.uniprot.org",
   "records": [
@@ -29,7 +29,45 @@
       "reviewed": true,
       "source": "UniProtKB reviewed seed",
       "source_url": "https://rest.uniprot.org/uniprotkb/P04637.json"
+    },
+    {
+      "accession": "P01308",
+      "id": "INS_HUMAN",
+      "genes": ["INS"],
+      "name": "Insulin",
+      "organism": "Homo sapiens",
+      "length": 110,
+      "sequence": "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCN",
+      "function": "Insulin decreases blood glucose concentration and promotes uptake of monosaccharides, amino acids, and fatty acids.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P01308.json"
+    },
+    {
+      "accession": "P68871",
+      "id": "HBB_HUMAN",
+      "genes": ["HBB"],
+      "name": "Hemoglobin subunit beta",
+      "organism": "Homo sapiens",
+      "length": 147,
+      "sequence": "MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH",
+      "function": "Involved in oxygen transport from the lung to peripheral tissues.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P68871.json"
+    },
+    {
+      "accession": "P69905",
+      "id": "HBA_HUMAN",
+      "genes": ["HBA1", "HBA2"],
+      "name": "Hemoglobin subunit alpha",
+      "organism": "Homo sapiens",
+      "length": 142,
+      "sequence": "MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR",
+      "function": "Involved in oxygen transport from the lung to peripheral tissues.",
+      "reviewed": true,
+      "source": "UniProtKB reviewed seed",
+      "source_url": "https://rest.uniprot.org/uniprotkb/P69905.json"
     }
   ]
 }
-

@@ -14,6 +14,9 @@ Goal: move the highest-value bio lookups to a local-first database layer while k
 
 - `BRCA1 / P38398`
 - `TP53 / P04637`
+- `INS / P01308`
+- `HBB / P68871`
+- `HBA1/HBA2 / P69905`
 
 ## Non-goals
 
@@ -28,4 +31,3 @@ Goal: move the highest-value bio lookups to a local-first database layer while k
 - `uniprot.fetch("P38398")` resolves from the local DB with the same output shape as the public tool.
 - Offline mode still answers seeded queries.
 - Existing skills continue to receive structured evidence and trace.
-

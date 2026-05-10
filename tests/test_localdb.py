@@ -9,9 +9,9 @@ from open_rosalind.tools import uniprot as uniprot_tools
 def test_localdb_seeds_minimal_uniprot_records(tmp_path):
     db = LocalBioDB(db_path=tmp_path / "local.db")
     status = db.status()
-    assert status["uniprot_records"] == 2
+    assert status["uniprot_records"] == 5
     assert status["dataset"]["dataset_name"] == "uniprot_minimal"
-    assert status["dataset"]["dataset_version"] == "2026-05-10.seed"
+    assert status["dataset"]["dataset_version"] == "2026-05-10.seed.v2"
 
     record = db.fetch_uniprot("P38398")
     assert record is not None
@@ -25,6 +25,16 @@ def test_localdb_search_supports_gene_exact_and_organism_filter(tmp_path):
     out = db.search_uniprot('gene_exact:TP53 AND organism_name:"Homo sapiens"', max_results=5)
     assert out["count"] == 1
     assert out["hits"][0]["accession"] == "P04637"
+
+
+def test_localdb_search_supports_high_frequency_demo_queries(tmp_path):
+    db = LocalBioDB(db_path=tmp_path / "local.db")
+    insulin = db.search_uniprot("insulin", max_results=5)
+    beta = db.search_uniprot("hemoglobin beta", max_results=5)
+    alpha = db.search_uniprot("HBA1", max_results=5)
+    assert insulin["hits"][0]["accession"] == "P01308"
+    assert beta["hits"][0]["accession"] == "P68871"
+    assert alpha["hits"][0]["accession"] == "P69905"
 
 
 def test_uniprot_tools_use_localdb_before_remote(monkeypatch, tmp_path):
