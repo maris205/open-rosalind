@@ -114,6 +114,97 @@ python -m open_rosalind.cli skills inspect uniprot_lookup
 
 ---
 
+## 🧠 Local Knowledge Base
+
+MVP5 adds an Open-Rosalind local knowledge base layer for local-first retrieval. The runtime contract stays close to the public tools: local data is used first for common lookups, and long-tail queries can still fall back to public APIs.
+
+### Tiers
+
+| Tier | Purpose | Storage target | Update cadence |
+|---|---|---:|---|
+| **Basic** | Embedded demo seed for tests and offline examples | `<1 GB` | Yearly |
+| **Standard** | Deployable local KB for common genes, pathways, names, and Swiss-Prot-scale sequence search | `30-80 GB` including raw data and indexes | Monthly |
+| **Full** | Source mirrors and specialized full-text/sequence/RAG indexes | `~500 GB` | Quarterly |
+
+### Current Standard Data Sources
+
+The current Standard raw bundle lives under `/autodl-fs/data/open-rosalind-kb/standard/raw` and is about `60 GB`.
+
+Public dataset mirror: [`dnagpt/open-rosalind-kb-standard`](https://huggingface.co/datasets/dnagpt/open-rosalind-kb-standard).
+
+| Source | Local files | Use |
+|---|---|---|
+| UniProt Swiss-Prot | `uniprot_sprot.xml.gz`, `uniprot_sprot.fasta.gz`, `idmapping_selected.tab.gz` | Reviewed protein annotation, xrefs, local sequence search |
+| NCBI Gene | `gene_info.gz`, `gene2ensembl.gz`, `gene2pubmed.gz`, `gene2go.gz`, `gene2refseq.gz`, `gene_history.gz` | Gene identifiers, aliases, xrefs, Gene-PubMed/GO links |
+| HGNC | `hgnc_complete_set.txt` | Human gene symbols, aliases, Ensembl/UniProt/OMIM links |
+| Gene Ontology | `go-basic.obo`, `goa_human.gaf.gz` | GO term and human annotation support |
+| Reactome | `ReactomePathways.txt`, pathway relations, UniProt/NCBI mappings | Human pathway lookup and pathway-gene links |
+| ClinVar | `variant_summary.txt.gz`, `gene_specific_summary.txt`, `gene_condition_source_id` | Variant/gene clinical summary and gene-condition links |
+| Ensembl human | GRCh38 GTF, peptide FASTA, cDNA FASTA | Human gene/transcript/protein coordinate assets |
+| PubMed baseline | `pubmed26n*.xml.gz` | Local literature metadata/text indexing candidates |
+| Swiss-Prot BLAST FASTA | `swissprot.gz` plus generated FASTA | Local protein similarity search |
+
+### Current Standard Indexes
+
+The current first-pass Standard index lives under `/autodl-fs/data/open-rosalind-kb/standard/index` and is about `646 MB`.
+
+| Index | Path | Current contents |
+|---|---|---|
+| SQLite FTS5 text index | `open_rosalind_standard.sqlite` | 44,986 HGNC genes, 2,870 Reactome human pathways, 5,000 GO terms, 5,000 ClinVar gene summaries |
+| BLAST protein DB | `blast/swissprot.*` | Swiss-Prot protein database, 574,627 sequences |
+| Manifest | `manifest.json` | Build metadata, source root, counts, BLAST status |
+
+Build the simple Standard index from downloaded raw data:
+
+```bash
+# Download the Standard KB bundle from Hugging Face
+huggingface-cli download dnagpt/open-rosalind-kb-standard \
+  --repo-type dataset \
+  --local-dir /autodl-fs/data/open-rosalind-kb/standard
+```
+
+Rebuild the simple Standard index from downloaded raw data:
+
+```bash
+python -m open_rosalind.localdb.build_standard_index \
+  --root /autodl-fs/data/open-rosalind-kb/standard \
+  --limit hgnc=50000 \
+  --limit reactome_human=5000 \
+  --limit go_terms=5000 \
+  --limit clinvar_gene=5000 \
+  --limit ncbi_gene_human=0 \
+  --limit clinvar_variants=0 \
+  --limit pubmed=0 \
+  --smoke-query BRCA1 \
+  --smoke-query "DNA repair"
+```
+
+Build the Swiss-Prot BLAST DB if `makeblastdb` is installed:
+
+```bash
+makeblastdb \
+  -in /autodl-fs/data/open-rosalind-kb/standard/index/blast/swissprot.fasta \
+  -dbtype prot \
+  -parse_seqids \
+  -out /autodl-fs/data/open-rosalind-kb/standard/index/blast/swissprot
+```
+
+Smoke checks from the current Standard index:
+
+```bash
+# Text hit-rate smoke: BRCA1, TP53, EGFR, KRAS, DNA repair, apoptosis, MAPK, etc. hit 20/20.
+
+blastp -task blastp-short \
+  -query query.fa \
+  -db /autodl-fs/data/open-rosalind-kb/standard/index/blast/swissprot \
+  -outfmt "6 sseqid pident length evalue bitscore stitle" \
+  -max_target_seqs 5
+```
+
+The example peptide `MVKVGVNGFGRIGRLVTRA` returns Swiss-Prot GAPDH-family hits in the local BLAST DB.
+
+---
+
 ## 🧩 Architecture
 
 <p align="center">
@@ -298,6 +389,7 @@ task_traces/           JSONL multi-step task traces
 | [`docs/SKILLS_V2_DESIGN.md`](./docs/SKILLS_V2_DESIGN.md) | Modular skills architecture |
 | [`benchmark/BENCHMARK.md`](./benchmark/BENCHMARK.md) | Bench history + metric definitions |
 | [`benchmark/BIOBENCH_V1_DESIGN.md`](./benchmark/BIOBENCH_V1_DESIGN.md) | Bench task format + scoring |
+| [`develop/mvp5.md`](./develop/mvp5.md) | Local KB tiering, Standard/Full data plan, update cadence |
 
 ---
 
@@ -308,7 +400,8 @@ task_traces/           JSONL multi-step task traces
 - ✅ **mvp3** — Multi-step Harness (Planner + AgentAdapter + TaskRunner)
 - ✅ **mvp3.1** — Modular `skills_v2/` directory layout + auto-discovery
 - ✅ **mvp3.2** — Chat UI · Email auth · SQLite · in-session context · analytics · Docker
-- 🔜 **mvp4** — homology search (BLAST) · OAuth · admin dashboard · paper export
+- ✅ **mvp4** — Expanded skills · model-only routing · local/remote fallback UX · paper assets
+- 🔜 **mvp5** — Local knowledge base tiers · Standard raw bundle · SQLite FTS + BLAST indexes
 
 ---
 
