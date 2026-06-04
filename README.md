@@ -13,6 +13,7 @@
 Ask in natural language → get a structured scientific answer backed by UniProt, PubMed, and local computation. **No hallucinations** — every claim cites a tool output.
 
 Preprint: [Open-Rosalind: Tool-First Biomedical LLM Agents with Process-Aware Benchmarking](https://doi.org/10.64898/2026.05.06.722404).
+Demo: [Open-Rosalind demo](https://openrosalind.bio/).
 
 ```
 You: What is BRCA1?
