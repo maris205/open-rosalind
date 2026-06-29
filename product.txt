@@ -1,0 +1,1037 @@
+太棒了，这条路线可以直接开干。刚查了一下最新文档，**OpenHands 现在已经有 Agent Canvas 本地 Web GUI**，官方 quickstart 里说明 `agent-canvas` 可以启动完整本地栈，UI 默认在 `localhost:8000`；它也支持通过 `.openhands` 做 repository customization，并支持 Skills，Skills 可以作为 always-on context 或按需触发加载。([GitHub][1])
+
+模型侧也没问题。OpenHands 的 LLM 设置支持 LiteLLM / OpenAI-compatible endpoint；阿里云 Model Studio / DashScope 的 Qwen 模型也提供 OpenAI-compatible 接口，所以可以先把 Qwen 当成 OpenAI-compatible provider 接进去。([OpenHands Docs][2])
+
+下面这个可以直接丢给 Codex 作为设计方案和开发指令。
+
+# Open-Rosalind Edu v0.1 设计方案
+
+## 1. 项目目标
+
+构建一个基于 OpenHands + Qwen + Open-Rosalind Edu Skills 的生物医学学习与学术写作 Agent。
+
+产品定位：
+
+> Open-Rosalind Edu 是面向生物医学学生、研究生和青年科研人员的 AI 文献学习与学术写作助手。
+
+第一版目标不是做严肃可复现科研平台，而是做一个 Web-first 的轻量 Edu Agent，支持：
+
+1. 文献精读
+2. PDF 论文总结
+3. 综述大纲生成
+4. Introduction / Discussion 初稿
+5. 中文/英文论文润色
+6. 开题报告辅助
+7. 作业/课程报告辅导
+8. 引用与证据核验提醒
+9. Markdown / DOCX 导出
+
+重要边界：
+
+* Edu Mode 不保证科研可复现性。
+* 不提供临床诊断或治疗建议。
+* 不伪造 DOI、PMID、实验数据、统计结果或参考文献。
+* 所有输出默认为“学习与写作辅助草稿”，正式提交前必须人工核验。
+
+---
+
+## 2. 总体技术路线
+
+采用：
+
+```text
+OpenHands Agent Canvas / Web GUI
+    ↓
+OpenHands Agent Runtime
+    ↓
+Qwen API / DashScope / OpenAI-compatible endpoint
+    ↓
+Open-Rosalind Edu Skills
+    ↓
+Biomedical writing / literature / education workflows
+```
+
+第一阶段优先复用 OpenHands，不重写 agent runtime。
+
+核心原则：
+
+1. 先跑通 Web 版。
+2. 先接 Qwen 云端 API。
+3. 先用 prompt-based skills，不急着做复杂工具。
+4. 先限制危险执行权限。
+5. 后续再改造成独立 Open-Rosalind Edu Web 产品。
+
+---
+
+## 3. 第一阶段技术栈
+
+### Base
+
+* OpenHands / Agent Canvas
+* OpenHands Skills
+* OpenHands repository customization
+
+### Model
+
+优先支持：
+
+```text
+Qwen API / DashScope OpenAI-compatible endpoint
+```
+
+建议支持模型配置：
+
+```text
+qwen-plus
+qwen-max
+qwen-turbo
+qwen-long
+```
+
+后续支持：
+
+```text
+本地 Qwen via vLLM / Ollama / LMDeploy
+DeepSeek
+Gemma
+Kimi
+OpenAI-compatible third-party providers
+```
+
+### Frontend
+
+第一版先使用 OpenHands 自带 Web GUI。
+
+后续再改成：
+
+```text
+Next.js + Tailwind + shadcn/ui
+```
+
+### Backend
+
+第一版先使用 OpenHands backend。
+
+后续再加：
+
+```text
+FastAPI wrapper
+PostgreSQL
+Redis
+MinIO / S3
+Qdrant
+```
+
+---
+
+## 4. MVP 功能范围
+
+### 必做功能
+
+1. OpenHands 本地 Web 跑通
+2. Qwen API 接入
+3. Open-Rosalind Edu system prompt
+4. `.openhands` repo customization
+5. 8 个基础 Edu Skills
+6. PDF 上传后的论文总结流程
+7. 文献/综述/润色/开题四个入口 prompt
+8. Markdown 导出
+9. DOCX 导出，若短期不方便，可先输出 Markdown
+10. 每次输出自动附加 Edu disclaimer
+
+### 暂不做
+
+1. 多用户权限系统
+2. 复杂计费系统
+3. 完整 PubMed API 集成
+4. 完整引用数据库
+5. 完整可复现科研 pipeline
+6. 医学诊断/治疗建议
+7. 自动投稿
+8. 自动代写完整论文并伪装人工写作
+9. 任意 shell 执行开放给普通用户
+
+---
+
+## 5. 推荐目录结构
+
+在 OpenHands 目标 repo 中建立：
+
+```text
+open-rosalind-edu/
+│
+├── .openhands/
+│   ├── AGENTS.md
+│   ├── setup.sh
+│   └── skills/
+│       ├── paper_summary/
+│       │   └── SKILL.md
+│       ├── literature_review/
+│       │   └── SKILL.md
+│       ├── manuscript_polish/
+│       │   └── SKILL.md
+│       ├── introduction_draft/
+│       │   └── SKILL.md
+│       ├── discussion_draft/
+│       │   └── SKILL.md
+│       ├── thesis_proposal/
+│       │   └── SKILL.md
+│       ├── citation_check/
+│       │   └── SKILL.md
+│       └── homework_tutor/
+│           └── SKILL.md
+│
+├── docs/
+│   ├── product.md
+│   ├── safety.md
+│   ├── skill_spec.md
+│   └── roadmap.md
+│
+├── examples/
+│   ├── paper_summary_example.md
+│   ├── review_outline_example.md
+│   ├── polish_example.md
+│   └── thesis_proposal_example.md
+│
+├── exports/
+│   └── README.md
+│
+├── prompts/
+│   ├── system_edu.md
+│   ├── disclaimer.md
+│   ├── writing_policy.md
+│   └── citation_policy.md
+│
+└── README.md
+```
+
+---
+
+## 6. `.openhands/AGENTS.md`
+
+请创建文件：
+
+```markdown
+# Open-Rosalind Edu Agent
+
+You are Open-Rosalind Edu, a biomedical learning and academic writing assistant.
+
+Your role is to help biomedical students, graduate students, and early-career researchers understand literature, draft academic text, improve manuscripts, organize references, and prepare educational materials.
+
+## Product Mode
+
+You are running in Edu Mode.
+
+Edu Mode is for:
+- learning support
+- literature reading
+- academic writing assistance
+- draft generation
+- manuscript polishing
+- thesis proposal preparation
+- course report assistance
+- biomedical concept explanation
+
+Edu Mode is not:
+- a clinical decision system
+- a reproducible research execution engine
+- a substitute for original literature verification
+- a substitute for statistical analysis
+- a tool for fabricating references or data
+
+## Core Rules
+
+1. Do not fabricate DOI, PMID, authors, journals, datasets, experimental results, p-values, sample sizes, or citations.
+2. If evidence is missing, explicitly say that manual verification is required.
+3. Clearly distinguish facts, user-provided information, and model-generated suggestions.
+4. For biomedical claims, recommend checking original literature.
+5. For medical or clinical topics, do not provide diagnosis or treatment advice.
+6. For homework-like tasks, prefer tutoring, explanation, outline, and reasoning support over simply giving final answers.
+7. Generated writing must be marked as draft text.
+8. Never claim that generated text is experimentally validated.
+9. If the user uploads a paper, summarize only what is available in the paper or clearly label inferred content.
+10. At the end of substantial outputs, add the Edu Mode disclaimer.
+
+## Default Output Style
+
+Use Chinese by default unless the user asks for English.
+
+Prefer structured outputs:
+- title
+- summary
+- bullet points
+- tables when useful
+- draft sections
+- verification checklist
+
+## Default Disclaimer
+
+提示：当前为 Open-Rosalind Edu 模式，输出仅用于学习、写作辅助和初稿生成，不保证结论、引用、实验方案或统计解释完全正确。正式提交、发表或用于科研决策前，请人工核验原始文献、数据和引用。本系统不提供临床诊断或治疗建议。
+```
+
+---
+
+## 7. `paper_summary` Skill
+
+创建：
+
+```text
+.openhands/skills/paper_summary/SKILL.md
+```
+
+内容：
+
+```markdown
+# Paper Summary Skill
+
+Use this skill when the user uploads, pastes, or refers to a biomedical paper.
+
+## Purpose
+
+Help the user quickly understand a biomedical paper and convert it into structured study notes.
+
+## Input
+
+Possible inputs:
+- PDF content
+- paper title
+- abstract
+- DOI
+- PMID
+- copied paper text
+- user question about the paper
+
+## Output Structure
+
+Return the answer in Chinese unless the user asks otherwise.
+
+Use this structure:
+
+1. 论文一句话总结
+2. 研究背景
+3. 核心科学问题
+4. 研究对象 / 数据来源
+5. 方法概述
+6. 主要结果
+7. 作者结论
+8. 局限性
+9. 可以用于写作引用的点
+10. 需要人工核验的点
+
+## Rules
+
+- Do not invent results not present in the input.
+- Do not invent PMID, DOI, authors, journal, or year.
+- If the paper is incomplete, say which parts are missing.
+- If the user asks for a critical review, include strengths and weaknesses.
+- If the user asks for a Chinese summary, keep terminology accurate and natural.
+- If the user asks for English output, write in academic English.
+- Always include a manual verification checklist.
+```
+
+---
+
+## 8. `literature_review` Skill
+
+创建：
+
+```text
+.openhands/skills/literature_review/SKILL.md
+```
+
+内容：
+
+```markdown
+# Literature Review Skill
+
+Use this skill when the user wants to write a review, related work section, background section, or literature overview.
+
+## Purpose
+
+Generate a structured literature review framework for biomedical topics.
+
+## Input
+
+- research topic
+- disease area
+- biological mechanism
+- technology area
+- uploaded references
+- user-specified angle
+
+## Output Structure
+
+1. 推荐综述标题
+2. 综述核心问题
+3. 章节大纲
+4. 每一节应讨论的关键内容
+5. 推荐检索关键词
+6. 关键证据类型
+7. 潜在图表设计
+8. 写作风险和需要核验的地方
+
+## Rules
+
+- Do not fabricate specific references.
+- If no literature search was performed, say clearly that references are suggested search directions, not verified citations.
+- Prefer giving search terms rather than fake citations.
+- For controversial biomedical topics, mention uncertainty and conflicting evidence.
+```
+
+---
+
+## 9. `manuscript_polish` Skill
+
+创建：
+
+```text
+.openhands/skills/manuscript_polish/SKILL.md
+```
+
+内容：
+
+```markdown
+# Manuscript Polish Skill
+
+Use this skill when the user asks to polish, rewrite, improve, translate, or reduce AI-like style in biomedical academic writing.
+
+## Purpose
+
+Improve clarity, academic tone, logic, and readability of biomedical manuscripts.
+
+## Input
+
+- Chinese paragraph
+- English paragraph
+- manuscript section
+- target journal style
+- desired tone
+
+## Output Structure
+
+For English polishing:
+
+1. Polished Version
+2. Key Changes
+3. Potential Scientific Ambiguities
+4. Terms That Need Verification
+
+For Chinese polishing:
+
+1. 润色版本
+2. 修改说明
+3. 可能存在的科学表述风险
+4. 需要作者确认的信息
+
+## Rules
+
+- Do not change scientific meaning unless explicitly asked.
+- Do not add new results.
+- Do not overclaim.
+- Preserve technical terms.
+- If the original text is scientifically ambiguous, point it out.
+```
+
+---
+
+## 10. `introduction_draft` Skill
+
+创建：
+
+```text
+.openhands/skills/introduction_draft/SKILL.md
+```
+
+内容：
+
+```markdown
+# Introduction Draft Skill
+
+Use this skill when the user asks to draft an Introduction, Background, or Rationale section.
+
+## Purpose
+
+Generate an academic introduction draft for biomedical manuscripts or thesis proposals.
+
+## Output Structure
+
+1. 写作逻辑框架
+2. Introduction 初稿
+3. 每段功能说明
+4. 需要补充引用的位置
+5. 需要人工核验的科学事实
+
+## Preferred Structure
+
+Paragraph 1: Broad biomedical background  
+Paragraph 2: Specific disease/mechanism/problem  
+Paragraph 3: Current research gap  
+Paragraph 4: Study objective and hypothesis  
+Paragraph 5: Expected contribution
+
+## Rules
+
+- Mark citation placeholders as [需要引用].
+- Do not invent citations.
+- Avoid exaggerated novelty claims.
+- Do not claim clinical efficacy without evidence.
+```
+
+---
+
+## 11. `discussion_draft` Skill
+
+创建：
+
+```text
+.openhands/skills/discussion_draft/SKILL.md
+```
+
+内容：
+
+```markdown
+# Discussion Draft Skill
+
+Use this skill when the user provides results and asks to draft a Discussion section.
+
+## Purpose
+
+Help transform biomedical results into a cautious academic Discussion draft.
+
+## Input
+
+- result summary
+- figures/tables description
+- statistical outputs
+- study objective
+- comparison literature if provided
+
+## Output Structure
+
+1. Discussion 写作逻辑
+2. Discussion 初稿
+3. 结果解释
+4. 与既有研究的关系
+5. 可能机制
+6. 局限性
+7. 未来工作
+8. 需要作者确认的数据点
+
+## Rules
+
+- Do not invent results.
+- Do not infer causality from correlation unless justified.
+- Do not claim clinical application prematurely.
+- Use cautious language: may, suggest, indicate, is consistent with.
+- Mark unsupported claims as needing verification.
+```
+
+---
+
+## 12. `thesis_proposal` Skill
+
+创建：
+
+```text
+.openhands/skills/thesis_proposal/SKILL.md
+```
+
+内容：
+
+```markdown
+# Thesis Proposal Skill
+
+Use this skill when the user asks for a thesis proposal, opening report, research plan, or project proposal.
+
+## Purpose
+
+Help biomedical students prepare structured thesis proposal drafts.
+
+## Output Structure
+
+1. 课题名称
+2. 研究背景
+3. 科学问题
+4. 研究目标
+5. 研究内容
+6. 技术路线
+7. 创新点
+8. 可行性分析
+9. 预期结果
+10. 时间计划
+11. 风险与替代方案
+12. 需要补充的文献和数据
+
+## Rules
+
+- Do not overstate innovation.
+- Do not fabricate preliminary data.
+- If the proposal requires experiments, state that feasibility must be confirmed by the lab.
+- Mark citation placeholders clearly.
+```
+
+---
+
+## 13. `citation_check` Skill
+
+创建：
+
+```text
+.openhands/skills/citation_check/SKILL.md
+```
+
+内容：
+
+```markdown
+# Citation Check Skill
+
+Use this skill when the user asks whether references support specific claims, or when the user wants citation suggestions.
+
+## Purpose
+
+Help identify whether a biomedical claim requires evidence and whether supplied references appear relevant.
+
+## Output Structure
+
+1. 原句 / claim
+2. 需要引用吗？
+3. 需要哪类证据？
+4. 已提供引用是否可能支持？
+5. 风险等级
+6. 建议修改
+7. 需要人工核验的地方
+
+## Rules
+
+- Do not invent references.
+- If source text is not provided, do not claim a citation supports the statement.
+- Use risk labels:
+  - Low: general background claim
+  - Medium: specific biomedical mechanism
+  - High: clinical efficacy, diagnostic accuracy, treatment effect, survival benefit, safety claim
+```
+
+---
+
+## 14. `homework_tutor` Skill
+
+创建：
+
+```text
+.openhands/skills/homework_tutor/SKILL.md
+```
+
+内容：
+
+```markdown
+# Homework Tutor Skill
+
+Use this skill when the user asks for help with homework, coursework, exam preparation, or student reports.
+
+## Purpose
+
+Provide learning-oriented support rather than dishonest direct submission.
+
+## Output Structure
+
+1. 题目理解
+2. 解题思路
+3. 关键知识点
+4. 示例答案 / 草稿
+5. 如何自己完善
+6. 常见错误
+
+## Rules
+
+- Prefer explanation and scaffolding.
+- If producing a draft, label it as a draft.
+- Do not encourage academic misconduct.
+- Encourage the user to adapt and verify the answer.
+```
+
+---
+
+## 15. `graphical_abstract` Skill，可第二阶段做
+
+创建：
+
+```text
+.openhands/skills/graphical_abstract/SKILL.md
+```
+
+内容：
+
+```markdown
+# Graphical Abstract Prompt Skill
+
+Use this skill when the user wants a mechanism figure, workflow diagram, graphical abstract, or figure prompt.
+
+## Purpose
+
+Convert biomedical concepts into figure design plans and image-generation prompts.
+
+## Output Structure
+
+1. 图的核心信息
+2. 推荐版式
+3. 元素列表
+4. 箭头关系
+5. 标签文字
+6. 中文提示词
+7. 英文提示词
+8. 注意事项
+
+## Rules
+
+- Do not include unsupported molecular interactions as facts.
+- If the pathway is uncertain, mark it as hypothetical.
+- Keep labels concise.
+```
+
+---
+
+## 16. Qwen 接入建议
+
+优先通过 OpenAI-compatible endpoint 接入。
+
+需要环境变量：
+
+```bash
+export DASHSCOPE_API_KEY="your_api_key"
+export QWEN_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export QWEN_MODEL="qwen-plus"
+```
+
+在 OpenHands LLM advanced settings 中配置：
+
+```text
+Provider: OpenAI-compatible / Custom
+Custom Model: openai/qwen-plus
+Base URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+API Key: ${DASHSCOPE_API_KEY}
+```
+
+如果 OpenHands 当前版本更推荐 LiteLLM Proxy，则增加 LiteLLM proxy 配置：
+
+```yaml
+model_list:
+  - model_name: qwen-plus
+    litellm_params:
+      model: dashscope/qwen-plus
+      api_key: os.environ/DASHSCOPE_API_KEY
+```
+
+然后 OpenHands 里配置：
+
+```text
+Custom Model: litellm_proxy/qwen-plus
+Base URL: http://localhost:4000
+API Key: any-non-empty-key
+```
+
+---
+
+## 17. 安全与权限限制
+
+第一版作为 Edu Web，必须限制 OpenHands 默认工程 agent 的危险能力。
+
+建议配置策略：
+
+```text
+禁用或限制：
+- 任意 shell command
+- 任意外部网络下载脚本
+- 任意读取宿主机敏感目录
+- 自动 git push
+- 自动发布内容
+- 自动提交作业/论文
+- 自动访问用户私人账号
+
+允许：
+- 读取用户上传的论文
+- 解析 PDF
+- 生成 Markdown
+- 生成 DOCX
+- 调用受控文献搜索接口
+- 调用受控导出脚本
+```
+
+如果短期无法精细禁用能力，则先仅限开发者内测，不对学生开放真实公网服务。
+
+---
+
+## 18. MVP 页面与入口
+
+第一版直接使用 OpenHands Web GUI，但需要通过 README 和默认 prompt 引导用户。
+
+后续独立前端需要四个入口：
+
+```text
+1. 文献精读
+2. 综述写作
+3. 论文润色
+4. 开题/作业助手
+```
+
+每个入口对应一个预设 prompt。
+
+### 文献精读入口 prompt
+
+```text
+请使用 Paper Summary Skill 帮我精读这篇生物医学论文。请输出：一句话总结、研究背景、核心问题、方法、主要结果、局限性、可引用点、需要人工核验的地方。
+```
+
+### 综述写作入口 prompt
+
+```text
+请使用 Literature Review Skill，围绕以下主题生成一个生物医学综述大纲，包括章节结构、每节写作要点、推荐检索关键词、潜在图表设计和需要核验的科学问题。
+```
+
+### 论文润色入口 prompt
+
+```text
+请使用 Manuscript Polish Skill 润色下面这段学术文本。要求保持科学含义不变，提高逻辑、清晰度和学术表达，并指出可能存在的科学表述风险。
+```
+
+### 开题报告入口 prompt
+
+```text
+请使用 Thesis Proposal Skill，围绕以下研究方向生成开题报告草稿，包括研究背景、科学问题、研究目标、研究内容、技术路线、创新点、可行性分析、预期结果和时间计划。
+```
+
+---
+
+## 19. 第一阶段开发任务清单
+
+### Task 1：跑通 OpenHands
+
+目标：
+
+* 本地启动 OpenHands / Agent Canvas
+* 可以进入 Web GUI
+* 可以新建 conversation
+* 可以使用默认模型完成普通对话
+
+验收标准：
+
+```text
+打开 localhost:8000 后可以看到 OpenHands Web UI，并能完成一次简单对话。
+```
+
+---
+
+### Task 2：接入 Qwen
+
+目标：
+
+* 使用 DashScope / Qwen OpenAI-compatible endpoint
+* 支持 qwen-plus
+* 支持 qwen-max，可选
+* 写入配置说明
+
+验收标准：
+
+```text
+OpenHands Web UI 中选择 Qwen 后，可以完成中文生物医学写作问答。
+```
+
+---
+
+### Task 3：加入 Open-Rosalind Edu Agent Profile
+
+目标：
+
+* 创建 `.openhands/AGENTS.md`
+* 注入 Edu Mode system behavior
+* 默认中文回答
+* 默认输出 disclaimer
+
+验收标准：
+
+```text
+当用户问“你是谁”时，系统回答 Open-Rosalind Edu，并说明 Edu Mode 边界。
+```
+
+---
+
+### Task 4：加入 8 个 Skills
+
+目标：
+
+创建：
+
+```text
+paper_summary
+literature_review
+manuscript_polish
+introduction_draft
+discussion_draft
+thesis_proposal
+citation_check
+homework_tutor
+```
+
+验收标准：
+
+```text
+用户明确要求“使用 Paper Summary Skill”时，agent 按该 skill 的结构输出。
+```
+
+---
+
+### Task 5：准备 examples
+
+目标：
+
+创建 examples 文件夹，放入 4 个示例：
+
+```text
+paper_summary_example.md
+review_outline_example.md
+polish_example.md
+thesis_proposal_example.md
+```
+
+验收标准：
+
+```text
+README 中可以直接复制示例 prompt 进行测试。
+```
+
+---
+
+### Task 6：Markdown 导出
+
+目标：
+
+* 让 agent 默认输出 Markdown 格式
+* 所有长文输出结构化
+* 可直接复制保存为 `.md`
+
+验收标准：
+
+```text
+输出内容可以直接保存为 Markdown 文件。
+```
+
+---
+
+### Task 7：DOCX 导出，可选
+
+目标：
+
+实现一个简单 Python 脚本：
+
+```text
+scripts/md_to_docx.py
+```
+
+输入：
+
+```text
+input.md
+```
+
+输出：
+
+```text
+output.docx
+```
+
+验收标准：
+
+```text
+python scripts/md_to_docx.py input.md output.docx
+```
+
+可以生成 Word 文件。
+
+---
+
+## 20. README 草稿
+
+创建 `README.md`：
+
+```markdown
+# Open-Rosalind Edu
+
+Open-Rosalind Edu is a biomedical learning and academic writing agent built with OpenHands, Qwen, and domain-specific Edu Skills.
+
+## Positioning
+
+Open-Rosalind Edu helps biomedical students and early-career researchers with:
+
+- paper reading
+- literature review outlines
+- manuscript polishing
+- introduction and discussion drafting
+- thesis proposal preparation
+- homework tutoring
+- citation checking
+
+## Important Disclaimer
+
+Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assistance only. It does not guarantee scientific reproducibility, citation accuracy, statistical validity, or clinical correctness. Users must verify all outputs before academic submission or research use.
+
+## Quick Start
+
+1. Start OpenHands / Agent Canvas.
+2. Configure Qwen API.
+3. Open the project repository.
+4. Use the predefined Edu Skills under `.openhands/skills`.
+5. Start with the example prompts in `examples/`.
+
+## Recommended Model
+
+- qwen-plus for default use
+- qwen-max for higher-quality writing
+- qwen-long for long documents
+
+## Core Skills
+
+- Paper Summary
+- Literature Review
+- Manuscript Polish
+- Introduction Draft
+- Discussion Draft
+- Thesis Proposal
+- Citation Check
+- Homework Tutor
+```
+
+---
+
+## 21. 给 Codex 的直接开发指令
+
+请从当前空 repo 开始，完成 Open-Rosalind Edu v0.1 的工程骨架。
+
+要求：
+
+1. 创建 `.openhands/AGENTS.md`
+2. 创建 `.openhands/skills/` 下的 8 个 Skill
+3. 创建 `prompts/` 文档
+4. 创建 `examples/` 示例
+5. 创建 `docs/` 设计文档
+6. 创建 `README.md`
+7. 创建可选的 `scripts/md_to_docx.py`
+8. 不要实现复杂数据库、登录、计费
+9. 不要接入真实 PubMed API，先保留 TODO
+10. 所有输出默认中文
+11. 所有 biomedical claims 必须提示人工核验
+12. 不得伪造 citation、PMID、DOI
+13. 在 README 中说明 Qwen 接入方式
+14. 项目目标是先在 OpenHands Web GUI 里作为 biomedical education agent 跑起来
+
+完成后，请输出：
+
+1. 文件树
+2. 每个文件的作用
+3. 本地启动步骤
+4. Qwen 配置步骤
+5. 4 个测试 prompt
+6. 后续 TODO
+
+我建议你第一步就让 Codex 做“**repo 骨架 + `.openhands/AGENTS.md` + 8 个 Skill**”，先别让它改 OpenHands 源码。跑通以后，再决定是继续魔改 OpenHands 前端，还是自己做 Next.js 前端。
+
+[1]: https://github.com/OpenHands/openhands?utm_source=chatgpt.com "OpenHands: AI-Driven Development"
+[2]: https://docs.openhands.dev/openhands/usage/llms/openai-llms?utm_source=chatgpt.com "OpenAI - OpenHands Docs"

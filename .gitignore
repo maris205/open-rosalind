@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+exports/*.docx
+exports/*.md
+!exports/README.md
+web_app/*.log
+web_app/__pycache__/
+%SystemDrive%/

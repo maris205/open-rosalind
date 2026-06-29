@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open-Rosalind Edu</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <canvas id="signalCanvas" width="80" height="44" aria-hidden="true"></canvas>
+          <div>
+            <h1>Open-Rosalind Edu</h1>
+            <p>Biomedical learning and writing workspace</p>
+          </div>
+        </div>
+
+        <section class="panel">
+          <h2>Agents</h2>
+          <div id="skillList" class="skill-list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Paper / BibTeX</h2>
+          <div id="dropZone" class="upload-box">
+            <input id="documentFile" type="file" accept=".pdf,.bib,.txt,.md,.markdown,.csv,.tsv,.json,.docx" />
+            <strong>Upload paper or bibliography</strong>
+            <span>pdf, bib, txt, md, docx · max 12 MB</span>
+          </div>
+          <div class="upload-actions">
+            <button id="uploadReplace" type="button">Replace</button>
+            <button id="uploadAppend" type="button">Append</button>
+          </div>
+          <p id="uploadStatus" class="hint">PDF 会进入文献精读；BibTeX 会进入参考验证。</p>
+        </section>
+
+        <section class="panel">
+          <h2>Qwen</h2>
+          <label>
+            Base URL
+            <input id="baseUrl" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Model
+            <input id="model" type="text" spellcheck="false" />
+          </label>
+          <label>
+            API Key
+            <input id="apiKey" type="password" placeholder="临时粘贴，不写入文件" />
+          </label>
+          <p id="keyStatus" class="hint"></p>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <h2>Edu Agent Console</h2>
+            <p id="activePurpose">选择一个论文流程 Agent 后输入任务。</p>
+          </div>
+          <div class="toolbar">
+            <button id="verifyRefs" type="button" title="验证参考文献">Verify Refs</button>
+            <button id="copyOutput" type="button" title="复制输出">Copy</button>
+            <button id="clearInput" type="button" title="清空输入">Clear</button>
+          </div>
+        </header>
+
+        <section class="quick-prompts" aria-label="Quick prompts">
+          <button type="button" data-template="paper">文献精读</button>
+          <button type="button" data-template="review">综述大纲</button>
+          <button type="button" data-template="polish">论文润色</button>
+          <button type="button" data-template="proposal">开题报告</button>
+          <button type="button" data-template="refs">参考验证</button>
+        </section>
+
+        <section class="editor-grid">
+          <div class="editor-pane">
+            <div class="pane-title">
+              <h3>Input</h3>
+              <span id="selectedSkill">paper_summary</span>
+            </div>
+            <textarea id="taskInput" spellcheck="false"></textarea>
+            <div class="actions">
+              <label class="temperature">
+                Temperature
+                <input id="temperature" type="range" min="0" max="1" step="0.1" value="0.3" />
+                <span id="temperatureValue">0.3</span>
+              </label>
+              <button id="generate" type="button">Generate</button>
+            </div>
+          </div>
+
+          <div class="output-pane">
+            <div class="pane-title">
+              <h3>Output</h3>
+              <span id="modeBadge">ready</span>
+            </div>
+            <pre id="output"></pre>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
