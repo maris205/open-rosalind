@@ -1,0 +1,20 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-rosalind.local/schemas/agent/tool_call.schema.json",
+  "title": "Open-Rosalind Agent Tool Call Log",
+  "type": "object",
+  "required": ["id", "tool", "input", "status", "timestamp"],
+  "properties": {
+    "id": {"type": "string"},
+    "task_id": {"type": "string"},
+    "tool": {"type": "string"},
+    "permission_level": {"type": "integer", "minimum": 0, "maximum": 5},
+    "input": {"type": "object"},
+    "output_summary": {"type": "string"},
+    "output_refs": {"type": "array", "items": {"type": "string"}},
+    "status": {"type": "string", "enum": ["planned", "running", "success", "failed", "skipped"]},
+    "error": {"type": "string"},
+    "timestamp": {"type": "string"},
+    "duration_ms": {"type": "integer"}
+  }
+}

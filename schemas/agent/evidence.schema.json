@@ -1,0 +1,18 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-rosalind.local/schemas/agent/evidence.schema.json",
+  "title": "Open-Rosalind Agent Evidence Record",
+  "type": "object",
+  "required": ["source_id", "source_type", "locator", "excerpt", "verification_status"],
+  "properties": {
+    "source_id": {"type": "string"},
+    "source_type": {"type": "string", "enum": ["paper", "sequence", "dataset", "protocol", "note", "guideline", "reference", "tool_output"]},
+    "title": {"type": "string"},
+    "locator": {"type": "string"},
+    "excerpt": {"type": "string"},
+    "metadata": {"type": "object"},
+    "verification_status": {"type": "string", "enum": ["verified", "candidate", "unverified", "conflict"]},
+    "created_by": {"type": "string"},
+    "created_at": {"type": "string"}
+  }
+}

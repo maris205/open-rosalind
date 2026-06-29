@@ -1,5 +1,38 @@
-﻿const agentGroups = [
+const agentGroups = [
   {
+    id: "agent",
+    title: "Agent 正式版",
+    agents: [
+      {
+        id: "agent_planner",
+        title: "任务规划 Agent",
+        skill: "agent-planner",
+        purpose: "把科研目标拆成可审批、可执行、可追溯的任务计划。",
+        template: "请把下面的科研目标拆解成一个可审批的 Agent 执行计划。请列出步骤、工具、输入来源、输出、权限等级、风险和需要我确认的地方。\n\n科研目标："
+      },
+      {
+        id: "memory_manager",
+        title: "Memory Agent",
+        skill: "memory-manager",
+        purpose: "维护项目记忆、证据记忆、任务记忆和决策记录。",
+        template: "请把下面的信息整理成 Open-Rosalind Agent 的结构化 memory update。区分用户提供事实、证据、推断、决策和开放问题。\n\n信息："
+      },
+      {
+        id: "tool_audit",
+        title: "工具审计 Agent",
+        skill: "tool-audit",
+        purpose: "审查工具调用的权限、输入来源、输出和可复现性。",
+        template: "请审计以下计划中或已完成的工具调用。请检查权限等级、输入来源、输出、失败风险、可复现性和是否需要人工确认。\n\n工具调用记录或计划："
+      },
+      {
+        id: "agent_report_builder",
+        title: "可追溯报告 Agent",
+        skill: "agent-report-builder",
+        purpose: "把任务计划、证据、工具日志和结论编成可追溯报告。",
+        template: "请根据以下任务计划、证据、工具日志和结论生成可追溯研究报告。每个主要结论都要连接证据或标注未验证。\n\n材料："
+      }
+    ]
+  },{
     id: "reading",
     title: "文献阅读",
     agents: [
@@ -222,7 +255,7 @@ function renderSkills() {
   for (const group of agentGroups) {
     const details = document.createElement("details");
     details.className = "agent-group";
-    details.open = group.id === "reading" || group.agents.some((agent) => agent.id === state.agentId);
+    details.open = group.id === "agent" || group.id === "reading" || group.agents.some((agent) => agent.id === state.agentId);
     const summary = document.createElement("summary");
     summary.textContent = group.title;
     details.appendChild(summary);

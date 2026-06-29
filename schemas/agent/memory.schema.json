@@ -1,0 +1,37 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-rosalind.local/schemas/agent/memory.schema.json",
+  "title": "Open-Rosalind Agent Memory",
+  "type": "object",
+  "required": ["project", "evidence", "tasks", "decisions", "updated_at"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "research_questions": {"type": "array", "items": {"type": "string"}},
+        "hypotheses": {"type": "array", "items": {"type": "string"}},
+        "scope": {"type": "string"},
+        "glossary": {"type": "object", "additionalProperties": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "evidence": {"type": "array", "items": {"$ref": "./evidence.schema.json"}},
+    "tasks": {"type": "array", "items": {"$ref": "./task_plan.schema.json"}},
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["decision", "rationale", "timestamp"],
+        "properties": {
+          "decision": {"type": "string"},
+          "rationale": {"type": "string"},
+          "source_ids": {"type": "array", "items": {"type": "string"}},
+          "timestamp": {"type": "string"}
+        }
+      }
+    },
+    "updated_at": {"type": "string"}
+  }
+}

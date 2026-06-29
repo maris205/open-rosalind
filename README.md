@@ -76,11 +76,13 @@ Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assi
 | `docs/safety.md` | Safety boundaries and recommended permission limits |
 | `docs/skill_spec.md` | Skill list, structure, and shared rules |
 | `docs/roadmap.md` | v0.1 through later-phase roadmap |
+| `docs/agent.md` | Agent branch positioning, memory/planning/tool-audit architecture, and permission levels |
 | `examples/*.md` | Copyable test prompts |
 | `examples/reference_verification_example.bib` | BibTeX upload and reference verification example |
 | `exports/README.md` | Export workflow notes |
 | `scripts/md_to_docx.py` | Simple Markdown to DOCX converter |
 | `requirements.txt` | Python dependencies for DOCX export and document upload parsing |
+| `schemas/agent/*.json` | Agent memory, task plan, tool-call, and evidence schemas |
 | `.env.example` | Qwen / DashScope environment variable template |
 
 ## Local Start
@@ -185,6 +187,27 @@ API Key: any-non-empty-key
 ```
 
 
+
+
+## Open-Rosalind Agent
+
+The `agent` branch starts the independent Agent version. Edu remains the beginner product; Agent is for research execution workflows with memory, task planning, tool audit, and traceable reports.
+
+Current Agent modules:
+
+- Task Planner Agent
+- Memory Agent
+- Tool Audit Agent
+- Traceable Report Agent
+
+Current contracts:
+
+- `schemas/agent/memory.schema.json`
+- `schemas/agent/task_plan.schema.json`
+- `schemas/agent/tool_call.schema.json`
+- `schemas/agent/evidence.schema.json`
+
+Claude Code / Agent Skills-compatible files live under `.claude/skills/`.
 
 ## Workflow Agents
 

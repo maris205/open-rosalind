@@ -1,0 +1,30 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-rosalind.local/schemas/agent/task_plan.schema.json",
+  "title": "Open-Rosalind Agent Task Plan",
+  "type": "object",
+  "required": ["goal", "status", "steps", "risk_level"],
+  "properties": {
+    "goal": {"type": "string"},
+    "status": {"type": "string", "enum": ["draft", "awaiting_approval", "in_progress", "complete", "blocked"]},
+    "risk_level": {"type": "string", "enum": ["low", "medium", "high"]},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "action", "expected_output", "permission_level"],
+        "properties": {
+          "id": {"type": "string"},
+          "action": {"type": "string"},
+          "tool": {"type": "string"},
+          "input_refs": {"type": "array", "items": {"type": "string"}},
+          "expected_output": {"type": "string"},
+          "permission_level": {"type": "integer", "minimum": 0, "maximum": 5},
+          "requires_confirmation": {"type": "boolean"}
+        }
+      }
+    },
+    "open_questions": {"type": "array", "items": {"type": "string"}}
+  }
+}
