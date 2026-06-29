@@ -1,5 +1,52 @@
-﻿const agentGroups = [
+const agentGroups = [
   {
+    id: "research",
+    title: "Research 正式版",
+    agents: [
+      {
+        id: "research_question",
+        title: "研究问题 Agent",
+        skill: "research-question",
+        purpose: "把模糊课题转成可检索、可验证、可执行的研究问题。",
+        template: "请把下面这个生物医学研究想法整理成可检索、可验证、可执行的研究问题。请拆解关键实体、研究边界、证据需求和推荐检索词。\n\n研究想法："
+      },
+      {
+        id: "evidence_retrieval",
+        title: "证据检索 Agent",
+        skill: "evidence-retrieval",
+        purpose: "面向未来 RAG 库，按来源片段整理证据和 claim。",
+        template: "请基于我提供的来源片段或文档内容整理证据表。不要编造来源；如果没有实际检索，请明确说明。\n\n检索问题：\n\n来源内容或 RAG 片段："
+      },
+      {
+        id: "claim_audit",
+        title: "Claim 审计 Agent",
+        skill: "claim-audit",
+        purpose: "逐条审查 claim 是否被证据支持、是否过度推断。",
+        template: "请审计以下 biomedical claims 是否被证据支持。请给出风险等级、证据缺口和建议改写。\n\nClaims：\n\n证据或参考文献："
+      },
+      {
+        id: "protocol_draft",
+        title: "实验方案 Agent",
+        skill: "protocol-draft",
+        purpose: "生成需要人工审核的实验/验证方案草稿。",
+        template: "请为以下研究目标生成实验或验证方案草稿。请列出目标、材料/数据需求、流程、对照、质量控制、风险和需要人工确认的条件。\n\n研究目标："
+      },
+      {
+        id: "analysis_plan",
+        title: "分析计划 Agent",
+        skill: "analysis-plan",
+        purpose: "规划生信、统计、组学或序列分析流程。",
+        template: "请为以下数据和研究问题生成可复核的数据分析计划。请包括输入数据、质控、预处理、主分析、统计模型、可视化、可重复性清单和限制。\n\n研究问题：\n\n数据说明："
+      },
+      {
+        id: "research_report",
+        title: "可追溯报告 Agent",
+        skill: "research-report",
+        purpose: "把证据表、claim 和不确定性整理成可追溯报告。",
+        template: "请把以下证据、claim、分析备注整理成可追溯研究报告。每个主要结论都要保留来源或标注未验证。\n\n研究问题：\n\n证据与备注："
+      }
+    ]
+  },{
     id: "reading",
     title: "文献阅读",
     agents: [
@@ -222,7 +269,7 @@ function renderSkills() {
   for (const group of agentGroups) {
     const details = document.createElement("details");
     details.className = "agent-group";
-    details.open = group.id === "reading" || group.agents.some((agent) => agent.id === state.agentId);
+    details.open = group.id === "research" || group.id === "reading" || group.agents.some((agent) => agent.id === state.agentId);
     const summary = document.createElement("summary");
     summary.textContent = group.title;
     details.appendChild(summary);

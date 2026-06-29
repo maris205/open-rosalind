@@ -76,6 +76,7 @@ Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assi
 | `docs/safety.md` | Safety boundaries and recommended permission limits |
 | `docs/skill_spec.md` | Skill list, structure, and shared rules |
 | `docs/roadmap.md` | v0.1 through later-phase roadmap |
+| `docs/research.md` | Research branch positioning, RAG-ready contract, and trust rules |
 | `examples/*.md` | Copyable test prompts |
 | `examples/reference_verification_example.bib` | BibTeX upload and reference verification example |
 | `exports/README.md` | Export workflow notes |
@@ -185,6 +186,24 @@ API Key: any-non-empty-key
 ```
 
 
+
+
+## Open-Rosalind Research
+
+The `research` branch adds a higher-level research workflow layer while keeping Edu workflows intact.
+
+Research agents are designed for evidence-grounded work:
+
+- Research Question Agent
+- Evidence Retrieval Agent
+- Claim Audit Agent
+- Protocol Draft Agent
+- Analysis Plan Agent
+- Research Report Agent
+
+The full RAG library is intentionally deferred. Current Research skills define the interaction contract for future paper, sequence, project-note, and biomedical-document retrieval.
+
+Claude Code / Agent Skills-compatible files live under `.claude/skills/`, with `SKILL.md` frontmatter using `name` and `description`.
 
 ## Workflow Agents
 

@@ -24,6 +24,7 @@ from urllib.parse import quote, quote_plus, unquote
 ROOT = Path(__file__).resolve().parents[1]
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 SKILLS_DIR = ROOT / ".openhands" / "skills"
+CLAUDE_SKILLS_DIR = ROOT / ".claude" / "skills"
 PROMPTS_DIR = ROOT / "prompts"
 DEFAULT_BASE_URL = "https://llm-jl24o09ebj303z4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
 DEFAULT_MODEL = "qwen3.7-max"
@@ -542,6 +543,15 @@ def reference_report_markdown(result: dict[str, object]) -> str:
         DISCLAIMER,
     ])
     return "\n".join(lines)
+
+def read_skill_prompt(skill: str) -> str:
+    openhands_path = SKILLS_DIR / skill / "SKILL.md"
+    if openhands_path.exists():
+        return read_text(openhands_path)
+    claude_path = CLAUDE_SKILLS_DIR / skill / "SKILL.md"
+    if claude_path.exists():
+        return read_text(claude_path)
+    return ""
 def summarize_skill(skill_dir: Path) -> dict[str, str]:
     text = read_text(skill_dir / "SKILL.md")
     title = skill_dir.name.replace("_", " ").title()
@@ -573,7 +583,7 @@ def build_messages(skill: str, user_input: str, history: list[dict[str, str]] | 
     system_prompt = read_text(PROMPTS_DIR / "system_edu.md")
     writing_policy = read_text(PROMPTS_DIR / "writing_policy.md")
     citation_policy = read_text(PROMPTS_DIR / "citation_policy.md")
-    skill_prompt = read_text(SKILLS_DIR / skill / "SKILL.md")
+    skill_prompt = read_skill_prompt(skill)
     system = "\n\n".join(part for part in [system_prompt, writing_policy, citation_policy, skill_prompt] if part)
     messages = [{"role": "system", "content": system}]
     for item in (history or [])[-8:]:
