@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-rosalind.local/schemas/agent/tool_call.schema.json",
   "title": "Open-Rosalind Agent Tool Call Log",

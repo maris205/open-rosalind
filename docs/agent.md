@@ -1,4 +1,4 @@
-﻿# Open-Rosalind Agent Branch
+# Open-Rosalind Agent Branch
 
 This branch starts the independent Agent version of Open-Rosalind.
 
@@ -62,3 +62,15 @@ Report Builder
 ## Current Scope
 
 This branch does not yet implement the full RAG database or full sandboxed executor. It defines the first agent contracts and adds Agent-oriented skills and UI entry points.
+
+## Demonstration Examples
+
+Agent demos are available in:
+
+- `examples/agent_task_planner_example.md`
+- `examples/agent_memory_update_example.json`
+- `examples/agent_tool_audit_example.json`
+- `examples/agent_traceable_report_example.md`
+- `docs/agent_examples.md`
+
+These examples are intentionally marked as demonstration outputs. They define expected behavior and output shape, not verified biomedical evidence.

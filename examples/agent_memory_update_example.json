@@ -1,0 +1,79 @@
+{
+  "project": {
+    "id": "ibd-il6-mechanism",
+    "title": "IL-6 signaling in IBD epithelial injury and immune recruitment",
+    "research_questions": [
+      "What evidence supports the association between IL-6 signaling and epithelial injury in IBD?",
+      "What evidence supports IL-6-related immune cell recruitment in IBD tissue or models?"
+    ],
+    "hypotheses": [
+      "IL-6 signaling may contribute to epithelial injury and immune recruitment in IBD, but causality requires source-level verification."
+    ],
+    "scope": "Evidence audit and research planning; no clinical recommendation.",
+    "glossary": {
+      "IBD": "Inflammatory bowel disease",
+      "IL-6": "Interleukin-6",
+      "claim": "A statement that requires evidence support"
+    }
+  },
+  "evidence": [
+    {
+      "source_id": "doi:10.0000/example-placeholder",
+      "source_type": "paper",
+      "title": "Placeholder only - replace with verified source",
+      "locator": "abstract",
+      "excerpt": "This is a placeholder evidence record used to demonstrate schema shape.",
+      "metadata": {
+        "doi": "10.0000/example-placeholder",
+        "verification_note": "Do not treat this placeholder as a real source."
+      },
+      "verification_status": "unverified",
+      "created_by": "memory-manager",
+      "created_at": "2026-06-29T00:00:00+08:00"
+    }
+  ],
+  "tasks": [
+    {
+      "goal": "Verify whether IL-6 signaling has evidence support in IBD epithelial injury and immune recruitment.",
+      "status": "draft",
+      "risk_level": "medium",
+      "assumptions": [
+        "The user has not yet supplied verified papers or a RAG source set.",
+        "Clinical treatment claims are out of scope unless explicitly reviewed."
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "action": "Decompose the claim into searchable subclaims.",
+          "tool": "research-question",
+          "input_refs": ["user_claim"],
+          "expected_output": "Searchable questions and evidence requirements.",
+          "permission_level": 0,
+          "requires_confirmation": false
+        },
+        {
+          "id": "S2",
+          "action": "Verify references from supplied DOI/PMID/BibTeX.",
+          "tool": "reference_verifier",
+          "input_refs": ["user_bibliography"],
+          "expected_output": "Verified/Mismatch/Unverified reference table.",
+          "permission_level": 1,
+          "requires_confirmation": false
+        }
+      ],
+      "open_questions": [
+        "Should the audit prioritize human IBD studies over animal or in vitro models?",
+        "Will the user provide a paper set, BibTeX file, or future RAG source collection?"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Treat the IL-6 mechanism as a hypothesis until source-backed evidence is available.",
+      "rationale": "No verified source set has been supplied yet.",
+      "source_ids": [],
+      "timestamp": "2026-06-29T00:00:00+08:00"
+    }
+  ],
+  "updated_at": "2026-06-29T00:00:00+08:00"
+}

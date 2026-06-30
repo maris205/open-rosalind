@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-rosalind.local/schemas/agent/evidence.schema.json",
   "title": "Open-Rosalind Agent Evidence Record",

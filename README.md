@@ -77,12 +77,14 @@ Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assi
 | `docs/skill_spec.md` | Skill list, structure, and shared rules |
 | `docs/roadmap.md` | v0.1 through later-phase roadmap |
 | `docs/agent.md` | Agent branch positioning, memory/planning/tool-audit architecture, and permission levels |
+| `docs/agent_examples.md` | Demonstration inputs and expected outputs for Agent workflows |
 | `examples/*.md` | Copyable test prompts |
 | `examples/reference_verification_example.bib` | BibTeX upload and reference verification example |
 | `exports/README.md` | Export workflow notes |
 | `scripts/md_to_docx.py` | Simple Markdown to DOCX converter |
 | `requirements.txt` | Python dependencies for DOCX export and document upload parsing |
 | `schemas/agent/*.json` | Agent memory, task plan, tool-call, and evidence schemas |
+| `examples/agent_*` | Agent workflow examples with demonstration outputs |
 | `.env.example` | Qwen / DashScope environment variable template |
 
 ## Local Start

@@ -1,0 +1,18 @@
+{
+  "id": "toolcall-001",
+  "task_id": "S2",
+  "tool": "reference_verifier.crossref_lookup",
+  "permission_level": 1,
+  "input": {
+    "doi": "10.1016/j.cell.2020.11.020",
+    "source": "user_supplied_bibtex"
+  },
+  "output_summary": "Crossref returned a metadata match for the DOI. Title, journal, year, and first author were captured for manual review.",
+  "output_refs": [
+    "https://doi.org/10.1016/j.cell.2020.11.020"
+  ],
+  "status": "success",
+  "error": "",
+  "timestamp": "2026-06-29T00:00:00+08:00",
+  "duration_ms": 812
+}
