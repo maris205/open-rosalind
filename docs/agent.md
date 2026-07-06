@@ -4,6 +4,11 @@ This branch starts the independent Agent version of Open-Rosalind.
 
 Edu remains the beginner-facing learning product. Agent is a research execution product with memory, planning, tool use, evidence tracking, and audit logs.
 
+For product positioning and external workbench references, see:
+
+- `docs/positioning.md`
+- `docs/competitive_notes/openscience.md`
+
 ## Product Separation
 
 ```text
@@ -62,6 +67,16 @@ Report Builder
 ## Current Scope
 
 This branch does not yet implement the full RAG database or full sandboxed executor. It defines the first agent contracts and adds Agent-oriented skills and UI entry points.
+
+## Product Direction
+
+Agent should be framed as a traceable biomedical research workbench. The core value is not unrestricted autonomy; it is reviewable autonomy with memory, plans, tools, evidence, and audit logs.
+
+The public message should stay distinct from Edu:
+
+- Edu is a guided entry product for students.
+- Agent is a project workbench for research execution.
+- Future Research can add the unified RAG library, sequence resources, and more advanced controlled analysis workflows.
 
 ## Demonstration Examples
 

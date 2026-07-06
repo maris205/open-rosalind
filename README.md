@@ -78,6 +78,8 @@ Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assi
 | `docs/roadmap.md` | v0.1 through later-phase roadmap |
 | `docs/agent.md` | Agent branch positioning, memory/planning/tool-audit architecture, and permission levels |
 | `docs/agent_examples.md` | Demonstration inputs and expected outputs for Agent workflows |
+| `docs/positioning.md` | Agent product-line positioning, workbench modules, and roadmap |
+| `docs/competitive_notes/openscience.md` | OpenScience reference note and differentiation guidance |
 | `examples/*.md` | Copyable test prompts |
 | `examples/reference_verification_example.bib` | BibTeX upload and reference verification example |
 | `exports/README.md` | Export workflow notes |
