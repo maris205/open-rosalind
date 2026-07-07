@@ -1,23 +1,24 @@
-# Open-Rosalind Edu
+# Open-Rosalind Agent
 
-Open-Rosalind Edu is a biomedical learning and academic writing agent built with OpenHands, Qwen, and domain-specific Edu Skills.
+Open-Rosalind Agent is a traceable biomedical research workbench built around planning, memory, evidence, tool audit, reference verification, and reproducible reports.
+
+Edu remains a separate beginner-facing branch for paper reading and writing scaffolds. This `agent` branch is the research-execution product.
 
 ## Positioning
 
-Open-Rosalind Edu helps biomedical students and early-career researchers with:
+Open-Rosalind Agent helps biomedical researchers and research trainees with:
 
-- paper reading
-- literature review outlines
-- manuscript polishing
-- introduction and discussion drafting
-- thesis proposal preparation
-- homework tutoring
-- citation checking
-- Markdown and DOCX exports
+- task planning with permission levels
+- structured project memory
+- evidence extraction from uploaded materials
+- reference verification and fabricated-citation risk screening
+- tool-call audit and reproducibility checks
+- traceable research reports
+- future RAG and sequence-resource integration
 
 ## Important Disclaimer
 
-Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assistance only. It does not guarantee scientific reproducibility, citation accuracy, statistical validity, or clinical correctness. Users must verify all outputs before academic submission or research use. It does not provide clinical diagnosis or treatment advice.
+Open-Rosalind Agent is designed for research planning, evidence organization, tool auditing, and report drafting. It does not guarantee scientific reproducibility, citation accuracy, statistical validity, or clinical correctness. Users must verify original literature, data, tool logs, and references before submission, publication, or research decisions. It does not provide clinical diagnosis or treatment advice.
 
 ## File Tree
 
@@ -80,6 +81,7 @@ Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assi
 | `docs/agent_examples.md` | Demonstration inputs and expected outputs for Agent workflows |
 | `docs/positioning.md` | Agent product-line positioning, workbench modules, and roadmap |
 | `docs/competitive_notes/openscience.md` | OpenScience reference note and differentiation guidance |
+| `docs/competitive_notes/biomni.md` | Biomni reference note and biomedical-agent differentiation guidance |
 | `examples/*.md` | Copyable test prompts |
 | `examples/reference_verification_example.bib` | BibTeX upload and reference verification example |
 | `exports/README.md` | Export workflow notes |

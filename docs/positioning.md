@@ -73,6 +73,19 @@ That direction validates the workbench framing, but Open-Rosalind should not cop
 - local and auditable
 - compatible with skill-based agent execution
 
+## Biomni Reference
+
+Biomni is a strong reference for the biomedical-agent category: it combines planning, retrieval, code execution, datalake resources, MCP integration, and execution-trace reports. Open-Rosalind Agent should borrow the workbench and traceability patterns, but keep the first version lighter and safer by default.
+
+Open-Rosalind's response should be:
+
+- start with explicit Agent modules instead of broad autonomous execution
+- make evidence and tool audit visible before adding heavy execution
+- keep RAG and sequence resources as optional future infrastructure
+- avoid mandatory large downloads in the entry Agent version
+- require sandboxing before local code execution becomes a core workflow
+
+See `docs/competitive_notes/biomni.md`.
 ## Near-Term Roadmap
 
 1. Add clearer Agent workbench navigation in the Web UI.

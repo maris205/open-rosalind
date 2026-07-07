@@ -3,83 +3,76 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Open-Rosalind Edu</title>
+    <title>Open-Rosalind Agent</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <canvas id="signalCanvas" width="80" height="44" aria-hidden="true"></canvas>
+          <canvas id="signalCanvas" width="72" height="44" aria-hidden="true"></canvas>
           <div>
-            <h1>Open-Rosalind Edu</h1>
-            <p>Biomedical learning and writing workspace</p>
+            <h1>Open-Rosalind Agent</h1>
+            <p>Traceable biomedical research workbench</p>
           </div>
         </div>
 
-        <section class="panel">
-          <h2>Agents</h2>
-          <div id="skillList" class="skill-list"></div>
-        </section>
-
-        <section class="panel">
-          <h2>Paper / BibTeX</h2>
-          <div id="dropZone" class="upload-box">
-            <input id="documentFile" type="file" accept=".pdf,.bib,.txt,.md,.markdown,.csv,.tsv,.json,.docx" />
-            <strong>Upload paper or bibliography</strong>
-            <span>pdf, bib, txt, md, docx · max 12 MB</span>
+        <nav class="module-panel" aria-label="Agent modules">
+          <div class="panel-heading">
+            <h2>Workspace Agents</h2>
+            <span>Agent</span>
           </div>
-          <div class="upload-actions">
-            <button id="uploadReplace" type="button">Replace</button>
-            <button id="uploadAppend" type="button">Append</button>
-          </div>
-          <p id="uploadStatus" class="hint">PDF 会进入文献精读；BibTeX 会进入参考验证。</p>
-        </section>
+          <div id="skillList" class="agent-list"></div>
+        </nav>
 
-        <section class="panel">
-          <h2>Qwen</h2>
-          <label>
-            Base URL
-            <input id="baseUrl" type="text" spellcheck="false" />
-          </label>
-          <label>
-            Model
-            <input id="model" type="text" spellcheck="false" />
-          </label>
-          <label>
-            API Key
-            <input id="apiKey" type="password" placeholder="临时粘贴，不写入文件" />
-          </label>
-          <p id="keyStatus" class="hint"></p>
+        <section class="panel compact-panel">
+          <h2>Run Profile</h2>
+          <dl class="run-profile">
+            <div><dt>Mode</dt><dd>Agent</dd></div>
+            <div><dt>Evidence</dt><dd>Required</dd></div>
+            <div><dt>Audit</dt><dd>On</dd></div>
+          </dl>
         </section>
       </aside>
 
       <main class="workspace">
         <header class="topbar">
           <div>
-            <h2>Edu Agent Console</h2>
-            <p id="activePurpose">选择一个论文流程 Agent 后输入任务。</p>
+            <span class="eyebrow">Biomedical AI Workbench</span>
+            <h2>Research Agent Console</h2>
+            <p id="activePurpose">Plan biomedical research tasks with evidence, permissions, and audit logs.</p>
           </div>
           <div class="toolbar">
-            <button id="verifyRefs" type="button" title="验证参考文献">Verify Refs</button>
-            <button id="copyOutput" type="button" title="复制输出">Copy</button>
-            <button id="clearInput" type="button" title="清空输入">Clear</button>
+            <button id="verifyRefs" type="button">Verify Refs</button>
+            <button id="copyOutput" type="button">Copy</button>
+            <button id="clearInput" type="button">Clear</button>
           </div>
         </header>
 
-        <section class="quick-prompts" aria-label="Quick prompts">
-          <button type="button" data-template="paper">文献精读</button>
-          <button type="button" data-template="review">综述大纲</button>
-          <button type="button" data-template="polish">论文润色</button>
-          <button type="button" data-template="proposal">开题报告</button>
-          <button type="button" data-template="refs">参考验证</button>
+        <section class="metrics" aria-label="Workspace status">
+          <div class="metric"><span>Plan</span><strong>Reviewable</strong></div>
+          <div class="metric"><span>Memory</span><strong>Structured</strong></div>
+          <div class="metric"><span>Tools</span><strong>Audited</strong></div>
+          <div class="metric"><span>Evidence</span><strong>Traceable</strong></div>
+        </section>
+
+        <section class="quick-prompts" aria-label="Agent starters">
+          <button type="button" data-agent="agent_planner">Plan Task</button>
+          <button type="button" data-agent="evidence_manager">Extract Evidence</button>
+          <button type="button" data-agent="reference_verification">Verify References</button>
+          <button type="button" data-agent="memory_manager">Update Memory</button>
+          <button type="button" data-agent="tool_audit">Audit Tools</button>
+          <button type="button" data-agent="agent_report_builder">Build Report</button>
         </section>
 
         <section class="editor-grid">
           <div class="editor-pane">
             <div class="pane-title">
-              <h3>Input</h3>
-              <span id="selectedSkill">paper_summary</span>
+              <div>
+                <h3>Input</h3>
+                <span id="selectedSkill">Task Planner Agent</span>
+              </div>
+              <span id="inputMode">draft</span>
             </div>
             <textarea id="taskInput" spellcheck="false"></textarea>
             <div class="actions">
@@ -94,13 +87,58 @@
 
           <div class="output-pane">
             <div class="pane-title">
-              <h3>Output</h3>
+              <div>
+                <h3>Output</h3>
+                <span>traceable markdown</span>
+              </div>
               <span id="modeBadge">ready</span>
             </div>
             <pre id="output"></pre>
           </div>
         </section>
       </main>
+
+      <aside class="right-rail">
+        <section class="panel">
+          <h2>Evidence Intake</h2>
+          <div id="dropZone" class="upload-box">
+            <input id="documentFile" type="file" accept=".pdf,.bib,.txt,.md,.markdown,.csv,.tsv,.json,.docx" />
+            <strong>Upload PDF, BibTeX, or notes</strong>
+            <span>Max 12 MB. Extracted text stays local.</span>
+          </div>
+          <div class="upload-actions">
+            <button id="uploadReplace" type="button">Replace</button>
+            <button id="uploadAppend" type="button">Append</button>
+          </div>
+          <p id="uploadStatus" class="hint">PDF routes to Evidence Agent. BibTeX routes to Reference Verifier.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Model</h2>
+          <label>
+            Base URL
+            <input id="baseUrl" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Model
+            <input id="model" type="text" spellcheck="false" />
+          </label>
+          <label>
+            API Key
+            <input id="apiKey" type="password" placeholder="Session only" />
+          </label>
+          <p id="keyStatus" class="hint"></p>
+        </section>
+
+        <section class="panel compact-panel">
+          <h2>Trace Contract</h2>
+          <ul class="trace-list">
+            <li>Claims link to evidence or remain unverified.</li>
+            <li>Tool calls require input, output, and permission level.</li>
+            <li>Reports include open questions and reproducibility notes.</li>
+          </ul>
+        </section>
+      </aside>
     </div>
 
     <script src="/app.js"></script>

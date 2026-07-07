@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Local web UI for Open-Rosalind Edu.
+"""Local web UI for Open-Rosalind Agent.
 
 The server is intentionally small and framework-free. It serves the static UI,
-offers document upload text extraction, and wraps one OpenAI-compatible
-chat-completions call for local use.
+offers document upload text extraction, deterministic reference verification,
+and wraps one OpenAI-compatible chat-completions call for local use.
 """
 
 from __future__ import annotations
@@ -31,9 +31,12 @@ DEFAULT_MODEL = "qwen3.7-max"
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 MAX_EXTRACTED_CHARS = 120_000
 DISCLAIMER = (
-    "提示：当前为 Open-Rosalind Edu 模式，输出仅用于学习、写作辅助和初稿生成，"
-    "不保证结论、引用、实验方案或统计解释完全正确。正式提交、发表或用于科研决策前，"
-    "请人工核验原始文献、数据和引用。本系统不提供临床诊断或治疗建议。"
+    "Notice: Open-Rosalind Agent is for research planning, evidence organization, "
+    "tool auditing, and report drafting. It does not guarantee that conclusions, "
+    "citations, experimental designs, or statistical interpretations are correct. "
+    "Before publication, submission, or research decisions, manually verify the "
+    "original literature, data, tool logs, and references. It does not provide "
+    "clinical diagnosis or treatment advice."
 )
 
 
@@ -574,17 +577,16 @@ def summarize_skill(skill_dir: Path) -> dict[str, str]:
 
 
 def load_skills() -> list[dict[str, str]]:
-    if not SKILLS_DIR.exists():
+    primary = CLAUDE_SKILLS_DIR if CLAUDE_SKILLS_DIR.exists() else SKILLS_DIR
+    if not primary.exists():
         return []
-    return [summarize_skill(path) for path in sorted(SKILLS_DIR.iterdir()) if path.is_dir()]
-
+    return [summarize_skill(path) for path in sorted(primary.iterdir()) if path.is_dir()]
 
 def build_messages(skill: str, user_input: str, history: list[dict[str, str]] | None = None) -> list[dict[str, str]]:
-    system_prompt = read_text(PROMPTS_DIR / "system_edu.md")
-    writing_policy = read_text(PROMPTS_DIR / "writing_policy.md")
-    citation_policy = read_text(PROMPTS_DIR / "citation_policy.md")
+    system_prompt = read_text(PROMPTS_DIR / "system_agent.md") or read_text(PROMPTS_DIR / "system_edu.md")
+    agent_policy = read_text(PROMPTS_DIR / "agent_policy.md")
     skill_prompt = read_skill_prompt(skill)
-    system = "\n\n".join(part for part in [system_prompt, writing_policy, citation_policy, skill_prompt] if part)
+    system = "\n\n".join(part for part in [system_prompt, agent_policy, skill_prompt] if part)
     messages = [{"role": "system", "content": system}]
     for item in (history or [])[-8:]:
         role = item.get("role")
@@ -592,13 +594,13 @@ def build_messages(skill: str, user_input: str, history: list[dict[str, str]] | 
         if role in {"user", "assistant"} and content:
             messages.append({"role": role, "content": content[:8000]})
     user = (
-        "请根据所选 Open-Rosalind Edu Skill 处理以下输入。"
-        "默认用中文、Markdown 输出，并在结尾附上 Edu Mode disclaimer。\n\n"
+        "Please process the following input using the selected Open-Rosalind Agent module. "
+        "Default to Chinese and Markdown. Every key conclusion must link to evidence, "
+        "a tool log, or be explicitly marked unverified.\n\n"
         f"{user_input.strip()}"
     )
     messages.append({"role": "user", "content": user})
     return messages
-
 
 def call_openai_compatible(payload: dict) -> dict:
     api_key = payload.get("apiKey") or os.environ.get("DASHSCOPE_API_KEY", "")
@@ -640,7 +642,7 @@ def call_openai_compatible(payload: dict) -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OpenRosalindEdu/0.2"
+    server_version = "OpenRosalindAgent/0.3"
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         print(f"{self.address_string()} - {format % args}")
@@ -722,7 +724,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         payload = self.read_json()
-        skill = payload.get("skill", "paper_summary")
+        skill = payload.get("skill", "agent-planner")
         user_input = payload.get("input", "")
         history = payload.get("history") if isinstance(payload.get("history"), list) else []
         messages = build_messages(skill, user_input, history)
@@ -744,13 +746,13 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the local Open-Rosalind Edu web UI.")
+    parser = argparse.ArgumentParser(description="Run the local Open-Rosalind Agent web UI.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", default=8765, type=int)
     args = parser.parse_args()
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"Open-Rosalind Edu local web UI: http://{args.host}:{args.port}")
+    print(f"Open-Rosalind Agent local web UI: http://{args.host}:{args.port}")
     server.serve_forever()
     return 0
 

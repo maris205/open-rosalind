@@ -8,6 +8,7 @@ For product positioning and external workbench references, see:
 
 - `docs/positioning.md`
 - `docs/competitive_notes/openscience.md`
+- `docs/competitive_notes/biomni.md`
 
 ## Product Separation
 
