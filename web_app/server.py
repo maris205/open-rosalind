@@ -26,8 +26,8 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 SKILLS_DIR = ROOT / ".openhands" / "skills"
 CLAUDE_SKILLS_DIR = ROOT / ".claude" / "skills"
 PROMPTS_DIR = ROOT / "prompts"
-DEFAULT_BASE_URL = "https://llm-jl24o09ebj303z4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
-DEFAULT_MODEL = "qwen3.7-max"
+DEFAULT_BASE_URL = "https://api.openai.com/v1"
+DEFAULT_MODEL = "gpt-5.6"
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 MAX_EXTRACTED_CHARS = 120_000
 DISCLAIMER = (
@@ -603,7 +603,7 @@ def build_messages(skill: str, user_input: str, history: list[dict[str, str]] | 
     return messages
 
 def call_openai_compatible(payload: dict) -> dict:
-    api_key = payload.get("apiKey") or os.environ.get("DASHSCOPE_API_KEY", "")
+    api_key = payload.get("apiKey") or os.environ.get("OPENAI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY", "")
     if not api_key:
         return {
             "ok": False,
@@ -612,8 +612,8 @@ def call_openai_compatible(payload: dict) -> dict:
             "prompt": payload.get("promptPreview", ""),
         }
 
-    base_url = (payload.get("baseUrl") or os.environ.get("QWEN_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
-    model = payload.get("model") or os.environ.get("QWEN_MODEL") or DEFAULT_MODEL
+    base_url = (payload.get("baseUrl") or os.environ.get("OPENAI_BASE_URL") or os.environ.get("QWEN_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
+    model = payload.get("model") or os.environ.get("OPENAI_MODEL") or os.environ.get("QWEN_MODEL") or DEFAULT_MODEL
     body = {
         "model": model,
         "messages": payload["messages"],
@@ -670,9 +670,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/config":
             self.send_json(
                 {
-                    "baseUrl": os.environ.get("QWEN_BASE_URL", DEFAULT_BASE_URL),
-                    "model": os.environ.get("QWEN_MODEL", DEFAULT_MODEL),
-                    "hasEnvApiKey": bool(os.environ.get("DASHSCOPE_API_KEY")),
+                    "baseUrl": os.environ.get("OPENAI_BASE_URL") or os.environ.get("QWEN_BASE_URL", DEFAULT_BASE_URL),
+                    "model": os.environ.get("OPENAI_MODEL") or os.environ.get("QWEN_MODEL", DEFAULT_MODEL),
+                    "hasEnvApiKey": bool(os.environ.get("OPENAI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")),
                     "disclaimer": DISCLAIMER,
                 }
             )

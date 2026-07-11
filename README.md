@@ -115,7 +115,7 @@ Then open:
 http://127.0.0.1:8765
 ```
 
-The page can work in prompt-only mode without an API key. To call Qwen, either paste the API key into the local page for the current session, or set `DASHSCOPE_API_KEY` before starting the server. The key is not written to project files.
+The page can work in prompt-only mode without an API key. To call GPT-5.6 or another OpenAI-compatible model, paste the API key into the local page for the current session, or set `OPENAI_API_KEY` before starting the server. DashScope / Qwen remains available through the fallback environment variables. The key is not written to project files.
 
 Document upload is available in the sidebar. Supported formats:
 
@@ -123,7 +123,7 @@ Document upload is available in the sidebar. Supported formats:
 - `.docx`
 - `.pdf`
 
-The local server extracts text and inserts it into the input box. PDF uploads are routed to paper reading; BibTeX uploads are routed to reference verification. Uploads are limited to 12 MB, and extracted text is capped at 120,000 characters. Scanned PDFs require OCR first.
+The local server extracts text and inserts it into the input box. PDF uploads are routed to Evidence Agent; BibTeX uploads are routed to Reference Verifier. Uploads are limited to 12 MB, and extracted text is capped at 120,000 characters. Scanned PDFs require OCR first.
 
 ### OpenHands / Agent Canvas
 
@@ -145,19 +145,49 @@ Then open the local Web UI, usually:
 http://localhost:8000
 ```
 
-## Qwen Configuration
+## Model Configuration
 
-Use Qwen through an OpenAI-compatible endpoint.
+The local Web UI uses the OpenAI API by default and is configured for GPT-5.6.
 
 Environment variables:
 
 ```bash
-export DASHSCOPE_API_KEY="your_api_key"
+export OPENAI_API_KEY="your_openai_api_key"
+export OPENAI_BASE_URL="https://api.openai.com/v1"
+export OPENAI_MODEL="gpt-5.6"
+```
+
+Recommended OpenAI models:
+
+- `gpt-5.6` for the default high-quality Agent workflow
+- `gpt-5.6-terra` for heavier reasoning and planning when available
+- `gpt-5.6-luna` for lower-latency or lower-cost work when available
+
+The server still supports OpenAI-compatible providers such as DashScope / Qwen as a fallback:
+
+```bash
+export DASHSCOPE_API_KEY="your_dashscope_api_key"
 export QWEN_BASE_URL="https://llm-jl24o09ebj303z4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
 export QWEN_MODEL="qwen3.7-max"
 ```
 
-OpenHands LLM settings:
+At runtime, the model configuration is resolved in this order:
+
+1. Values typed into the local Web UI
+2. `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`
+3. `DASHSCOPE_API_KEY`, `QWEN_BASE_URL`, `QWEN_MODEL`
+4. Built-in defaults: `https://api.openai.com/v1` and `gpt-5.6`
+
+OpenHands LLM settings for OpenAI:
+
+```text
+Provider: OpenAI-compatible / Custom
+Custom Model: openai/gpt-5.6
+Base URL: https://api.openai.com/v1
+API Key: ${OPENAI_API_KEY}
+```
+
+OpenHands LLM settings for DashScope / Qwen fallback:
 
 ```text
 Provider: OpenAI-compatible / Custom
@@ -165,36 +195,6 @@ Custom Model: openai/qwen3.7-max
 Base URL: https://llm-jl24o09ebj303z4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
 API Key: ${DASHSCOPE_API_KEY}
 ```
-
-Recommended models:
-
-- `qwen3.7-max` for the current recommended high-quality writing model
-- `qwen-plus` for default use when available
-- `qwen-max` for higher-quality writing when available
-- `qwen-long` for long document reading
-- `qwen-turbo` for lower-cost quick drafting
-
-Optional LiteLLM proxy configuration:
-
-```yaml
-model_list:
-  - model_name: qwen3.7-max
-    litellm_params:
-      model: openai/qwen3.7-max
-      api_key: os.environ/DASHSCOPE_API_KEY
-```
-
-Then configure OpenHands:
-
-```text
-Custom Model: litellm_proxy/qwen3.7-max
-Base URL: http://localhost:4000
-API Key: any-non-empty-key
-```
-
-
-
-
 ## Open-Rosalind Agent
 
 The `agent` branch starts the independent Agent version. Edu remains the beginner product; Agent is for research execution workflows with memory, task planning, tool audit, and traceable reports.

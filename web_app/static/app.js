@@ -191,8 +191,8 @@ async function loadConfig() {
   els.baseUrl.value = config.baseUrl;
   els.model.value = config.model;
   els.keyStatus.textContent = config.hasEnvApiKey
-    ? "DASHSCOPE_API_KEY detected in environment."
-    : "No environment API key detected. You can paste a session-only key here.";
+    ? "OPENAI_API_KEY detected in environment."
+    : "No environment API key detected. You can paste a session-only OpenAI-compatible key here.";
 }
 
 function uploadAgentFor(upload) {
