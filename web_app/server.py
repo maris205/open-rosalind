@@ -11,14 +11,80 @@ from __future__ import annotations
 import argparse
 import email
 import email.policy
+import io
 import json
+import hashlib
+import mimetypes
 import os
 import re
+import shutil
+import subprocess
+import tarfile
+import threading
+import time
 import urllib.error
 import urllib.request
+import uuid
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, quote_plus, unquote
+
+try:
+    from .database import (
+        authenticate_user,
+        add_project_memory,
+        approve_task_plan,
+        claim_next_task_step,
+        create_project,
+        create_job as record_job_start,
+        create_login_session,
+        create_task_plan,
+        create_user,
+        delete_login_session,
+        finish_job as record_job_finish,
+        finish_task_step,
+        get_project_workspace,
+        get_task_plan,
+        get_user_for_token,
+        initialize_database,
+        list_projects,
+        project_memory_context,
+        retry_task_step,
+        save_step_output_to_memory,
+        user_owns_job,
+        user_owns_project,
+    )
+except ImportError:
+    from database import (  # type: ignore[no-redef]
+        authenticate_user,
+        add_project_memory,
+        approve_task_plan,
+        claim_next_task_step,
+        create_project,
+        create_job as record_job_start,
+        create_login_session,
+        create_task_plan,
+        create_user,
+        delete_login_session,
+        finish_job as record_job_finish,
+        finish_task_step,
+        get_project_workspace,
+        get_task_plan,
+        get_user_for_token,
+        initialize_database,
+        list_projects,
+        project_memory_context,
+        retry_task_step,
+        save_step_output_to_memory,
+        user_owns_job,
+        user_owns_project,
+    )
+
+try:
+    from .task_queue import enqueue_plan_task, get_queue_job, queue_health
+except ImportError:
+    from task_queue import enqueue_plan_task, get_queue_job, queue_health  # type: ignore[no-redef]
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +96,33 @@ DEFAULT_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_MODEL = "gpt-5.6"
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 MAX_EXTRACTED_CHARS = 120_000
+MAX_CODE_CHARS = 50_000
+MAX_LOG_CHARS = 100_000
+MAX_OUTPUT_FILES = 30
+MAX_OUTPUT_BYTES = 20 * 1024 * 1024
+EXECUTION_TIMEOUT_SECONDS = int(os.environ.get("ROSALIND_EXECUTION_TIMEOUT", "60"))
+EXECUTION_MEMORY = os.environ.get("ROSALIND_EXECUTION_MEMORY", "512m")
+EXECUTION_CPUS = os.environ.get("ROSALIND_EXECUTION_CPUS", "1")
+EXECUTION_IMAGE = os.environ.get("ROSALIND_PYTHON_IMAGE", "python:3.12-slim")
+JOBS_DIR = Path(os.environ.get("ROSALIND_JOBS_DIR", ROOT / "exports" / "jobs"))
+EXECUTION_ENABLED = os.environ.get("ROSALIND_EXECUTION_ENABLED", "0") == "1"
+EXECUTION_SLOTS = threading.BoundedSemaphore(int(os.environ.get("ROSALIND_EXECUTION_CONCURRENCY", "2")))
+COOKIE_NAME = "rosalind_session"
+COOKIE_SECURE = os.environ.get("ROSALIND_COOKIE_SECURE", "0") == "1"
+AUTH_ATTEMPT_LIMIT = 10
+AUTH_ATTEMPT_WINDOW = 15 * 60
+AUTH_ATTEMPTS: dict[str, list[float]] = {}
+AUTH_ATTEMPTS_LOCK = threading.Lock()
+TASK_EXECUTION_LOCK = threading.Lock()
+TASK_SKILLS = {
+    "agent-planner",
+    "memory-manager",
+    "evidence-manager",
+    "reference-verification",
+    "python-sandbox",
+    "tool-audit",
+    "agent-report-builder",
+}
 DISCLAIMER = (
     "Notice: Open-Rosalind Agent is for research planning, evidence organization, "
     "tool auditing, and report drafting. It does not guarantee that conclusions, "
@@ -55,6 +148,261 @@ YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def auth_rate_limited(address: str) -> bool:
+    now = time.time()
+    with AUTH_ATTEMPTS_LOCK:
+        recent = [stamp for stamp in AUTH_ATTEMPTS.get(address, []) if now - stamp < AUTH_ATTEMPT_WINDOW]
+        AUTH_ATTEMPTS[address] = recent
+        return len(recent) >= AUTH_ATTEMPT_LIMIT
+
+
+def record_auth_failure(address: str) -> None:
+    with AUTH_ATTEMPTS_LOCK:
+        AUTH_ATTEMPTS.setdefault(address, []).append(time.time())
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def execution_config() -> dict[str, object]:
+    return {
+        "enabled": EXECUTION_ENABLED,
+        "runtime": "Docker / Python",
+        "image": EXECUTION_IMAGE,
+        "network": "disabled",
+        "readOnlyRoot": True,
+        "cpu": EXECUTION_CPUS,
+        "memory": EXECUTION_MEMORY,
+        "timeoutSeconds": EXECUTION_TIMEOUT_SECONDS,
+        "maxCodeChars": MAX_CODE_CHARS,
+        "maxOutputBytes": MAX_OUTPUT_BYTES,
+    }
+
+
+def collect_output_files(output_dir: Path, job_id: str) -> tuple[list[dict[str, object]], list[str]]:
+    files: list[dict[str, object]] = []
+    warnings: list[str] = []
+    total_bytes = 0
+    for path in sorted(output_dir.rglob("*")):
+        if path.is_symlink():
+            warnings.append(f"忽略符号链接输出：{path.relative_to(output_dir).as_posix()}。")
+            continue
+        if not path.is_file():
+            continue
+        resolved = path.resolve()
+        if not resolved.is_relative_to(output_dir.resolve()):
+            warnings.append(f"忽略任务目录之外的输出：{path.name}。")
+            continue
+        relative = path.relative_to(output_dir).as_posix()
+        size = path.stat().st_size
+        total_bytes += size
+        if len(files) >= MAX_OUTPUT_FILES:
+            warnings.append(f"输出文件超过 {MAX_OUTPUT_FILES} 个，其余文件未列出。")
+            break
+        if total_bytes > MAX_OUTPUT_BYTES:
+            warnings.append(f"输出文件总量超过 {MAX_OUTPUT_BYTES // 1024 // 1024} MB，超出部分未列出。")
+            break
+        files.append(
+            {
+                "name": relative,
+                "size": size,
+                "sha256": sha256_file(path),
+                "url": f"/api/jobs/{job_id}/files/{quote(relative)}",
+            }
+        )
+    return files, warnings
+
+
+def export_container_outputs(container_name: str, output_dir: Path) -> str:
+    export_code = (
+        'import sys, tarfile; '
+        'archive=tarfile.open(fileobj=sys.stdout.buffer, mode="w|"); '
+        'archive.add("/workspace/output", arcname="."); archive.close()'
+    )
+    exported = subprocess.run(
+        ["docker", "exec", container_name, "python", "-c", export_code],
+        capture_output=True,
+        timeout=20,
+        check=False,
+    )
+    if exported.returncode != 0:
+        return exported.stderr.decode("utf-8", errors="replace").strip() or "Container output export failed."
+    total_size = 0
+    root = output_dir.resolve()
+    try:
+        with tarfile.open(fileobj=io.BytesIO(exported.stdout), mode="r:*") as archive:
+            for member in archive.getmembers():
+                if member.isdir():
+                    continue
+                if not member.isfile() or member.issym() or member.islnk():
+                    continue
+                relative = Path(member.name)
+                target = (root / relative).resolve()
+                if not target.is_relative_to(root):
+                    return f"Rejected unsafe output path: {member.name}"
+                total_size += member.size
+                if total_size > MAX_OUTPUT_BYTES:
+                    return f"Output exceeds {MAX_OUTPUT_BYTES // 1024 // 1024} MB."
+                target.parent.mkdir(parents=True, exist_ok=True)
+                source = archive.extractfile(member)
+                if source is None:
+                    continue
+                with target.open("wb") as destination:
+                    shutil.copyfileobj(source, destination)
+    except (tarfile.TarError, OSError) as exc:
+        return f"Invalid container output archive: {exc}"
+    return ""
+
+
+def run_python_sandbox(code: str, user_id: str) -> dict[str, object]:
+    if not EXECUTION_ENABLED:
+        return {"ok": False, "error": "服务器未启用代码执行功能。"}
+    if not isinstance(code, str) or not code.strip():
+        return {"ok": False, "error": "Python 代码不能为空。"}
+    if len(code) > MAX_CODE_CHARS:
+        return {"ok": False, "error": f"代码过长，最多支持 {MAX_CODE_CHARS} 个字符。"}
+    if not shutil.which("docker"):
+        return {"ok": False, "error": "服务器未安装 Docker。"}
+    if not EXECUTION_SLOTS.acquire(blocking=False):
+        return {"ok": False, "error": "执行队列已满，请稍后重试。", "busy": True}
+
+    job_id = uuid.uuid4().hex
+    container_name = f"rosalind-python-{job_id[:12]}"
+    job_dir = JOBS_DIR / job_id
+    input_dir = job_dir / "input"
+    output_dir = job_dir / "output"
+    input_dir.mkdir(parents=True, exist_ok=False)
+    output_dir.mkdir(parents=True, exist_ok=False)
+    job_dir.chmod(0o755)
+    input_dir.chmod(0o755)
+    script_path = input_dir / "main.py"
+    script_path.write_text(code, encoding="utf-8")
+    script_path.chmod(0o444)
+    output_dir.chmod(0o755)
+
+    create_command = [
+        "docker", "create", "--name", container_name,
+        "--network", "none",
+        "--read-only",
+        "--memory", EXECUTION_MEMORY,
+        "--memory-swap", EXECUTION_MEMORY,
+        "--cpus", EXECUTION_CPUS,
+        "--pids-limit", "64",
+        "--cap-drop", "ALL",
+        "--security-opt", "no-new-privileges",
+        "--user", "65534:65534",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+        "--tmpfs", f"/workspace/output:rw,noexec,nosuid,size={MAX_OUTPUT_BYTES},uid=65534,gid=65534,mode=0770",
+        "--mount", f"type=bind,src={input_dir},dst=/workspace/input,readonly",
+        "--workdir", "/workspace/output",
+        EXECUTION_IMAGE,
+        "/bin/sh", "-c",
+        'python -I -B /workspace/input/main.py; code=$?; printf "%s" "$code" > /tmp/rosalind-exit-code; while :; do sleep 3600; done',
+    ]
+    started_at = time.time()
+    code_sha256 = hashlib.sha256(code.encode("utf-8")).hexdigest()
+    execution_limits = {
+        "network": "disabled",
+        "readOnlyRoot": True,
+        "cpu": EXECUTION_CPUS,
+        "memory": EXECUTION_MEMORY,
+        "timeoutSeconds": EXECUTION_TIMEOUT_SECONDS,
+        "maxOutputBytes": MAX_OUTPUT_BYTES,
+    }
+    try:
+        record_job_start(job_id, user_id, code_sha256, EXECUTION_IMAGE, execution_limits, started_at)
+    except Exception as exc:  # noqa: BLE001 - do not execute without a durable task record
+        EXECUTION_SLOTS.release()
+        return {"ok": False, "error": f"无法创建任务记录：{exc}"}
+    status = "failed"
+    exit_code: int | None = None
+    stdout = ""
+    stderr = ""
+    container_created = False
+    try:
+        created = subprocess.run(create_command, capture_output=True, text=True, timeout=30, check=False)
+        if created.returncode != 0:
+            raise RuntimeError(created.stderr.strip() or "Docker container creation failed.")
+        container_created = True
+        started = subprocess.run(["docker", "start", container_name], capture_output=True, text=True, timeout=15, check=False)
+        if started.returncode != 0:
+            raise RuntimeError(started.stderr.strip() or "Docker container start failed.")
+        deadline = time.monotonic() + EXECUTION_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            marker = subprocess.run(
+                ["docker", "exec", container_name, "cat", "/tmp/rosalind-exit-code"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if marker.returncode == 0 and marker.stdout.strip():
+                exit_code = int(marker.stdout.strip())
+                break
+            time.sleep(0.1)
+        if exit_code is None:
+            raise subprocess.TimeoutExpired(cmd="python sandbox", timeout=EXECUTION_TIMEOUT_SECONDS)
+        logs = subprocess.run(["docker", "logs", container_name], capture_output=True, text=True, timeout=10, check=False)
+        stdout = logs.stdout[-MAX_LOG_CHARS:]
+        stderr = logs.stderr[-MAX_LOG_CHARS:]
+        status = "succeeded" if exit_code == 0 else "failed"
+    except subprocess.TimeoutExpired as exc:
+        status = "timed_out"
+        stdout = (exc.stdout or "")[-MAX_LOG_CHARS:] if isinstance(exc.stdout, str) else ""
+        stderr = (exc.stderr or "")[-MAX_LOG_CHARS:] if isinstance(exc.stderr, str) else ""
+        stderr = f"{stderr}\nExecution exceeded {EXECUTION_TIMEOUT_SECONDS} seconds.".strip()
+    except Exception as exc:  # noqa: BLE001 - return a bounded execution error
+        stderr = str(exc)
+    finally:
+        if container_created:
+            if status != "timed_out":
+                export_error = export_container_outputs(container_name, output_dir)
+                if export_error:
+                    stderr = f"{stderr}\nOutput collection failed: {export_error}".strip()
+            subprocess.run(["docker", "rm", "-f", container_name], capture_output=True, timeout=10, check=False)
+        EXECUTION_SLOTS.release()
+
+    ended_at = time.time()
+    files, warnings = collect_output_files(output_dir, job_id)
+    audit = {
+        "jobId": job_id,
+        "status": status,
+        "permissionLevel": 3,
+        "codeSha256": code_sha256,
+        "image": EXECUTION_IMAGE,
+        "network": "disabled",
+        "readOnlyRoot": True,
+        "cpu": EXECUTION_CPUS,
+        "memory": EXECUTION_MEMORY,
+        "timeoutSeconds": EXECUTION_TIMEOUT_SECONDS,
+        "startedAt": started_at,
+        "endedAt": ended_at,
+        "durationSeconds": round(ended_at - started_at, 3),
+        "exitCode": exit_code,
+        "outputs": files,
+        "warnings": warnings,
+    }
+    (job_dir / "audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        record_job_finish(job_id, audit, stdout, stderr, files)
+    except Exception as exc:  # noqa: BLE001 - preserve file audit even if DB update fails
+        audit["warnings"].append(f"数据库任务收尾失败：{exc}")
+    return {
+        "ok": status == "succeeded",
+        "jobId": job_id,
+        "status": status,
+        "stdout": stdout,
+        "stderr": stderr,
+        "files": files,
+        "audit": audit,
+    }
 
 
 def decode_text_file(data: bytes) -> str:
@@ -641,19 +989,161 @@ def call_openai_compatible(payload: dict) -> dict:
     return {"ok": True, "mode": "llm", "content": content, "raw": data}
 
 
+def parse_json_object(text: str) -> dict:
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)```", text, re.IGNORECASE)
+    candidate = fenced.group(1).strip() if fenced else text.strip()
+    start = candidate.find("{")
+    end = candidate.rfind("}")
+    if start == -1 or end <= start:
+        raise ValueError("模型没有返回有效的 JSON 任务计划。")
+    return json.loads(candidate[start : end + 1])
+
+
+def generate_task_plan_with_model(goal: str, memory: list[dict[str, object]]) -> tuple[list[dict[str, str]], str]:
+    memory_text = "\n".join(
+        f"- [{item['category']}] {str(item['content'])[:2000]}" for item in memory
+    ) or "- No stored project memory."
+    system = (
+        "You are the Open-Rosalind biomedical research task planner. Return JSON only. "
+        "Do not fabricate evidence, citations, datasets, results, or tool execution. "
+        "Create a short reviewable plan whose steps can be executed independently by existing skills."
+    )
+    user = f"""Create a plan for this research goal:
+
+{goal}
+
+Project memory:
+{memory_text}
+
+Return exactly this JSON shape with 2-6 steps:
+{{
+  "summary": "short plan summary",
+  "steps": [
+    {{
+      "title": "step title",
+      "instruction": "self-contained instruction including expected output and evidence boundary",
+      "skill": "one allowed skill"
+    }}
+  ]
+}}
+
+Allowed skills: {', '.join(sorted(TASK_SKILLS))}.
+Use python-sandbox only to prepare reviewable offline Python code; never claim code has executed."""
+    result = call_openai_compatible({"messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "temperature": 0.2})
+    if not result.get("ok"):
+        raise RuntimeError(str(result.get("error", "任务计划生成失败。")))
+    content = str(result.get("content", ""))
+    payload = parse_json_object(content)
+    raw_steps = payload.get("steps")
+    if not isinstance(raw_steps, list) or not 1 <= len(raw_steps) <= 10:
+        raise ValueError("模型返回的任务步骤数量无效。")
+    steps: list[dict[str, str]] = []
+    for index, raw in enumerate(raw_steps, start=1):
+        if not isinstance(raw, dict):
+            raise ValueError(f"任务步骤 {index} 格式无效。")
+        skill = str(raw.get("skill", "agent-planner"))
+        if skill not in TASK_SKILLS:
+            skill = "agent-planner"
+        steps.append(
+            {
+                "title": str(raw.get("title", f"步骤 {index}")),
+                "instruction": str(raw.get("instruction", "")),
+                "skill": skill,
+            }
+        )
+    return steps, str(payload.get("summary", ""))
+
+
+def execute_claimed_task_step(user_id: str, plan_data: dict[str, object], step_data: dict[str, object]) -> dict[str, object]:
+    if not step_data:
+        return get_task_plan(user_id, str(plan_data["id"])) or {}
+    memory = project_memory_context(user_id, str(plan_data["projectId"]), limit=30)
+    memory_text = "\n".join(
+        f"- [{item['category']}] {str(item['content'])[:2000]}" for item in memory
+    ) or "- No stored memory."
+    previous_text = "\n\n".join(
+        f"Previous step {item['position']} - {item['title']}:\n{str(item['output'])[:8000]}"
+        for item in plan_data.get("previous", [])
+    ) or "No previous completed steps."
+    task_input = f"""Project goal:
+{plan_data['goal']}
+
+Current step:
+{step_data['instruction']}
+
+Project memory:
+{memory_text}
+
+Previous completed outputs:
+{previous_text}
+
+Complete only the current step. Clearly distinguish evidence, inference, and unverified content. Do not claim any tool or code ran unless a real tool log is included above."""
+    messages = build_messages(str(step_data.get("skill", "agent-planner")), task_input, history=[])
+    result = call_openai_compatible({"messages": messages, "temperature": 0.2})
+    if result.get("ok"):
+        return finish_task_step(user_id, str(step_data["id"]), output=str(result.get("content", ""))) or {}
+    return finish_task_step(user_id, str(step_data["id"]), error=str(result.get("error", "步骤执行失败。"))) or {}
+
+
+def run_next_task_step(user_id: str, plan_id: str) -> dict[str, object]:
+    with TASK_EXECUTION_LOCK:
+        claimed = claim_next_task_step(user_id, plan_id)
+        if not claimed:
+            raise PermissionError("任务计划不存在。")
+        try:
+            return execute_claimed_task_step(user_id, *claimed)
+        except Exception as exc:  # noqa: BLE001 - persist a retryable failed step
+            step_data = claimed[1]
+            if step_data:
+                return finish_task_step(user_id, str(step_data["id"]), error=f"后台步骤执行失败：{exc}") or {}
+            raise
+
+
+def run_all_task_steps(user_id: str, plan_id: str) -> dict[str, object]:
+    plan: dict[str, object] = {}
+    for _ in range(10):
+        plan = run_next_task_step(user_id, plan_id)
+        if plan.get("status") in {"completed", "failed"}:
+            return plan
+    return plan
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "OpenRosalindAgent/0.3"
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         print(f"{self.address_string()} - {format % args}")
 
-    def send_json(self, data: dict | list, status: int = 200) -> None:
+    def send_json(self, data: dict | list, status: int = 200, headers: dict[str, str] | None = None) -> None:
         raw = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(raw)))
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(raw)
+
+    def session_token(self) -> str:
+        cookie = SimpleCookie()
+        cookie.load(self.headers.get("Cookie", ""))
+        morsel = cookie.get(COOKIE_NAME)
+        return morsel.value if morsel else ""
+
+    def current_user(self) -> dict[str, str] | None:
+        return get_user_for_token(self.session_token())
+
+    def require_user(self) -> dict[str, str] | None:
+        user = self.current_user()
+        if not user:
+            self.send_json({"ok": False, "error": "请先登录。"}, status=401)
+        return user
+
+    def auth_cookie(self, token: str, max_age: int) -> str:
+        parts = [f"{COOKIE_NAME}={token}", "Path=/", "HttpOnly", "SameSite=Lax", f"Max-Age={max_age}"]
+        if COOKIE_SECURE:
+            parts.append("Secure")
+        return "; ".join(parts)
 
     def read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))
@@ -667,6 +1157,13 @@ class Handler(BaseHTTPRequestHandler):
         return self.rfile.read(length)
 
     def do_GET(self) -> None:  # noqa: N802
+        if self.path == "/api/auth/me":
+            user = self.current_user()
+            if not user:
+                self.send_json({"ok": False, "authenticated": False}, status=401)
+            else:
+                self.send_json({"ok": True, "authenticated": True, "user": user})
+            return
         if self.path == "/api/config":
             self.send_json(
                 {
@@ -676,6 +1173,70 @@ class Handler(BaseHTTPRequestHandler):
                     "disclaimer": DISCLAIMER,
                 }
             )
+            return
+        if self.path == "/api/execution/config":
+            self.send_json(execution_config())
+            return
+        if self.path == "/api/projects":
+            user = self.require_user()
+            if user:
+                self.send_json({"ok": True, "projects": list_projects(user["id"])})
+            return
+        if self.path == "/api/queue/status":
+            user = self.require_user()
+            if not user:
+                return
+            try:
+                self.send_json(queue_health())
+            except Exception as exc:  # noqa: BLE001 - bounded queue status error
+                self.send_json({"ok": False, "error": f"任务队列不可用：{exc}"}, status=503)
+            return
+        task_status_match = re.fullmatch(r"/api/tasks/([a-f0-9]{32})/status", self.path)
+        if task_status_match:
+            user = self.require_user()
+            if not user:
+                return
+            task = get_queue_job(user["id"], task_status_match.group(1))
+            if not task:
+                self.send_error(404)
+            else:
+                self.send_json({"ok": True, "task": task})
+            return
+        workspace_match = re.fullmatch(r"/api/projects/([a-f0-9-]{36})/workspace", self.path)
+        if workspace_match:
+            user = self.require_user()
+            if not user:
+                return
+            workspace = get_project_workspace(user["id"], workspace_match.group(1))
+            if not workspace:
+                self.send_error(404)
+            else:
+                self.send_json({"ok": True, **workspace})
+            return
+        if self.path.startswith("/api/jobs/") and "/files/" in self.path:
+            user = self.require_user()
+            if not user:
+                return
+            match = re.fullmatch(r"/api/jobs/([a-f0-9]{32})/files/(.+)", unquote(self.path.split("?", 1)[0]))
+            if not match:
+                self.send_error(404)
+                return
+            job_id, relative_name = match.groups()
+            if not user_owns_job(user["id"], job_id):
+                self.send_error(404)
+                return
+            output_root = (JOBS_DIR / job_id / "output").resolve()
+            file_path = (output_root / relative_name).resolve()
+            if not file_path.is_relative_to(output_root) or not file_path.is_file():
+                self.send_error(404)
+                return
+            raw = file_path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", mimetypes.guess_type(file_path.name)[0] or "application/octet-stream")
+            self.send_header("Content-Disposition", f'attachment; filename="{file_path.name}"')
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
             return
         if self.path == "/api/skills":
             self.send_json(load_skills())
@@ -694,6 +1255,145 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_POST(self) -> None:  # noqa: N802
+        if self.path in {"/api/auth/register", "/api/auth/login"}:
+            if auth_rate_limited(self.client_address[0]):
+                self.send_json({"ok": False, "error": "登录尝试过多，请稍后重试。"}, status=429)
+                return
+            try:
+                payload = self.read_json()
+                email_value = str(payload.get("email", ""))
+                password_value = str(payload.get("password", ""))
+                if self.path == "/api/auth/register":
+                    user = create_user(email_value, password_value)
+                else:
+                    user = authenticate_user(email_value, password_value)
+                    if not user:
+                        record_auth_failure(self.client_address[0])
+                        self.send_json({"ok": False, "error": "邮箱或密码错误。"}, status=401)
+                        return
+                token, expires_at = create_login_session(user["id"])
+                max_age = max(0, int(expires_at.timestamp() - time.time()))
+                self.send_json(
+                    {"ok": True, "user": user},
+                    headers={"Set-Cookie": self.auth_cookie(token, max_age)},
+                )
+            except ValueError as exc:
+                record_auth_failure(self.client_address[0])
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            except Exception as exc:  # noqa: BLE001 - bounded auth error
+                self.send_json({"ok": False, "error": f"账户操作失败：{exc}"}, status=500)
+            return
+        if self.path == "/api/auth/logout":
+            delete_login_session(self.session_token())
+            self.send_json(
+                {"ok": True},
+                headers={"Set-Cookie": self.auth_cookie("", 0)},
+            )
+            return
+
+        user = self.require_user()
+        if not user:
+            return
+        if self.path == "/api/projects":
+            try:
+                payload = self.read_json()
+                project = create_project(user["id"], str(payload.get("name", "")), str(payload.get("description", "")))
+                self.send_json({"ok": True, "project": project})
+            except ValueError as exc:
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        memory_match = re.fullmatch(r"/api/projects/([a-f0-9-]{36})/memory", self.path)
+        if memory_match:
+            try:
+                payload = self.read_json()
+                memory = add_project_memory(
+                    memory_match.group(1),
+                    user["id"],
+                    str(payload.get("category", "fact")),
+                    str(payload.get("content", "")),
+                )
+                self.send_json({"ok": True, "memory": memory})
+            except (ValueError, PermissionError) as exc:
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        plan_generate_match = re.fullmatch(r"/api/projects/([a-f0-9-]{36})/plans/generate", self.path)
+        if plan_generate_match:
+            try:
+                project_id = plan_generate_match.group(1)
+                if not user_owns_project(user["id"], project_id):
+                    self.send_error(404)
+                    return
+                payload = self.read_json()
+                goal = str(payload.get("goal", "")).strip()
+                if not goal:
+                    raise ValueError("请输入任务目标。")
+                steps, summary = generate_task_plan_with_model(goal, project_memory_context(user["id"], project_id))
+                plan = create_task_plan(project_id, user["id"], goal, steps)
+                self.send_json({"ok": True, "plan": plan, "summary": summary})
+            except (ValueError, RuntimeError) as exc:
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        plan_action_match = re.fullmatch(r"/api/plans/([a-f0-9-]{36})/(confirm|run-next|run-all)", self.path)
+        if plan_action_match:
+            plan_id, action = plan_action_match.groups()
+            try:
+                if action == "confirm":
+                    plan = approve_task_plan(user["id"], plan_id)
+                else:
+                    plan = get_task_plan(user["id"], plan_id)
+                    if not plan:
+                        self.send_error(404)
+                        return
+                    if plan.get("status") not in {"approved", "running"}:
+                        raise ValueError("计划尚未确认，或当前状态不能执行。")
+                    task = enqueue_plan_task(user["id"], plan_id, "next" if action == "run-next" else "all")
+                    self.send_json({"ok": True, "plan": plan, "task": task}, status=202)
+                    return
+                if not plan:
+                    self.send_error(404)
+                else:
+                    self.send_json({"ok": True, "plan": plan})
+            except (ValueError, PermissionError, RuntimeError) as exc:
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            except Exception as exc:  # noqa: BLE001 - Redis/RQ availability errors
+                self.send_json({"ok": False, "error": f"后台任务提交失败：{exc}"}, status=503)
+            return
+        step_retry_match = re.fullmatch(r"/api/steps/([a-f0-9-]{36})/retry", self.path)
+        if step_retry_match:
+            try:
+                plan = retry_task_step(user["id"], step_retry_match.group(1))
+                if not plan:
+                    self.send_error(404)
+                else:
+                    self.send_json({"ok": True, "plan": plan})
+            except ValueError as exc:
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        step_memory_match = re.fullmatch(r"/api/steps/([a-f0-9-]{36})/memory", self.path)
+        if step_memory_match:
+            try:
+                payload = self.read_json()
+                memory = save_step_output_to_memory(
+                    user["id"],
+                    step_memory_match.group(1),
+                    str(payload.get("category", "conclusion")),
+                )
+                self.send_json({"ok": True, "memory": memory})
+            except (ValueError, PermissionError) as exc:
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        if self.path == "/api/execute/python":
+            try:
+                payload = self.read_json()
+                if payload.get("confirmed") is not True:
+                    self.send_json({"ok": False, "error": "执行前必须由用户明确确认代码和权限。"}, status=400)
+                    return
+                result = run_python_sandbox(payload.get("code", ""), user["id"])
+                status = 429 if result.get("busy") else 200 if result.get("ok") else 400
+                self.send_json(result, status=status)
+            except Exception as exc:  # noqa: BLE001 - return bounded API errors
+                self.send_json({"ok": False, "error": f"代码执行失败：{exc}"}, status=500)
+            return
         if self.path == "/api/verify-references":
             try:
                 payload = self.read_json()
@@ -751,6 +1451,7 @@ def main() -> int:
     parser.add_argument("--port", default=8765, type=int)
     args = parser.parse_args()
 
+    initialize_database()
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Open-Rosalind Agent local web UI: http://{args.host}:{args.port}")
     server.serve_forever()

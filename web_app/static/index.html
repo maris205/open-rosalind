@@ -7,7 +7,30 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section id="authScreen" class="auth-screen">
+      <form id="authForm" class="auth-card">
+        <div class="auth-brand">
+          <h1>Open-Rosalind Agent</h1>
+          <p>生物医学科研工作台</p>
+        </div>
+        <div class="auth-modes" role="group" aria-label="账户操作">
+          <button id="loginMode" type="button" class="active">登录</button>
+          <button id="registerMode" type="button">注册</button>
+        </div>
+        <label>
+          邮箱
+          <input id="authEmail" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          密码
+          <input id="authPassword" type="password" autocomplete="current-password" minlength="8" maxlength="128" required />
+        </label>
+        <p id="authError" class="auth-error" role="alert"></p>
+        <button id="authSubmit" class="auth-submit" type="submit">登录</button>
+      </form>
+    </section>
+
+    <div id="appShell" class="app-shell" hidden>
       <aside class="sidebar">
         <div class="brand">
           <canvas id="signalCanvas" width="72" height="44" aria-hidden="true"></canvas>
@@ -43,9 +66,11 @@
             <p id="activePurpose">Plan biomedical research tasks with evidence, permissions, and audit logs.</p>
           </div>
           <div class="toolbar">
+            <span id="currentUser" class="current-user"></span>
             <button id="verifyRefs" type="button">Verify Refs</button>
             <button id="copyOutput" type="button">Copy</button>
             <button id="clearInput" type="button">Clear</button>
+            <button id="logout" type="button">退出</button>
           </div>
         </header>
 
@@ -99,6 +124,44 @@
       </main>
 
       <aside class="right-rail">
+        <section class="panel project-panel">
+          <div class="panel-heading">
+            <h2>科研项目</h2>
+            <span id="projectStatus">未选择</span>
+          </div>
+          <label>
+            当前项目
+            <select id="projectSelect"></select>
+          </label>
+          <div class="inline-form">
+            <input id="projectName" type="text" maxlength="200" placeholder="新项目名称" />
+            <button id="createProject" type="button">新建</button>
+          </div>
+
+          <div id="projectWorkspace" hidden>
+            <h3 class="subsection-title">项目记忆</h3>
+            <div class="memory-form">
+              <select id="memoryCategory" aria-label="记忆类型">
+                <option value="fact">事实</option>
+                <option value="evidence">证据</option>
+                <option value="decision">决策</option>
+                <option value="constraint">限制</option>
+                <option value="open_question">开放问题</option>
+                <option value="conclusion">结论</option>
+              </select>
+              <textarea id="memoryContent" class="compact-textarea" placeholder="添加可追溯的项目记忆"></textarea>
+              <button id="addMemory" type="button">添加记忆</button>
+            </div>
+            <div id="memoryList" class="memory-list"></div>
+
+            <h3 class="subsection-title">自动任务</h3>
+            <textarea id="taskGoal" class="compact-textarea task-goal" placeholder="输入需要 Agent 完成的科研目标"></textarea>
+            <button id="generatePlan" class="primary-action" type="button">生成任务计划</button>
+            <p id="taskStatus" class="hint"></p>
+            <div id="taskPlan" class="task-plan"></div>
+          </div>
+        </section>
+
         <section class="panel">
           <h2>Evidence Intake</h2>
           <div id="dropZone" class="upload-box">
@@ -128,6 +191,29 @@
             <input id="apiKey" type="password" placeholder="Session only API key" />
           </label>
           <p id="keyStatus" class="hint"></p>
+        </section>
+
+        <section class="panel sandbox-panel">
+          <div class="panel-heading">
+            <h2>Python Sandbox</h2>
+            <span id="sandboxStatus">checking</span>
+          </div>
+          <p id="sandboxProfile" class="hint">Loading execution policy...</p>
+          <button id="preparePython" class="prepare-python" type="button">Use latest Python block</button>
+          <label>
+            Python code
+            <textarea id="pythonCode" class="code-editor" spellcheck="false">from pathlib import Path
+
+print("Open-Rosalind sandbox is ready")
+Path("result.txt").write_text("traceable output\n", encoding="utf-8")</textarea>
+          </label>
+          <label class="confirm-execution">
+            <input id="confirmExecution" type="checkbox" />
+            <span>I reviewed this code and approve permission level 3 execution.</span>
+          </label>
+          <button id="runPython" class="run-python" type="button" disabled>Run in Docker</button>
+          <pre id="executionOutput" class="execution-output">No execution yet.</pre>
+          <div id="executionFiles" class="execution-files"></div>
         </section>
 
         <section class="panel compact-panel">

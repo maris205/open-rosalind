@@ -6,6 +6,8 @@ venv/
 exports/*.docx
 exports/*.md
 !exports/README.md
+exports/jobs/
+data/
 web_app/*.log
 web_app/__pycache__/
 %SystemDrive%/

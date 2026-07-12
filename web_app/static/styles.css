@@ -17,6 +17,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -25,8 +29,87 @@ body {
   letter-spacing: 0;
 }
 
+.auth-screen {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: #eef2ef;
+}
+
+.auth-card {
+  width: min(100%, 380px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 28px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.auth-brand {
+  margin-bottom: 22px;
+}
+
+.auth-brand h1 {
+  font-size: 22px;
+}
+
+.auth-brand p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 18px;
+}
+
+.auth-modes button {
+  border-radius: 0;
+}
+
+.auth-modes button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.auth-modes button:last-child {
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+}
+
+.auth-modes button.active {
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.auth-error {
+  min-height: 20px;
+  margin: 4px 0 10px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.auth-submit {
+  width: 100%;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.current-user {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -297,7 +380,8 @@ dd {
 }
 
 textarea,
-input {
+input,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -309,6 +393,11 @@ input {
 input {
   height: 36px;
   padding: 0 10px;
+}
+
+select {
+  height: 36px;
+  padding: 0 9px;
 }
 
 textarea {
@@ -435,6 +524,222 @@ label {
 
 .trace-list li + li {
   margin-top: 7px;
+}
+
+.project-panel {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.inline-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.subsection-title {
+  margin: 14px 0 8px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.memory-form {
+  display: grid;
+  gap: 7px;
+}
+
+.compact-textarea {
+  min-height: 76px;
+  max-height: 180px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px;
+  resize: vertical;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.compact-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(17, 97, 73, 0.12);
+}
+
+.memory-list {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  margin-top: 9px;
+  overflow-y: auto;
+}
+
+.memory-item {
+  border-left: 3px solid var(--line);
+  padding: 6px 8px;
+  background: var(--surface-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.memory-item strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.task-goal {
+  width: 100%;
+  margin-bottom: 7px;
+}
+
+.primary-action {
+  width: 100%;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.task-plan {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.plan-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.plan-header strong,
+.task-step strong {
+  display: block;
+  font-size: 13px;
+}
+
+.plan-actions,
+.step-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
+
+.plan-actions button,
+.step-actions button {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.task-step {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px;
+  background: var(--surface-soft);
+}
+
+.task-step p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.step-output {
+  max-height: 180px;
+  margin-top: 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 7px;
+  background: white;
+  font-size: 11px;
+}
+
+.status-failed {
+  color: var(--danger);
+}
+
+.status-completed {
+  color: var(--accent);
+}
+
+.sandbox-panel .panel-heading {
+  margin-bottom: 6px;
+}
+
+.code-editor {
+  min-height: 180px;
+  max-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  resize: vertical;
+  font-family: Consolas, "Microsoft YaHei UI", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.code-editor:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(17, 97, 73, 0.12);
+}
+
+.confirm-execution {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  margin: 8px 0;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.confirm-execution input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+}
+
+.run-python {
+  width: 100%;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.prepare-python {
+  width: 100%;
+  margin: 8px 0 10px;
+  background: var(--surface-soft);
+}
+
+.run-python:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.execution-output {
+  min-height: 120px;
+  max-height: 260px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #111815;
+  color: #dce8e2;
+  font-size: 11px;
+}
+
+.execution-files {
+  display: grid;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.execution-files a {
+  overflow-wrap: anywhere;
+  color: var(--blue);
+  font-size: 12px;
 }
 
 .hint.error,
