@@ -85,6 +85,8 @@ Open-Rosalind Edu runs in Edu Mode. It is designed for learning and writing assi
 
 ## Local Start
 
+完整的本地、Linux 和阿里云 ECS 部署步骤见 [`docs/deployment.md`](docs/deployment.md)。
+
 ### Lightweight Local Web UI
 
 This repository includes a dependency-free local web UI for quick testing before OpenHands is installed.
