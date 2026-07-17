@@ -10,98 +10,91 @@
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <canvas id="signalCanvas" width="80" height="44" aria-hidden="true"></canvas>
+          <canvas id="signalCanvas" width="64" height="40" aria-hidden="true"></canvas>
           <div>
             <h1>Open-Rosalind Edu</h1>
-            <p>Biomedical learning and writing workspace</p>
+            <p>Biomedical learning workspace</p>
           </div>
         </div>
 
-        <section class="panel">
-          <h2>Agents</h2>
+        <nav aria-label="科研学习功能">
           <div id="skillList" class="skill-list"></div>
-        </section>
-
-        <section class="panel">
-          <h2>Paper / BibTeX</h2>
-          <div id="dropZone" class="upload-box">
-            <input id="documentFile" type="file" accept=".pdf,.bib,.txt,.md,.markdown,.csv,.tsv,.json,.docx" />
-            <strong>Upload paper or bibliography</strong>
-            <span>pdf, bib, txt, md, docx · max 12 MB</span>
-          </div>
-          <div class="upload-actions">
-            <button id="uploadReplace" type="button">Replace</button>
-            <button id="uploadAppend" type="button">Append</button>
-          </div>
-          <p id="uploadStatus" class="hint">PDF 会进入文献精读；BibTeX 会进入参考验证。</p>
-        </section>
-
-        <section class="panel">
-          <h2>Qwen</h2>
-          <label>
-            Base URL
-            <input id="baseUrl" type="text" spellcheck="false" />
-          </label>
-          <label>
-            Model
-            <input id="model" type="text" spellcheck="false" />
-          </label>
-          <label>
-            API Key
-            <input id="apiKey" type="password" placeholder="临时粘贴，不写入文件" />
-          </label>
-          <p id="keyStatus" class="hint"></p>
-        </section>
+        </nav>
       </aside>
 
-      <main class="workspace">
+      <main class="chat-workspace">
         <header class="topbar">
-          <div>
-            <h2>Edu Agent Console</h2>
-            <p id="activePurpose">选择一个论文流程 Agent 后输入任务。</p>
+          <div class="active-function">
+            <h2 id="selectedSkill">综合科研助手</h2>
+            <p id="activePurpose">在一个对话中完成规划、记忆、证据、工具审计和可追溯报告。</p>
           </div>
           <div class="toolbar">
-            <button id="verifyRefs" type="button" title="验证参考文献">Verify Refs</button>
-            <button id="copyOutput" type="button" title="复制输出">Copy</button>
-            <button id="clearInput" type="button" title="清空输入">Clear</button>
+            <span id="modeBadge" class="status-badge">ready</span>
+            <button id="copyOutput" type="button" title="复制最近一次回答">复制</button>
+            <button id="clearChat" type="button" title="清空当前功能的对话">清空</button>
+            <button id="openSettings" type="button" title="模型设置">设置</button>
           </div>
         </header>
 
-        <section class="quick-prompts" aria-label="Quick prompts">
-          <button type="button" data-template="paper">文献精读</button>
-          <button type="button" data-template="review">综述大纲</button>
-          <button type="button" data-template="polish">论文润色</button>
-          <button type="button" data-template="proposal">开题报告</button>
-          <button type="button" data-template="refs">参考验证</button>
-        </section>
+        <section id="conversation" class="conversation" aria-live="polite"></section>
 
-        <section class="editor-grid">
-          <div class="editor-pane">
-            <div class="pane-title">
-              <h3>Input</h3>
-              <span id="selectedSkill">paper_summary</span>
+        <section class="composer-wrap">
+          <div id="attachmentChip" class="attachment-chip" hidden>
+            <div>
+              <strong id="attachmentName"></strong>
+              <span id="attachmentMeta"></span>
             </div>
-            <textarea id="taskInput" spellcheck="false"></textarea>
-            <div class="actions">
-              <label class="temperature">
-                Temperature
-                <input id="temperature" type="range" min="0" max="1" step="0.1" value="0.3" />
-                <span id="temperatureValue">0.3</span>
+            <button id="removeAttachment" type="button" title="移除附件" aria-label="移除附件">x</button>
+          </div>
+          <div class="composer">
+            <textarea id="taskInput" rows="3" spellcheck="false" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+            <div class="composer-actions">
+              <label class="attach-button" title="上传 PDF、BibTeX、DOCX 或文本文件">
+                <span>上传文件</span>
+                <input id="documentFile" type="file" accept=".pdf,.bib,.txt,.md,.markdown,.csv,.tsv,.json,.docx" />
               </label>
-              <button id="generate" type="button">Generate</button>
+              <span id="uploadStatus" class="hint">支持 PDF、BibTeX、DOCX 和文本，最大 12 MB</span>
+              <button id="sendButton" type="button">发送</button>
             </div>
           </div>
-
-          <div class="output-pane">
-            <div class="pane-title">
-              <h3>Output</h3>
-              <span id="modeBadge">ready</span>
-            </div>
-            <pre id="output"></pre>
-          </div>
+          <p class="disclaimer">AI 输出可能出错，正式提交前请核验原始文献、数据和引用。</p>
         </section>
       </main>
     </div>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form method="dialog" class="settings-card">
+        <div class="settings-header">
+          <div>
+            <h2>千问模型设置</h2>
+            <p>配置仅保留在当前页面会话中。</p>
+          </div>
+          <button value="cancel" type="submit" title="关闭设置" aria-label="关闭设置">x</button>
+        </div>
+
+        <label>
+          Base URL
+          <input id="baseUrl" type="text" spellcheck="false" />
+        </label>
+        <label>
+          Model
+          <input id="model" type="text" spellcheck="false" />
+        </label>
+        <label>
+          API Key
+          <input id="apiKey" type="password" placeholder="临时填写，不写入文件" />
+        </label>
+        <label class="temperature">
+          <span>Temperature</span>
+          <input id="temperature" type="range" min="0" max="1" step="0.1" value="0.3" />
+          <output id="temperatureValue">0.3</output>
+        </label>
+        <p id="keyStatus" class="hint"></p>
+        <div class="settings-actions">
+          <button value="done" type="submit" class="primary-button">完成</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="/app.js"></script>
   </body>

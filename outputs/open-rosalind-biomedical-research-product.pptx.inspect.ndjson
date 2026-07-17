@@ -1,0 +1,283 @@
+{"kind":"deck","id":"pr/8gpj93","name":"Deck"}
+{"kind":"layout","layoutId":"e4a18711-cc38-4fc9-91f2-5f040d7dc750","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"df641067-17d7-457d-a5c6-220420acfa43","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/bui0gg","slide":1,"title":"Open Rosalind","textShapes":4}
+{"kind":"shape","id":"sh/ji98fmx8","slide":1,"bbox":[0,0,590,720]}
+{"kind":"shape","id":"sh/ih07mhgn","slide":1,"bbox":[64,82,56,6]}
+{"kind":"textbox","id":"sh/t8bqlwfa","slide":1,"text":"Open Rosalind","textPreview":"Open Rosalind","textChars":13,"textLines":1,"bbox":[64,112,500,80]}
+{"kind":"textbox","id":"sh/s72psryp","slide":1,"text":"可信、可执行、可追溯的\n生物医学科研智能体","textPreview":"可信、可执行、可追溯的 | 生物医学科研智能体","textChars":21,"textLines":2,"bbox":[64,205,475,150]}
+{"kind":"textbox","id":"sh/76t8jmx4","slide":1,"text":"从论文学习工具，到能够运行代码、核验证据并沉淀研究记忆的科研工作空间。","textPreview":"从论文学习工具，到能够运行代码、核验证据并沉淀研究记忆的科研工作空间。","textChars":35,"textLines":1,"bbox":[64,384,450,100]}
+{"kind":"textbox","id":"sh/6507qhgz","slide":1,"text":"产品介绍  ·  2026","textPreview":"产品介绍  ·  2026","textChars":13,"textLines":1,"bbox":[64,624,350,30]}
+{"kind":"image","id":"im/9sr69cfq","slide":1,"name":"","alt":"Biomedical researcher reviewing scientific evidence","bbox":[0,0,1280,720]}
+{"kind":"notes","id":"nt/bui0gg","slide":1,"text":""}
+{"kind":"slide","id":"sl/gvfnvv","slide":2,"title":"WHY NOW","textShapes":17}
+{"kind":"textbox","id":"sh/hwn61onm","slide":2,"text":"WHY NOW","textPreview":"WHY NOW","textChars":7,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/utwnqtob","slide":2,"text":"通用对话模型懂“怎么说”，却无法证明“做过什么”","textPreview":"通用对话模型懂“怎么说”，却无法证明“做过什么”","textChars":24,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/vu5ozy5g","slide":2,"text":"生物医学科研的风险集中在证据、计算与数据边界，而不仅是文本质量。","textPreview":"生物医学科研的风险集中在证据、计算与数据边界，而不仅是文本质量。","textChars":32,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/8re5oj65","slide":2,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/tsn6xonq","slide":2,"bbox":[64,246,264,332]}
+{"kind":"textbox","id":"sh/6pcnm9oz","slide":2,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[86,266,50,28]}
+{"kind":"textbox","id":"sh/7q5ove5k","slide":2,"text":"文献幻觉","textPreview":"文献幻觉","textChars":4,"textLines":1,"bbox":[86,310,215,52]}
+{"kind":"textbox","id":"sh/snyp03m9","slide":2,"text":"不存在的论文、错误 DOI 与元数据，会直接污染论文可信度。","textPreview":"不存在的论文、错误 DOI 与元数据，会直接污染论文可信度。","textChars":30,"textLines":1,"bbox":[86,382,215,140]}
+{"kind":"shape","id":"sh/do7698nu","slide":2,"bbox":[352,246,264,332]}
+{"kind":"textbox","id":"sh/x8f298ri","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[374,266,50,28]}
+{"kind":"textbox","id":"sh/w761g3qx","slide":2,"text":"计算断链","textPreview":"计算断链","textChars":4,"textLines":1,"bbox":[374,310,215,52]}
+{"kind":"textbox","id":"sh/b6dk7i9c","slide":2,"text":"代码只被生成而未真实运行，结果无法复现，也无法定位错误。","textPreview":"代码只被生成而未真实运行，结果无法复现，也无法定位错误。","textChars":28,"textLines":1,"bbox":[374,382,215,140]}
+{"kind":"shape","id":"sh/a54jed8r","slide":2,"bbox":[640,246,264,332]}
+{"kind":"textbox","id":"sh/94v258r6","slide":2,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[662,266,50,28]}
+{"kind":"textbox","id":"sh/o3m1c3ql","slide":2,"text":"上下文丢失","textPreview":"上下文丢失","textChars":5,"textLines":1,"bbox":[662,310,215,52]}
+{"kind":"textbox","id":"sh/nidk3y9g","slide":2,"text":"跨周、跨文件的研究决策散落在聊天记录，开放问题难以持续追踪。","textPreview":"跨周、跨文件的研究决策散落在聊天记录，开放问题难以持续追踪。","textChars":30,"textLines":1,"bbox":[662,382,215,140]}
+{"kind":"shape","id":"sh/mh4jat8v","slide":2,"bbox":[928,246,264,332]}
+{"kind":"textbox","id":"sh/t0z2hsrq","slide":2,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[950,266,50,28]}
+{"kind":"textbox","id":"sh/8zqlo7q5","slide":2,"text":"医学高风险","textPreview":"医学高风险","textChars":5,"textLines":1,"bbox":[950,310,215,52]}
+{"kind":"textbox","id":"sh/cvyd0v2d","slide":2,"text":"因果、疗效、安全性和诊断结论需要更严格的证据等级与人工确认。","textPreview":"因果、疗效、安全性和诊断结论需要更严格的证据等级与人工确认。","textChars":30,"textLines":1,"bbox":[950,382,215,140]}
+{"kind":"textbox","id":"sh/dwre903y","slide":2,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/qtgvy5kn","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/gvfnvv","slide":2,"text":""}
+{"kind":"slide","id":"sl/rzv9mb","slide":3,"title":"OUR ANSWER","textShapes":25}
+{"kind":"textbox","id":"sh/o721ofi9","slide":3,"text":"OUR ANSWER","textPreview":"OUR ANSWER","textChars":10,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/36t0vaho","slide":3,"text":"Open Rosalind 把“回答”升级为可检查的研究过程","textPreview":"Open Rosalind 把“回答”升级为可检查的研究过程","textChars":30,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/25kjm503","slide":3,"text":"每个关键结论都能回到文献、数据、代码、环境和执行日志。","textPreview":"每个关键结论都能回到文献、数据、代码、环境和执行日志。","textChars":27,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/dwv214zq","slide":3,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/cvm1szi5","slide":3,"bbox":[205,368,64,2]}
+{"kind":"shape","id":"sh/budkzuhk","slide":3,"bbox":[70,286,136,168]}
+{"kind":"textbox","id":"sh/qtkjqp0z","slide":3,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[88,304,32,24]}
+{"kind":"textbox","id":"sh/t0rip0zm","slide":3,"text":"理解","textPreview":"理解","textChars":2,"textLines":1,"bbox":[88,342,100,34]}
+{"kind":"textbox","id":"sh/szi1gvi1","slide":3,"text":"识别研究问题与风险","textPreview":"识别研究问题与风险","textChars":9,"textLines":1,"bbox":[88,386,100,52]}
+{"kind":"shape","id":"sh/ipsby94z","slide":3,"bbox":[403,368,64,2]}
+{"kind":"shape","id":"sh/3q1cre5k","slide":3,"bbox":[268,286,136,168]}
+{"kind":"textbox","id":"sh/4bat0jm5","slide":3,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[286,304,32,24]}
+{"kind":"textbox","id":"sh/5cjutonq","slide":3,"text":"规划","textPreview":"规划","textChars":2,"textLines":1,"bbox":[286,342,100,34]}
+{"kind":"textbox","id":"sh/qdsb2t4b","slide":3,"text":"拆成可执行任务","textPreview":"拆成可执行任务","textChars":7,"textLines":1,"bbox":[286,386,100,52]}
+{"kind":"shape","id":"sh/relcvy5w","slide":3,"bbox":[601,368,64,2]}
+{"kind":"shape","id":"sh/sfut43mh","slide":3,"bbox":[466,286,136,168]}
+{"kind":"textbox","id":"sh/dg3uxonm","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[484,304,32,24]}
+{"kind":"textbox","id":"sh/ehcb6t47","slide":3,"text":"验证","textPreview":"验证","textChars":2,"textLines":1,"bbox":[484,342,100,34]}
+{"kind":"textbox","id":"sh/filczy5s","slide":3,"text":"核验文献与证据","textPreview":"核验文献与证据","textChars":7,"textLines":1,"bbox":[484,386,100,52]}
+{"kind":"shape","id":"sh/bm5sny10","slide":3,"bbox":[799,368,64,2]}
+{"kind":"shape","id":"sh/alwbudkf","slide":3,"bbox":[664,286,136,168]}
+{"kind":"textbox","id":"sh/xonap8j6","slide":3,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[682,304,32,24]}
+{"kind":"textbox","id":"sh/wnetw32l","slide":3,"text":"执行","textPreview":"执行","textChars":2,"textLines":1,"bbox":[682,342,100,34]}
+{"kind":"textbox","id":"sh/nilsjy1o","slide":3,"text":"沙箱运行 Python / R","textPreview":"沙箱运行 Python / R","textChars":15,"textLines":1,"bbox":[682,386,100,52]}
+{"kind":"shape","id":"sh/2hcbqtkj","slide":3,"bbox":[997,368,64,2]}
+{"kind":"shape","id":"sh/9k3al8ju","slide":3,"bbox":[862,286,136,168]}
+{"kind":"textbox","id":"sh/ojuts329","slide":3,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[880,304,32,24]}
+{"kind":"textbox","id":"sh/felsfels","slide":3,"text":"沉淀","textPreview":"沉淀","textChars":2,"textLines":1,"bbox":[880,342,100,34]}
+{"kind":"textbox","id":"sh/edsrm9k7","slide":3,"text":"保存代码、结果与记忆","textPreview":"保存代码、结果与记忆","textChars":10,"textLines":1,"bbox":[880,386,100,52]}
+{"kind":"shape","id":"sh/4jqpgfi5","slide":3,"bbox":[1060,286,136,168]}
+{"kind":"textbox","id":"sh/5kzqpkzq","slide":3,"text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[1078,304,32,24]}
+{"kind":"textbox","id":"sh/ix87ep0z","slide":3,"text":"交付","textPreview":"交付","textChars":2,"textLines":1,"bbox":[1078,342,100,34]}
+{"kind":"textbox","id":"sh/3yh8nahk","slide":3,"text":"生成可追溯报告","textPreview":"生成可追溯报告","textChars":7,"textLines":1,"bbox":[1078,386,100,52]}
+{"kind":"textbox","id":"sh/snapkzi1","slide":3,"text":"核心承诺","textPreview":"核心承诺","textChars":4,"textLines":1,"bbox":[70,505,140,30]}
+{"kind":"textbox","id":"sh/dojqt4zm","slide":3,"text":"不伪造文献  ·  不虚构运行  ·  不隐藏不确定性  ·  不让高风险结论脱离证据","textPreview":"不伪造文献  ·  不虚构运行  ·  不隐藏不确定性  ·  不让高风险结论脱离证据","textChars":43,"textLines":1,"bbox":[210,493,970,52]}
+{"kind":"textbox","id":"sh/ql87ip0b","slide":3,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/rm18ruhg","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/rzv9mb","slide":3,"text":""}
+{"kind":"slide","id":"sl/zspmzr","slide":4,"title":"PRODUCT LINE","textShapes":25}
+{"kind":"textbox","id":"sh/2t8361kr","slide":4,"text":"PRODUCT LINE","textPreview":"PRODUCT LINE","textChars":12,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/pwzmhg3i","slide":4,"text":"四个版本覆盖从科研入门到机构级可信计算","textPreview":"四个版本覆盖从科研入门到机构级可信计算","textChars":19,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/4vql8b2x","slide":4,"text":"界面保持一致，能力随着用户的数据敏感度、自动化需求和治理要求逐级增强。","textPreview":"界面保持一致，能力随着用户的数据敏感度、自动化需求和治理要求逐级增强。","textChars":35,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/vqx4b6l0","slide":4,"bbox":[64,206,1152,2]}
+{"kind":"textbox","id":"sh/upo321kf","slide":4,"text":"版本","textPreview":"版本","textChars":2,"textLines":1,"bbox":[64,234,200,36]}
+{"kind":"textbox","id":"sh/hszmdg36","slide":4,"text":"核心用户","textPreview":"核心用户","textChars":4,"textLines":1,"bbox":[285,234,210,36]}
+{"kind":"textbox","id":"sh/grql4b2l","slide":4,"text":"关键能力","textPreview":"关键能力","textChars":4,"textLines":1,"bbox":[515,234,500,36]}
+{"kind":"textbox","id":"sh/zm14nqlk","slide":4,"text":"运行位置","textPreview":"运行位置","textChars":4,"textLines":1,"bbox":[1045,234,170,36]}
+{"kind":"textbox","id":"sh/els3e5kz","slide":4,"text":"Edu 入门版","textPreview":"Edu 入门版","textChars":7,"textLines":1,"bbox":[64,276,200,56]}
+{"kind":"textbox","id":"sh/8fqtsne1","slide":4,"text":"本科生 / 研究生","textPreview":"本科生 / 研究生","textChars":9,"textLines":1,"bbox":[285,276,210,56]}
+{"kind":"textbox","id":"sh/tgzulsfm","slide":4,"text":"论文技能、引用验证、文件问答","textPreview":"论文技能、引用验证、文件问答","textChars":14,"textLines":1,"bbox":[515,276,500,56]}
+{"kind":"textbox","id":"sh/6d8bqxwv","slide":4,"text":"云端对话","textPreview":"云端对话","textChars":4,"textLines":1,"bbox":[1045,276,170,56]}
+{"kind":"shape","id":"sh/7ehcj2xg","slide":4,"bbox":[54,353,1168,72]}
+{"kind":"textbox","id":"sh/kb6tonep","slide":4,"text":"Research Agent","textPreview":"Research Agent","textChars":14,"textLines":1,"bbox":[64,358,200,56]}
+{"kind":"textbox","id":"sh/lcfuhsfa","slide":4,"text":"课题组 / 科研人员","textPreview":"课题组 / 科研人员","textChars":10,"textLines":1,"bbox":[285,358,210,56]}
+{"kind":"textbox","id":"sh/y9obmdwz","slide":4,"text":"任务规划、代码执行、项目记忆、证据链","textPreview":"任务规划、代码执行、项目记忆、证据链","textChars":18,"textLines":1,"bbox":[515,358,500,56]}
+{"kind":"textbox","id":"sh/jaxcfix4","slide":4,"text":"云端沙箱","textPreview":"云端沙箱","textChars":4,"textLines":1,"bbox":[1045,358,170,56]}
+{"kind":"textbox","id":"sh/w76tk3et","slide":4,"text":"Research Local","textPreview":"Research Local","textChars":14,"textLines":1,"bbox":[64,440,200,56]}
+{"kind":"textbox","id":"sh/x8fud8fe","slide":4,"text":"敏感数据 / 大文件用户","textPreview":"敏感数据 / 大文件用户","textChars":12,"textLines":1,"bbox":[285,440,210,56]}
+{"kind":"textbox","id":"sh/dsni103q","slide":4,"text":"本地 CPU/GPU、Conda、R、生信工具","textPreview":"本地 CPU/GPU、Conda、R、生信工具","textChars":23,"textLines":1,"bbox":[515,440,500,56]}
+{"kind":"textbox","id":"sh/sre1sf25","slide":4,"text":"本地 Runner","textPreview":"本地 Runner","textChars":9,"textLines":1,"bbox":[1045,440,170,56]}
+{"kind":"textbox","id":"sh/rq50zal0","slide":4,"text":"Enterprise","textPreview":"Enterprise","textChars":10,"textLines":1,"bbox":[64,522,200,56]}
+{"kind":"textbox","id":"sh/qpwjq5kf","slide":4,"text":"医院 / 高校 / 企业","textPreview":"医院 / 高校 / 企业","textChars":12,"textLines":1,"bbox":[285,522,210,56]}
+{"kind":"textbox","id":"sh/5onix03u","slide":4,"text":"私有 RAG、权限、审计、GPU 与合规","textPreview":"私有 RAG、权限、审计、GPU 与合规","textChars":20,"textLines":1,"bbox":[515,522,500,56]}
+{"kind":"textbox","id":"sh/43u1ov29","slide":4,"text":"私有部署","textPreview":"私有部署","textChars":4,"textLines":1,"bbox":[1045,522,170,56]}
+{"kind":"textbox","id":"sh/32l0vqlo","slide":4,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/i1cjml43","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/zspmzr","slide":4,"text":""}
+{"kind":"slide","id":"sl/yp58ar","slide":5,"title":"EDU","textShapes":26}
+{"kind":"textbox","id":"sh/rml0f650","slide":5,"text":"EDU","textPreview":"EDU","textChars":3,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/snuh8b6l","slide":5,"text":"Edu 把论文流程拆成初学者能直接使用的技能","textPreview":"Edu 把论文流程拆成初学者能直接使用的技能","textChars":22,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/to3ihgnq","slide":5,"text":"用户无需理解 Agent、Prompt 或工具编排，只需选择当前论文阶段。","textPreview":"用户无需理解 Agent、Prompt 或工具编排，只需选择当前论文阶段。","textChars":37,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/epczalob","slide":5,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/fql0jq5w","slide":5,"bbox":[72,264,208,98]}
+{"kind":"textbox","id":"sh/gruhcv6h","slide":5,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[88,278,34,20]}
+{"kind":"textbox","id":"sh/1s3il0n2","slide":5,"text":"Idea 发现","textPreview":"Idea 发现","textChars":7,"textLines":1,"bbox":[88,304,180,38]}
+{"kind":"shape","id":"sh/ut8zyho7","slide":5,"bbox":[304,264,208,98]}
+{"kind":"textbox","id":"sh/vu1g7mps","slide":5,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[320,278,34,20]}
+{"kind":"textbox","id":"sh/rex4bah8","slide":5,"text":"文献综述","textPreview":"文献综述","textChars":4,"textLines":1,"bbox":[320,304,180,38]}
+{"kind":"shape","id":"sh/6do3i50n","slide":5,"bbox":[536,264,208,98]}
+{"kind":"textbox","id":"sh/t0fmd0ze","slide":5,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[552,278,34,20]}
+{"kind":"textbox","id":"sh/sz6lkvyt","slide":5,"text":"论文大纲","textPreview":"论文大纲","textChars":4,"textLines":1,"bbox":[552,304,180,38]}
+{"kind":"shape","id":"sh/jad47qhc","slide":5,"bbox":[768,264,208,98]}
+{"kind":"textbox","id":"sh/i943el0r","slide":5,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[784,278,34,20]}
+{"kind":"textbox","id":"sh/5cfm90z2","slide":5,"text":"引言","textPreview":"引言","textChars":2,"textLines":1,"bbox":[784,304,180,38]}
+{"kind":"shape","id":"sh/4b6lgvih","slide":5,"bbox":[1000,264,208,98]}
+{"kind":"textbox","id":"sh/v6dk3qh0","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1016,278,34,20]}
+{"kind":"textbox","id":"sh/u543al0f","slide":5,"text":"方法","textPreview":"方法","textChars":2,"textLines":1,"bbox":[1016,304,180,38]}
+{"kind":"shape","id":"sh/y1knmlkn","slide":5,"bbox":[72,400,208,98]}
+{"kind":"textbox","id":"sh/z2t4f61s","slide":5,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[88,414,34,20]}
+{"kind":"textbox","id":"sh/0325ob2d","slide":5,"text":"结果","textPreview":"结果","textChars":2,"textLines":1,"bbox":[88,440,180,38]}
+{"kind":"shape","id":"sh/l4vmhgjy","slide":5,"bbox":[304,400,208,98]}
+{"kind":"textbox","id":"sh/m54nqlkj","slide":5,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[320,414,34,20]}
+{"kind":"textbox","id":"sh/76d4jq14","slide":5,"text":"讨论","textPreview":"讨论","textChars":2,"textLines":1,"bbox":[320,440,180,38]}
+{"kind":"shape","id":"sh/87m5sv2p","slide":5,"bbox":[536,400,208,98]}
+{"kind":"textbox","id":"sh/98vml0ja","slide":5,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[552,414,34,20]}
+{"kind":"textbox","id":"sh/u94nu5kf","slide":5,"text":"摘要与标题","textPreview":"摘要与标题","textChars":5,"textLines":1,"bbox":[552,440,180,38]}
+{"kind":"shape","id":"sh/vad4nq10","slide":5,"bbox":[768,400,208,98]}
+{"kind":"textbox","id":"sh/54zqd43i","slide":5,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[784,414,34,20]}
+{"kind":"textbox","id":"sh/43qpkzmx","slide":5,"text":"润色","textPreview":"润色","textChars":2,"textLines":1,"bbox":[784,440,180,38]}
+{"kind":"shape","id":"sh/j2xobulc","slide":5,"bbox":[1000,400,208,98]}
+{"kind":"textbox","id":"sh/i1o7ip4r","slide":5,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1016,414,34,20]}
+{"kind":"textbox","id":"sh/tszqh43e","slide":5,"text":"参考文献验证","textPreview":"参考文献验证","textChars":6,"textLines":1,"bbox":[1016,440,180,38]}
+{"kind":"textbox","id":"sh/srqpozmt","slide":5,"text":"每个入口对应独立 SKILL.md，可扩展、可替换，也兼容 Claude Code / Codex 式技能组织。","textPreview":"每个入口对应独立 SKILL.md，可扩展、可替换，也兼容 Claude Code / Codex 式技能组织。","textChars":56,"textLines":1,"bbox":[72,552,1110,50]}
+{"kind":"textbox","id":"sh/r6h8ful8","slide":5,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/6587mp4n","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/yp58ar","slide":5,"text":""}
+{"kind":"slide","id":"sl/1bxkjq","slide":6,"title":"RESEARCH AGENT","textShapes":17}
+{"kind":"textbox","id":"sh/7ats3yxg","slide":6,"text":"RESEARCH AGENT","textPreview":"RESEARCH AGENT","textChars":14,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/8b29cjy1","slide":6,"text":"Research Agent 不止聊天，而是持续推进任务","textPreview":"Research Agent 不止聊天，而是持续推进任务","textChars":28,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/9cba5ofm","slide":6,"text":"单一聊天入口背后，是计划、工具、执行、观察、修正与记忆循环。","textPreview":"单一聊天入口背后，是计划、工具、执行、观察、修正与记忆循环。","textChars":30,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/udkretg7","slide":6,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/vets7yxs","slide":6,"bbox":[72,244,78,52]}
+{"kind":"textbox","id":"sh/wf29g3ed","slide":6,"text":"计划","textPreview":"计划","textChars":2,"textLines":1,"bbox":[82,251,58,34]}
+{"kind":"textbox","id":"sh/hgva98fi","slide":6,"text":"建立任务树与停止条件","textPreview":"建立任务树与停止条件","textChars":10,"textLines":1,"bbox":[174,244,390,52]}
+{"kind":"shape","id":"sh/ah0r29g3","slide":6,"bbox":[72,319,78,52]}
+{"kind":"textbox","id":"sh/bi98vex8","slide":6,"text":"执行","textPreview":"执行","textChars":2,"textLines":1,"bbox":[82,326,58,34]}
+{"kind":"textbox","id":"sh/b254v6dc","slide":6,"text":"选择文献、文件或代码工具","textPreview":"选择文献、文件或代码工具","textChars":12,"textLines":1,"bbox":[174,319,390,52]}
+{"kind":"shape","id":"sh/q1c321wr","slide":6,"bbox":[72,394,78,52]}
+{"kind":"textbox","id":"sh/d4nmxwvi","slide":6,"text":"观察","textPreview":"观察","textChars":2,"textLines":1,"bbox":[82,401,58,34]}
+{"kind":"textbox","id":"sh/c3el4rex","slide":6,"text":"读取真实日志与结果","textPreview":"读取真实日志与结果","textChars":9,"textLines":1,"bbox":[174,394,390,52]}
+{"kind":"shape","id":"sh/3ylkrmdg","slide":6,"bbox":[72,469,78,52]}
+{"kind":"textbox","id":"sh/2xc3yhwv","slide":6,"text":"反思","textPreview":"反思","textChars":2,"textLines":1,"bbox":[82,476,58,34]}
+{"kind":"textbox","id":"sh/p03mtwv6","slide":6,"text":"检查错误、偏倚与证据缺口","textPreview":"检查错误、偏倚与证据缺口","textChars":12,"textLines":1,"bbox":[174,469,390,52]}
+{"kind":"shape","id":"sh/ozul0rel","slide":6,"bbox":[72,544,78,52]}
+{"kind":"textbox","id":"sh/fu1knmx4","slide":6,"text":"记忆","textPreview":"记忆","textChars":2,"textLines":1,"bbox":[82,551,58,34]}
+{"kind":"textbox","id":"sh/e9s3uhwj","slide":6,"text":"沉淀决策、产物和开放问题","textPreview":"沉淀决策、产物和开放问题","textChars":12,"textLines":1,"bbox":[174,544,390,52]}
+{"kind":"shape","id":"sh/i5s36hgb","slide":6,"bbox":[650,244,530,350]}
+{"kind":"textbox","id":"sh/j614z2hw","slide":6,"text":"一次可信执行记录","textPreview":"一次可信执行记录","textChars":8,"textLines":1,"bbox":[686,270,440,36]}
+{"kind":"textbox","id":"sh/47a587yh","slide":6,"text":"输入文件哈希\n生成代码与版本\n运行环境与依赖\nstdout / stderr\n输出文件与图表\nAgent 解释与人工确认","textPreview":"输入文件哈希 | 生成代码与版本 | 运行环境与依赖 | stdout / stderr | 输出文件与图表 | Agent 解释与人工确认","textChars":60,"textLines":6,"bbox":[686,330,400,220]}
+{"kind":"shape","id":"sh/58jm1cz2","slide":6,"bbox":[1092,330,6,220]}
+{"kind":"textbox","id":"sh/6tsnahgn","slide":6,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/ru143mh8","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/1bxkjq","slide":6,"text":""}
+{"kind":"slide","id":"sl/8ed437","slide":7,"title":"TRUST LAYER","textShapes":13}
+{"kind":"textbox","id":"sh/h8nap036","slide":7,"text":"TRUST LAYER","textPreview":"TRUST LAYER","textChars":11,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/u5wrulkv","slide":7,"text":"可信性不是免责声明，而是系统级能力","textPreview":"可信性不是免责声明，而是系统级能力","textChars":17,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/v65snql0","slide":7,"text":"文献真实性、论点支持度和计算可复现性分别验证，避免“真实论文也未必支持该结论”。","textPreview":"文献真实性、论点支持度和计算可复现性分别验证，避免“真实论文也未必支持该结论”。","textChars":40,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/83e9sb2p","slide":7,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/t4nalg3a","slide":7,"bbox":[82,255,10,10]}
+{"kind":"textbox","id":"sh/6hcrq1kj","slide":7,"text":"文献存在性","textPreview":"文献存在性","textChars":5,"textLines":1,"bbox":[108,246,291.2,32]}
+{"kind":"textbox","id":"sh/725sj6l4","slide":7,"text":"通过 DOI、PMID 和可信元数据源检查题名、作者、期刊与年份。","textPreview":"通过 DOI、PMID 和可信元数据源检查题名、作者、期刊与年份。","textChars":33,"textLines":1,"bbox":[397,246,725,42]}
+{"kind":"shape","id":"sh/szyt4f2t","slide":7,"bbox":[82,335,10,10]}
+{"kind":"textbox","id":"sh/d07axk3e","slide":7,"text":"论点支持度","textPreview":"论点支持度","textChars":5,"textLines":1,"bbox":[108,326,291.2,32]}
+{"kind":"textbox","id":"sh/t8nelw7a","slide":7,"text":"区分文献存在、证据类型、研究设计与具体 claim 的支持关系。","textPreview":"区分文献存在、证据类型、研究设计与具体 claim 的支持关系。","textChars":32,"textLines":1,"bbox":[397,326,725,42]}
+{"kind":"shape","id":"sh/s7edcr6p","slide":7,"bbox":[82,415,10,10]}
+{"kind":"textbox","id":"sh/765wjmp4","slide":7,"text":"计算可复现","textPreview":"计算可复现","textChars":5,"textLines":1,"bbox":[108,406,291.2,32]}
+{"kind":"textbox","id":"sh/65wvahoj","slide":7,"text":"保存输入哈希、代码、依赖版本、日志、资源限制和生成产物。","textPreview":"保存输入哈希、代码、依赖版本、日志、资源限制和生成产物。","textChars":28,"textLines":1,"bbox":[397,406,725,42]}
+{"kind":"shape","id":"sh/54nehc7y","slide":7,"bbox":[82,495,10,10]}
+{"kind":"textbox","id":"sh/k3ed87qd","slide":7,"text":"医学风险控制","textPreview":"医学风险控制","textChars":6,"textLines":1,"bbox":[108,486,291.2,32]}
+{"kind":"textbox","id":"sh/j25wf2ps","slide":7,"text":"对疗效、安全性、诊断、预后和因果结论提高证据门槛并要求确认。","textPreview":"对疗效、安全性、诊断、预后和因果结论提高证据门槛并要求确认。","textChars":30,"textLines":1,"bbox":[397,486,725,42]}
+{"kind":"textbox","id":"sh/i1cv6h8n","slide":7,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/p07etg72","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/8ed437","slide":7,"text":""}
+{"kind":"slide","id":"sl/1pwoe6","slide":8,"title":"ARCHITECTURE","textShapes":17}
+{"kind":"textbox","id":"sh/yxc7mhsv","slide":8,"text":"ARCHITECTURE","textPreview":"ARCHITECTURE","textChars":12,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/l03qhcrm","slide":8,"text":"开发阶段用 ECS 跑通闭环，成熟后平滑迁移 ECI","textPreview":"开发阶段用 ECS 跑通闭环，成熟后平滑迁移 ECI","textChars":26,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/kzu9o7a1","slide":8,"text":"执行后端抽象保持一致，产品无需因基础设施升级而重写。","textPreview":"执行后端抽象保持一致，产品无需因基础设施升级而重写。","textChars":26,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/7ml8jm9c","slide":8,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/61crqhs7","slide":8,"bbox":[296,352,64,2]}
+{"kind":"shape","id":"sh/tonqlwri","slide":8,"bbox":[60,286,236,136]}
+{"kind":"textbox","id":"sh/8ne9srax","slide":8,"text":"Web / Agent","textPreview":"Web / Agent","textChars":11,"textLines":1,"bbox":[80,310,196,32]}
+{"kind":"textbox","id":"sh/vq58nm9o","slide":8,"text":"对话、项目、权限","textPreview":"对话、项目、权限","textChars":8,"textLines":1,"bbox":[80,352,196,38]}
+{"kind":"shape","id":"sh/upwru1s3","slide":8,"bbox":[596,352,64,2]}
+{"kind":"shape","id":"sh/0rit8fid","slide":8,"bbox":[360,286,236,136]}
+{"kind":"textbox","id":"sh/1cbuhkzi","slide":8,"text":"Task Queue","textPreview":"Task Queue","textChars":10,"textLines":1,"bbox":[380,310,196,32]}
+{"kind":"textbox","id":"sh/ep0b6p07","slide":8,"text":"排队、取消、重试","textPreview":"排队、取消、重试","textChars":8,"textLines":1,"bbox":[380,352,196,38]}
+{"kind":"shape","id":"sh/zq9cfu1s","slide":8,"bbox":[896,352,64,2]}
+{"kind":"shape","id":"sh/of2tczi9","slide":8,"bbox":[660,286,236,136]}
+{"kind":"textbox","id":"sh/9gbul4zu","slide":8,"text":"Docker Sandbox","textPreview":"Docker Sandbox","textChars":14,"textLines":1,"bbox":[680,310,196,32]}
+{"kind":"textbox","id":"sh/mdkbap03","slide":8,"text":"Python / R / 生信","textPreview":"Python / R / 生信","textChars":15,"textLines":1,"bbox":[680,352,196,38]}
+{"kind":"shape","id":"sh/netcjuho","slide":8,"bbox":[960,286,236,136]}
+{"kind":"textbox","id":"sh/wjmdgzi5","slide":8,"text":"Evidence Store","textPreview":"Evidence Store","textChars":14,"textLines":1,"bbox":[980,310,196,32]}
+{"kind":"textbox","id":"sh/xkvup4zq","slide":8,"text":"代码、日志、文件、哈希","textPreview":"代码、日志、文件、哈希","textChars":11,"textLines":1,"bbox":[980,352,196,38]}
+{"kind":"textbox","id":"sh/50rut4ru","slide":8,"text":"现在","textPreview":"现在","textChars":2,"textLines":1,"bbox":[74,486,80,28]}
+{"kind":"textbox","id":"sh/kzit0zap","slide":8,"text":"单台 ECS + Docker：最容易 SSH 调试、保留失败现场、快速迭代。","textPreview":"单台 ECS + Docker：最容易 SSH 调试、保留失败现场、快速迭代。","textChars":39,"textLines":1,"bbox":[150,474,930,46]}
+{"kind":"textbox","id":"sh/jy9cru94","slide":8,"text":"以后","textPreview":"以后","textChars":2,"textLines":1,"bbox":[74,546,80,28]}
+{"kind":"textbox","id":"sh/ixgbypsj","slide":8,"text":"ECI / Local Runner：按任务弹性计费，或让敏感数据留在用户本地。","textPreview":"ECI / Local Runner：按任务弹性计费，或让敏感数据留在用户本地。","textChars":40,"textLines":1,"bbox":[150,534,930,46]}
+{"kind":"textbox","id":"sh/t4ruxor6","slide":8,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/s3it4jal","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/1pwoe6","slide":8,"text":""}
+{"kind":"slide","id":"sl/mgkifu","slide":9,"title":"BIOMEDICAL MOAT","textShapes":13}
+{"kind":"textbox","id":"sh/d4bm1kvm","slide":9,"text":"BIOMEDICAL MOAT","textPreview":"BIOMEDICAL MOAT","textChars":15,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/q1k3q5cb","slide":9,"text":"我们的壁垒不是“更多模型”，而是生物医学工作流与证据资产","textPreview":"我们的壁垒不是“更多模型”，而是生物医学工作流与证据资产","textChars":28,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/r2t4zadg","slide":9,"text":"通用 Agent 提供执行能力，Open Rosalind 提供领域约束、可信记录和可复用知识。","textPreview":"通用 Agent 提供执行能力，Open Rosalind 提供领域约束、可信记录和可复用知识。","textChars":48,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/07mlwfud","slide":9,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/18vm5kvy","slide":9,"bbox":[68,238,1120,70]}
+{"kind":"textbox","id":"sh/e5k3upc7","slide":9,"text":"领域 Skills","textPreview":"领域 Skills","textChars":9,"textLines":1,"bbox":[92,250,200,42]}
+{"kind":"textbox","id":"sh/f6t43uds","slide":9,"text":"PICO / PECO、IMRaD、CONSORT、STROBE、PRISMA、ARRIVE","textPreview":"PICO / PECO、IMRaD、CONSORT、STROBE、PRISMA、ARRIVE","textChars":46,"textLines":1,"bbox":[310,250,840,42]}
+{"kind":"shape","id":"sh/gbilkvut","slide":9,"bbox":[68,330,1120,70]}
+{"kind":"textbox","id":"sh/hcr2t0ve","slide":9,"text":"统一 RAG","textPreview":"统一 RAG","textChars":6,"textLines":1,"bbox":[92,342,200,42]}
+{"kind":"textbox","id":"sh/9wre94f6","slide":9,"text":"序列、论文、指南、实验记录与机构知识库","textPreview":"序列、论文、指南、实验记录与机构知识库","textChars":19,"textLines":1,"bbox":[310,342,840,42]}
+{"kind":"shape","id":"sh/8vid0zyl","slide":9,"bbox":[68,422,1120,70]}
+{"kind":"textbox","id":"sh/nu9w7ux0","slide":9,"text":"可信执行","textPreview":"可信执行","textChars":4,"textLines":1,"bbox":[92,434,200,42]}
+{"kind":"textbox","id":"sh/mt0vypgf","slide":9,"text":"Python、R、生信工具、版本锁定与审计","textPreview":"Python、R、生信工具、版本锁定与审计","textChars":21,"textLines":1,"bbox":[310,434,840,42]}
+{"kind":"shape","id":"sh/xkbed4f2","slide":9,"bbox":[68,514,1120,70]}
+{"kind":"textbox","id":"sh/wzix4zyh","slide":9,"text":"研究记忆","textPreview":"研究记忆","textChars":4,"textLines":1,"bbox":[92,526,200,42]}
+{"kind":"textbox","id":"sh/vy9wbexw","slide":9,"text":"假设、决策、失败路径、开放问题与项目产物","textPreview":"假设、决策、失败路径、开放问题与项目产物","textChars":20,"textLines":1,"bbox":[310,526,840,42]}
+{"kind":"textbox","id":"sh/ax0f29gr","slide":9,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/5obehofe","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/mgkifu","slide":9,"text":""}
+{"kind":"slide","id":"sl/cmw42m","slide":10,"title":"USE CASES","textShapes":17}
+{"kind":"textbox","id":"sh/4bi1gji1","slide":10,"text":"USE CASES","textPreview":"USE CASES","textChars":9,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/3a9kne1g","slide":10,"text":"从论文写作切入，逐步进入真实科研计算","textPreview":"从论文写作切入，逐步进入真实科研计算","textChars":18,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/290jet0b","slide":10,"text":"同一产品承接学习、研究与机构治理，而不是把用户留在一次性聊天中。","textPreview":"同一产品承接学习、研究与机构治理，而不是把用户留在一次性聊天中。","textChars":32,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/dgb2t8zy","slide":10,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/cf21k3id","slide":10,"bbox":[64,260,264,292]}
+{"kind":"textbox","id":"sh/retkryhs","slide":10,"text":"学生","textPreview":"学生","textChars":2,"textLines":1,"bbox":[86,284,220,38]}
+{"kind":"textbox","id":"sh/qd0jit07","slide":10,"text":"核验 AI 生成的参考文献\n按步骤完成论文初稿","textPreview":"核验 AI 生成的参考文献 | 按步骤完成论文初稿","textChars":23,"textLines":2,"bbox":[86,354,218,104]}
+{"kind":"textbox","id":"sh/14b2x8zu","slide":10,"text":"EDU","textPreview":"EDU","textChars":3,"textLines":1,"bbox":[86,500,160,24]}
+{"kind":"shape","id":"sh/032lo3i9","slide":10,"bbox":[352,260,264,292]}
+{"kind":"textbox","id":"sh/y18zep8b","slide":10,"text":"科研人员","textPreview":"科研人员","textChars":4,"textLines":1,"bbox":[374,284,220,38]}
+{"kind":"textbox","id":"sh/z2hg7upw","slide":10,"text":"上传数据并运行统计分析\n持续跟踪假设和结果","textPreview":"上传数据并运行统计分析 | 持续跟踪假设和结果","textChars":21,"textLines":2,"bbox":[374,354,218,104]}
+{"kind":"textbox","id":"sh/03qhgzqh","slide":10,"text":"AGENT","textPreview":"AGENT","textChars":5,"textLines":1,"bbox":[374,500,160,24]}
+{"kind":"shape","id":"sh/l4zy947m","slide":10,"bbox":[640,260,264,292]}
+{"kind":"textbox","id":"sh/m58zi987","slide":10,"text":"课题组","textPreview":"课题组","textChars":3,"textLines":1,"bbox":[662,284,220,38]}
+{"kind":"textbox","id":"sh/nqhgbeps","slide":10,"text":"共享项目记忆与证据库\n复用分析模板和规范","textPreview":"共享项目记忆与证据库 | 复用分析模板和规范","textChars":20,"textLines":2,"bbox":[662,354,218,104]}
+{"kind":"textbox","id":"sh/8rahkjqd","slide":10,"text":"TEAM","textPreview":"TEAM","textChars":4,"textLines":1,"bbox":[662,500,160,24]}
+{"kind":"shape","id":"sh/9sjyd47y","slide":10,"bbox":[928,260,264,292]}
+{"kind":"textbox","id":"sh/29of6583","slide":10,"text":"医院 / 企业","textPreview":"医院 / 企业","textChars":7,"textLines":1,"bbox":[950,284,220,38]}
+{"kind":"textbox","id":"sh/3axgzapo","slide":10,"text":"私有部署敏感数据\n权限、审计与合规治理","textPreview":"私有部署敏感数据 | 权限、审计与合规治理","textChars":19,"textLines":2,"bbox":[950,354,218,104]}
+{"kind":"textbox","id":"sh/retw765g","slide":10,"text":"ENTERPRISE","textPreview":"ENTERPRISE","textChars":10,"textLines":1,"bbox":[950,500,160,24]}
+{"kind":"textbox","id":"sh/6dkve1ov","slide":10,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/tgve9gnm","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/cmw42m","slide":10,"text":""}
+{"kind":"slide","id":"sl/sn8w18","slide":11,"title":"NEXT","textShapes":14}
+{"kind":"textbox","id":"sh/tsjmhoj2","slide":11,"text":"NEXT","textPreview":"NEXT","textChars":4,"textLines":1,"bbox":[64,42,420,28]}
+{"kind":"textbox","id":"sh/6p836t0r","slide":11,"text":"先完成可信执行闭环，再扩展算力与知识库","textPreview":"先完成可信执行闭环，再扩展算力与知识库","textChars":19,"textLines":1,"bbox":[64,78,1140,68]}
+{"kind":"textbox","id":"sh/7qh4fy1c","slide":11,"text":"下一阶段目标不是堆功能，而是让第一段真实代码安全地运行、留痕并被 Agent 正确解释。","textPreview":"下一阶段目标不是堆功能，而是让第一段真实代码安全地运行、留痕并被 Agent 正确解释。","textChars":44,"textLines":1,"bbox":[64,148,1100,48]}
+{"kind":"shape","id":"sh/k3ql4jil","slide":11,"bbox":[64,206,1152,2]}
+{"kind":"shape","id":"sh/54zmdoj6","slide":11,"bbox":[64,252,264,238]}
+{"kind":"textbox","id":"sh/i183290f","slide":11,"text":"01  当前","textPreview":"01  当前","textChars":6,"textLines":1,"bbox":[84,274,218,32]}
+{"kind":"textbox","id":"sh/j2h4be10","slide":11,"text":"Edu skills\n引用验证\n单聊天入口","textPreview":"Edu skills | 引用验证 | 单聊天入口","textChars":21,"textLines":3,"bbox":[84,328,220,112]}
+{"kind":"shape","id":"sh/4zu5gnip","slide":11,"bbox":[352,252,264,238]}
+{"kind":"textbox","id":"sh/p03mp8za","slide":11,"text":"02  开发","textPreview":"02  开发","textChars":6,"textLines":1,"bbox":[372,274,218,32]}
+{"kind":"textbox","id":"sh/hc7apg7e","slide":11,"text":"ECS Docker 沙箱\n任务确认与日志\nPython 固定环境","textPreview":"ECS Docker 沙箱 | 任务确认与日志 | Python 固定环境","textChars":33,"textLines":3,"bbox":[372,328,220,112]}
+{"kind":"shape","id":"sh/wbytgbqt","slide":11,"bbox":[640,252,264,238]}
+{"kind":"textbox","id":"sh/vapsn6p8","slide":11,"text":"03  内测","textPreview":"03  内测","textChars":6,"textLines":1,"bbox":[660,274,218,32]}
+{"kind":"textbox","id":"sh/u9gbe18n","slide":11,"text":"项目记忆\nRedis / PostgreSQL\nOSS 结果归档","textPreview":"项目记忆 | Redis / PostgreSQL | OSS 结果归档","textChars":32,"textLines":3,"bbox":[660,328,220,112]}
+{"kind":"shape","id":"sh/9onalw72","slide":11,"bbox":[928,252,264,238]}
+{"kind":"textbox","id":"sh/8netcrqh","slide":11,"text":"04  扩展","textPreview":"04  扩展","textChars":6,"textLines":1,"bbox":[948,274,218,32]}
+{"kind":"textbox","id":"sh/7m5sj6pc","slide":11,"text":"ECI 弹性执行\nLocal Runner\n统一生物医学 RAG","textPreview":"ECI 弹性执行 | Local Runner | 统一生物医学 RAG","textChars":32,"textLines":3,"bbox":[948,328,220,112]}
+{"kind":"shape","id":"sh/mlwba18r","slide":11,"bbox":[64,536,1152,76]}
+{"kind":"textbox","id":"sh/dkrux07m","slide":11,"text":"Open Rosalind：让每个科研结论都能回到证据，让每次计算都能被复现。","textPreview":"Open Rosalind：让每个科研结论都能回到证据，让每次计算都能被复现。","textChars":39,"textLines":1,"bbox":[90,552,1100,44]}
+{"kind":"textbox","id":"sh/sjitov61","slide":11,"text":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textPreview":"OPEN ROSALIND  ·  BIOMEDICAL RESEARCH","textChars":37,"textLines":1,"bbox":[64,680,500,18]}
+{"kind":"textbox","id":"sh/cza5g3i9","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1168,680,48,18]}
+{"kind":"notes","id":"nt/sn8w18","slide":11,"text":""}
