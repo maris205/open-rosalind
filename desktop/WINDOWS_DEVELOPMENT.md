@@ -50,13 +50,11 @@ python --version
 
 ## 2. 获取代码
 
-待 `desktop-alpha` 分支推送到远端后执行：
+首次获取仓库时执行：
 
 ```powershell
-git clone git@github.com:maris205/open-rosalind.git
+git clone --branch desktop-alpha https://github.com/maris205/open-rosalind.git
 Set-Location open-rosalind
-git fetch origin
-git switch --track origin/desktop-alpha
 ```
 
 如果本地已经有仓库：
