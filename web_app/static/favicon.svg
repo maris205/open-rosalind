@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Open-Rosalind DNA icon">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18222d"/>
+      <stop offset="1" stop-color="#0a0e14"/>
+    </linearGradient>
+    <linearGradient id="green" x1="18" y1="10" x2="46" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6ee7b7"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="46" y1="10" x2="18" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bg)" stroke="#263445" stroke-width="2"/>
+  <path d="M20 11c0 0 25 10 25 21S20 53 20 53" fill="none" stroke="url(#green)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M44 11S19 21 19 32s25 21 25 21" fill="none" stroke="url(#blue)" stroke-width="5" stroke-linecap="round"/>
+  <g stroke="#dbeafe" stroke-width="2.5" stroke-linecap="round" opacity=".9">
+    <path d="M25 16h14"/>
+    <path d="M21 25h22"/>
+    <path d="M20 32h24"/>
+    <path d="M21 39h22"/>
+    <path d="M25 48h14"/>
+  </g>
+</svg>

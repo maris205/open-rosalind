@@ -1,0 +1,14 @@
+{
+  "name": "open-rosalind-desktop",
+  "private": true,
+  "version": "0.1.0-alpha.1",
+  "scripts": {
+    "tauri": "tauri",
+    "runtime:prepare": "node scripts/prepare-python-runtime.mjs",
+    "dev": "npm run runtime:prepare && tauri dev",
+    "build": "npm run runtime:prepare && tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.5"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OpenRosalind",
+  "version": "0.1.0-alpha.1",
+  "identifier": "bio.openrosalind.desktop",
+  "build": {
+    "frontendDist": "../../web_app/static"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": {
+      "../../web_app/server.py": "runtime/web_app/server.py",
+      "../../web_app/database.py": "runtime/web_app/database.py",
+      "../../web_app/biology_tools.py": "runtime/web_app/biology_tools.py",
+      "../../web_app/openhands_runtime.py": "runtime/web_app/openhands_runtime.py",
+      "../../web_app/task_queue.py": "runtime/web_app/task_queue.py",
+      "../../web_app/static": "runtime/web_app/static",
+      "../../.openhands": "runtime/.openhands",
+      "../../prompts": "runtime/prompts",
+      "../../requirements.txt": "runtime/requirements.txt",
+      "../python-packages": "runtime/python-packages"
+    }
+  }
+}

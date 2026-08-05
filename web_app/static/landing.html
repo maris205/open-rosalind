@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Open-Rosalind：面向生物医学科研的可追溯 AI Agent，连接专业 Skills、数据服务与可复现工作流。" />
+    <title>Open-Rosalind · Biomedical Research Agent</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/landing.css" />
+    <script src="/landing.js" defer></script>
+  </head>
+  <body>
+    <div class="landing">
+      <nav class="landing-nav">
+        <a class="nav-brand" href="/" aria-label="Open-Rosalind 首页">
+          <span class="nav-icon" aria-hidden="true">🧬</span>
+          <span class="nav-name">Open-Rosalind</span>
+        </a>
+        <div class="nav-links">
+          <a href="#why" data-zh="为什么选择我们">Why</a>
+          <a href="#capabilities" data-zh="核心能力">Capabilities</a>
+          <a href="#pricing" data-zh="费用">Pricing</a>
+          <a href="#how" data-zh="工作原理">How it works</a>
+          <a href="https://github.com/maris205/open-rosalind" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a href="/app" class="nav-cta" data-en="Launch App →">进入工作台 →</a>
+        </div>
+      </nav>
+
+      <main>
+        <section class="hero">
+          <div class="hero-text">
+            <p class="eyebrow" data-zh="生物医学科研智能体">BIOMEDICAL RESEARCH AGENT</p>
+            <h1 class="hero-title">
+              <span data-zh="提出生物学问题。">Ask biology.</span><br />
+              <span class="hero-gradient" data-zh="获得可以核验的答案。">Get answers you can verify.</span>
+            </h1>
+            <p class="hero-subtitle" data-en="Open-Rosalind is an AI agent for biomedical research. It combines domain skills, real data services, and isolated execution environments to support scientific writing, evidence verification, and biological analysis.">
+              Open-Rosalind 是面向生物医学科研的 AI Agent。通过领域 Skills、真实数据服务和隔离执行环境，
+              帮助研究者完成论文工作、证据核验与生物学分析。
+            </p>
+            <div class="hero-cta">
+              <a href="/app" class="btn-primary-lg" data-en="Get started →">开始使用 →</a>
+              <a href="https://github.com/maris205/open-rosalind" target="_blank" rel="noreferrer" class="btn-secondary-lg" data-en="View on GitHub ↗">查看 GitHub ↗</a>
+            </div>
+            <div class="hero-meta">
+              <span data-en="✓ Domain research skills">✓ 专业科研 Skills</span>
+              <span data-en="✓ Traceable workflows">✓ 可追溯工作流</span>
+              <span>✓ OpenHands Runtime</span>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-label="产品对话示例">
+            <div class="demo-card">
+              <div class="demo-header">
+                <span class="demo-dot dot-r"></span>
+                <span class="demo-dot dot-y"></span>
+                <span class="demo-dot dot-g"></span>
+                <span class="demo-title">Open-Rosalind Edu</span>
+              </div>
+              <div class="demo-body">
+                <div class="demo-msg msg-user-demo" data-en="Assess the potential molecular impact of TP53 p.R175H">评估 TP53 p.R175H 的潜在分子影响</div>
+                <div class="demo-msg msg-ai">
+                  <div class="demo-badges">
+                    <span class="badge badge-mode" data-en="Mutation assessment">突变评估</span>
+                    <span class="badge badge-conf" data-en="Evidence levels">证据分层</span>
+                    <span class="badge badge-src">ClinVar · UniProt</span>
+                  </div>
+                  <div class="demo-summary" data-en="p.R175H is located in the TP53 DNA-binding domain. The assessment distinguishes sequence-property changes, structural inference, database annotations, and clinical evidence, avoiding pathogenicity claims based on a single prediction.">
+                    <strong>p.R175H</strong> 位于 TP53 DNA-binding domain。评估将区分序列性质变化、
+                    结构推断、数据库注释与临床证据，避免把单一预测直接解释为致病结论。
+                  </div>
+                  <div class="demo-trace">
+                    <code>mutation_assessment</code> → evidence → report
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="why" class="section">
+          <h2 class="section-title" data-zh="不只是另一个通用 AI 助手。">Not another general AI assistant.</h2>
+          <p class="section-subtitle" data-en="Designed for biomedical research tasks, not just text that sounds plausible.">为生物医学科研任务设计，而不只是生成一段看起来合理的文字。</p>
+
+          <div class="compare-grid">
+            <article class="compare-card compare-bad">
+              <div class="compare-icon">○</div>
+              <h3 data-en="General AI chat">通用 AI 对话</h3>
+              <ul>
+                <li data-en="Tool use is usually optional">工具使用通常是可选项</li>
+                <li data-en="Answer structure varies by model">回答结构随模型变化</li>
+                <li data-en="The full process is hard to reproduce">难以复现完整过程</li>
+                <li data-en="Evidence and inference are easily mixed">容易混淆证据与推断</li>
+                <li data-en="Citations and database IDs may be unreliable">引用和数据库编号可能失真</li>
+              </ul>
+            </article>
+            <article class="compare-card compare-good">
+              <div class="compare-icon">✓</div>
+              <h3>Open-Rosalind</h3>
+              <ul>
+                <li data-en="Domain skill-driven"><strong>领域 Skill 驱动</strong></li>
+                <li data-en="Structured research workflows">结构化科研工作流</li>
+                <li data-en="Clear separation of evidence, inference, and unknowns">证据、推断与未知明确分层</li>
+                <li data-en="Traceable tool calls and execution">工具调用和执行过程可追溯</li>
+                <li data-en="Connected to real literature and biological databases">连接真实文献与生物数据库</li>
+              </ul>
+            </article>
+          </div>
+          <p class="section-tagline" data-zh="为科研工作流而设计，而不是随意作答。">Built for scientific workflows, not casual answers.</p>
+        </section>
+
+        <section id="capabilities" class="section section-alt">
+          <h2 class="section-title" data-en="Core capabilities optimized for research">围绕科研过程优化的核心能力</h2>
+          <p class="section-subtitle" data-en="Focused first on the biomedical tasks used most often and requiring the greatest reliability.">先做好最常用、最需要可靠性的生物医学任务。</p>
+          <div class="demo-grid">
+            <article class="demo-tile">
+              <div class="demo-tile-icon">📚</div>
+              <h3 data-en="Paper assistant">论文助手</h3>
+              <p data-en="Paper reading, review frameworks, peer review, reference verification, and academic writing.">论文精读、综述框架、同行评审、参考文献验证和学术写作。</p>
+              <pre class="demo-code" data-en="Topic → search strategy → evidence levels&#10;Manuscript → Major / Minor Comments&#10;DOI / PMID → metadata verification">主题 → 检索策略 → 证据分层
+稿件 → Major / Minor Comments
+DOI / PMID → 元数据核验</pre>
+            </article>
+            <article class="demo-tile">
+              <div class="demo-tile-icon">🧬</div>
+              <h3 data-en="Protein and sequence analysis">蛋白质与序列分析</h3>
+              <p data-en="Identify inputs, analyze sequence features, and organize UniProt, BLAST, and structural workflows.">识别输入、分析序列特征，并组织 UniProt、BLAST 与结构分析流程。</p>
+              <pre class="demo-code" data-en="FASTA → sequence checks → homology&#10;UniProt → function → domains&#10;Results → sources → items to verify">FASTA → 序列检查 → 同源性
+UniProt → 功能 → 结构域
+结果 → 来源 → 待核验项</pre>
+            </article>
+            <article class="demo-tile">
+              <div class="demo-tile-icon">🧪</div>
+              <h3 data-en="Mutation assessment">突变评估</h3>
+              <p data-en="Compare WT/MT sequences or HGVS variants while separating calculations, database evidence, and clinical interpretation.">比较 WT/MT 或 HGVS 变异，区分计算结果、数据库证据和临床解释。</p>
+              <pre class="demo-code">Variant → sequence impact
+→ structure inference
+→ ClinVar / literature evidence</pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="pricing" class="section pricing-section">
+          <p class="eyebrow pricing-eyebrow" data-en="PRICING">费用方案</p>
+          <h2 class="section-title" data-en="Choose the plan that fits your research">选择适合你的使用方式</h2>
+          <p class="section-subtitle" data-en="Start with the essentials, unlock the complete cloud workspace, or deploy Open-Rosalind privately inside your organization.">
+            从基础科研使用开始，也可以升级完整云端能力，或在机构内部进行私有化部署。
+          </p>
+
+          <div class="pricing-grid">
+            <article class="pricing-card">
+              <h3 data-en="Free">免费版</h3>
+              <div class="pricing-price"><strong>¥0</strong><span data-en="forever">长期免费</span></div>
+              <p class="pricing-summary" data-en="For individual researchers experiencing the core product.">适合个人研究者体验核心能力。</p>
+              <ul class="pricing-features">
+                <li data-en="Core chat and selected biomedical Skills">基础对话与部分生物医学 Skills</li>
+                <li data-en="Up to 5 research tasks per day">每天最多 5 次科研任务</li>
+                <li data-en="Evidence, citations, and execution trace">支持证据、引用与执行记录</li>
+                <li data-en="Standard processing queue">标准任务处理队列</li>
+                <li class="pricing-muted" data-en="No Docker or private deployment support">不提供 Docker 与私有化部署支持</li>
+              </ul>
+              <a href="/app" class="pricing-action pricing-action-secondary" data-en="Start free">免费开始使用</a>
+            </article>
+
+            <article class="pricing-card pricing-card-featured">
+              <div class="pricing-popular" data-en="Recommended">推荐</div>
+              <h3 data-en="Professional subscription">专业订阅版</h3>
+              <div class="pricing-price"><strong>¥200</strong><span data-en="per month">每月</span></div>
+              <p class="pricing-summary" data-en="The complete cloud workspace for active research.">适合持续进行论文与生物医学研究工作的用户。</p>
+              <ul class="pricing-features">
+                <li data-en="All current Skills and research workflows">开放全部 Skills 与科研工作流</li>
+                <li data-en="File analysis and multi-step agent tasks">支持文件分析与多步骤 Agent 任务</li>
+                <li data-en="Up to 1 million model tokens per week">每周最多 100 万模型 tokens</li>
+                <li data-en="Priority processing and longer task budgets">优先处理与更长任务预算</li>
+                <li data-en="Research history, projects, and continuous updates">科研历史、项目管理与持续功能更新</li>
+              </ul>
+              <a href="/app" class="pricing-action pricing-action-primary" data-en="Use Professional">使用专业版</a>
+            </article>
+
+            <article class="pricing-card">
+              <h3 data-en="Local deployment">本地部署版</h3>
+              <div class="pricing-price"><strong>¥150,000</strong><span data-en="from / deployment">起 / 套</span></div>
+              <p class="pricing-summary" data-en="For institutions requiring private data and infrastructure control.">适合需要私有数据与基础设施控制的机构。</p>
+              <ul class="pricing-features">
+                <li data-en="Private Docker-based deployment">Docker 私有化部署</li>
+                <li data-en="Organization accounts and access control">机构账号与权限管理</li>
+                <li data-en="Internal models, databases, and API integration">内部模型、数据库与 API 接入</li>
+                <li data-en="Deployment assistance and administrator training">部署实施与管理员培训</li>
+                <li data-en="Optional customization and ongoing support">可选定制开发与持续技术支持</li>
+              </ul>
+              <a href="https://github.com/maris205/open-rosalind" target="_blank" rel="noreferrer" class="pricing-action pricing-action-secondary" data-en="Discuss deployment ↗">咨询部署 ↗</a>
+            </article>
+          </div>
+
+          <p class="pricing-note" data-en="Task and token limits follow a fair-use policy and may change as models and infrastructure evolve. Local deployment pricing depends on infrastructure, integrations, and customization scope.">
+            任务与 token 额度按公平使用策略执行，可能随模型和基础设施调整。本地部署最终价格根据服务器环境、内部系统接入和定制范围确定。
+          </p>
+        </section>
+
+        <section id="how" class="section">
+          <h2 class="section-title" data-zh="工作原理">How it works</h2>
+          <p class="section-subtitle" data-en="A general agent runtime and biomedical domain layer make the system easier to upgrade and continuously improve.">通用 Agent 内核与生物医学领域能力分层，让系统更容易升级，也更容易持续优化。</p>
+          <div class="flow flow-horizontal">
+            <div class="flow-step">
+              <div class="flow-icon">💬</div>
+              <div><strong data-en="Research question">研究问题</strong><span data-en="Natural language or research files">自然语言或科研文件</span></div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-icon">🧠</div>
+              <div><strong data-en="Domain skills">领域 Skills</strong><span data-en="Plan tasks and evidence boundaries">规划任务与证据边界</span></div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-icon">⚙</div>
+              <div><strong>Agent Runtime</strong><span data-en="Isolated OpenHands execution">OpenHands 隔离执行</span></div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step flow-step-final">
+              <div class="flow-icon">✓</div>
+              <div><strong data-en="Verifiable result">可核验结果</strong><span data-en="Evidence, files, and execution records">证据、文件与执行记录</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-alt">
+          <h2 class="section-title" data-zh="建立在四项原则之上">Built on four principles</h2>
+          <div class="principles-grid">
+            <article class="principle-card">
+              <div class="principle-icon">🛠</div>
+              <h3>Tool-first</h3>
+              <p data-en="Use real tools when retrieval or computation is needed; never present model memory as an execution result.">需要检索或计算时调用真实工具，不把模型记忆伪装成运行结果。</p>
+            </article>
+            <article class="principle-card">
+              <div class="principle-icon">🔍</div>
+              <h3>Evidence-grounded</h3>
+              <p data-en="Connect key conclusions to evidence and clearly label inference, limitations, and unverified information.">核心结论连接证据，清楚标注推断、限制和未验证信息。</p>
+            </article>
+            <article class="principle-card">
+              <div class="principle-icon">📜</div>
+              <h3>Traceable</h3>
+              <p data-en="Retain task steps, tool outputs, and project artifacts for review and reproducibility.">保留任务步骤、工具输出和项目产物，支持复核与复现。</p>
+            </article>
+            <article class="principle-card">
+              <div class="principle-icon">🧭</div>
+              <h3>Domain-focused</h3>
+              <p data-en="Continuously improve skills, data services, and benchmarks around biomedical scenarios.">围绕生物医学场景持续优化 Skills、数据服务与评测集。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-cta">
+          <p class="eyebrow" data-zh="OPEN-ROSALIND EDU">OPEN-ROSALIND EDU</p>
+          <h2 class="cta-title" data-en="Put complex research workflows into one simple chat.">把复杂科研流程，放进一个简单对话框。</h2>
+          <p class="cta-subtitle" data-en="Start with papers and evidence, then connect more biomedical data and analysis services.">从论文与证据开始，逐步连接更多生物医学数据和分析服务。</p>
+          <div class="cta-buttons">
+            <a href="/app" class="btn-primary-lg" data-en="Launch workspace →">进入工作台 →</a>
+            <a href="https://github.com/maris205/open-rosalind" target="_blank" rel="noreferrer" class="btn-secondary-lg" data-en="View project ↗">查看项目 ↗</a>
+          </div>
+        </section>
+      </main>
+
+      <footer class="landing-footer">
+        <div class="footer-left">
+          <span class="nav-icon">🧬</span>
+          <span>Open-Rosalind</span>
+          <span>·</span>
+          <a href="https://github.com/maris205/open-rosalind" target="_blank" rel="noreferrer">GitHub</a>
+        </div>
+        <div class="footer-right" data-zh="一个为可核验科研工作而构建的生物医学 Agent。">A biomedical research agent built for verifiable work.</div>
+      </footer>
+    </div>
+  </body>
+</html>

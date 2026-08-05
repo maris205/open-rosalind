@@ -1,0 +1,13 @@
+{
+  "name": "open-rosalind-edu-web-tests",
+  "private": true,
+  "scripts": {
+    "test:web": "playwright test",
+    "test:web:headed": "playwright test --headed",
+    "desktop:dev": "npm --prefix desktop run dev",
+    "desktop:build": "npm --prefix desktop run build"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}

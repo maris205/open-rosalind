@@ -111,6 +111,22 @@ http://127.0.0.1:8765
 
 The page can work in prompt-only mode without an API key. To call Qwen, either paste the API key into the local page for the current session, or set `DASHSCOPE_API_KEY` before starting the server. The key is not written to project files.
 
+### Desktop Alpha
+
+The Tauri desktop alpha reuses the same web UI, Python API, Skills, task
+planning, and report format. It starts a loopback-only sidecar and replaces
+Redis/RQ with an in-process background queue.
+
+```bash
+npm install --prefix desktop
+OPENROSALIND_PYTHON=/path/to/python npm run desktop:dev
+```
+
+Desktop runtime details and platform prerequisites are documented in
+[`desktop/README.md`](desktop/README.md). Docker is optional. Confirmed Python
+snippets can run through the local interpreter, with an explicit warning that
+native execution is audited but not sandboxed.
+
 Document upload is available in the sidebar. Supported formats:
 
 - `.txt`, `.md`, `.csv`, `.tsv`, `.json` and other plain-text files

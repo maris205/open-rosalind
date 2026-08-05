@@ -1,6 +1,18 @@
 __pycache__/
 *.py[cod]
 .env
+*.key
+*.pem
+*.pfx
+*.p12
+*openrosalind.bio*.zip
+node_modules/
+desktop/node_modules/
+desktop/python-packages/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
+playwright-report/
+test-results/
 .venv/
 venv/
 exports/*.docx
@@ -9,3 +21,7 @@ exports/*.md
 web_app/*.log
 web_app/__pycache__/
 %SystemDrive%/
+
+# Runtime state can contain user data, SQLite databases, and encrypted LLM profiles.
+data/
+exports/jobs/

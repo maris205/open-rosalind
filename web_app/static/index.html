@@ -4,35 +4,96 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Open-Rosalind Edu</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section id="authScreen" class="auth-screen">
+      <form id="authForm" class="auth-card">
+        <div class="auth-brand">
+          <span class="product-logo product-logo-large" aria-hidden="true">🧬</span>
+          <h1>Open-Rosalind Edu</h1>
+          <p>生物医学科研与论文学习助手</p>
+        </div>
+        <div class="auth-modes" role="group" aria-label="账户操作">
+          <button id="loginMode" type="button" class="active">登录</button>
+          <button id="registerMode" type="button">注册</button>
+        </div>
+        <label>
+          邮箱
+          <input id="authEmail" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          密码
+          <input id="authPassword" type="password" autocomplete="current-password" minlength="8" maxlength="128" required />
+        </label>
+        <p id="authError" class="auth-error" role="alert"></p>
+        <button id="authSubmit" class="auth-submit" type="submit">登录</button>
+      </form>
+    </section>
+
+    <div id="appShell" class="app-shell" hidden>
       <aside class="sidebar">
-        <div class="brand">
-          <canvas id="signalCanvas" width="64" height="40" aria-hidden="true"></canvas>
+        <a class="brand" href="/" title="返回主页">
+          <span class="product-logo" aria-hidden="true">🧬</span>
           <div>
             <h1>Open-Rosalind Edu</h1>
             <p>Biomedical learning workspace</p>
           </div>
+        </a>
+
+        <button id="newChat" class="new-chat-button" type="button">
+          <span aria-hidden="true">＋</span>
+          <span>新建对话</span>
+        </button>
+
+        <div class="sidebar-scroll">
+          <section class="sidebar-section" aria-labelledby="chatHistoryTitle">
+            <div class="sidebar-section-heading">
+              <h2 id="chatHistoryTitle">聊天</h2>
+            </div>
+            <div id="chatHistory" class="chat-history"></div>
+          </section>
+
+          <nav class="sidebar-section" aria-label="科研学习功能">
+            <div class="sidebar-section-heading">
+              <h2>功能</h2>
+            </div>
+            <div id="skillList" class="skill-list"></div>
+          </nav>
         </div>
 
-        <nav aria-label="科研学习功能">
-          <div id="skillList" class="skill-list"></div>
-        </nav>
+        <div class="sidebar-account">
+          <div id="accountMenu" class="account-menu" role="menu" hidden>
+            <button id="openSettings" type="button" role="menuitem"><span>⚙</span>设置</button>
+            <button id="openProject" type="button" role="menuitem"><span>▣</span>科研项目</button>
+            <button id="newProject" type="button" role="menuitem"><span>＋</span>新建项目</button>
+            <button id="clearChat" type="button" role="menuitem"><span>⌫</span>清空当前对话</button>
+            <div class="account-menu-divider"></div>
+            <button id="logout" class="account-logout" type="button" role="menuitem"><span>↪</span>退出登录</button>
+          </div>
+          <button id="sidebarAccount" class="account-button" type="button" aria-haspopup="menu" aria-expanded="false">
+            <span id="accountAvatar" class="account-avatar" aria-hidden="true">U</span>
+            <span class="account-copy">
+              <strong>个人账户</strong>
+              <span id="currentUser" class="current-user"></span>
+            </span>
+            <span class="account-more" aria-hidden="true">•••</span>
+          </button>
+        </div>
       </aside>
 
       <main class="chat-workspace">
         <header class="topbar">
           <div class="active-function">
-            <h2 id="selectedSkill">综合科研助手</h2>
-            <p id="activePurpose">在一个对话中完成规划、记忆、证据、工具审计和可追溯报告。</p>
+            <h2 id="selectedSkill">新对话</h2>
+            <p id="activePurpose">主科研对话：理解任务、组织证据，并协调论文工作流。</p>
           </div>
-          <div class="toolbar">
+          <span id="desktopRuntime" class="desktop-runtime" hidden></span>
+          <div class="toolbar" hidden aria-hidden="true">
+            <select id="projectSelect" class="project-select" title="当前科研项目"></select>
             <span id="modeBadge" class="status-badge">ready</span>
-            <button id="copyOutput" type="button" title="复制最近一次回答">复制</button>
-            <button id="clearChat" type="button" title="清空当前功能的对话">清空</button>
-            <button id="openSettings" type="button" title="模型设置">设置</button>
+            <button id="copyOutput" type="button" title="复制最近一次回答的原始 Markdown">复制 MD</button>
           </div>
         </header>
 
@@ -60,6 +121,18 @@
           <p class="disclaimer">AI 输出可能出错，正式提交前请核验原始文献、数据和引用。</p>
         </section>
       </main>
+
+      <aside id="detailPanel" class="detail-panel" aria-labelledby="detailPanelTitle" hidden>
+        <header class="detail-panel-header">
+          <div>
+            <span id="detailPanelEyebrow">回答详情</span>
+            <h2 id="detailPanelTitle">参考来源</h2>
+          </div>
+          <button id="closeDetailPanel" type="button" aria-label="关闭详情栏" title="关闭">×</button>
+        </header>
+        <div id="detailPanelContent" class="detail-panel-content"></div>
+        <p id="detailPanelNote" class="detail-panel-note"></p>
+      </aside>
     </div>
 
     <dialog id="settingsDialog" class="settings-dialog">
@@ -81,8 +154,17 @@
           <input id="model" type="text" spellcheck="false" />
         </label>
         <label>
-          API Key
-          <input id="apiKey" type="password" placeholder="临时填写，不写入文件" />
+          API Key（留空使用服务器配置）
+          <input
+            id="apiKey"
+            name="rosalind-temporary-model-key"
+            type="password"
+            autocomplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            readonly
+            placeholder="可选：临时填写，不写入文件"
+          />
         </label>
         <label class="temperature">
           <span>Temperature</span>
@@ -93,6 +175,51 @@
         <div class="settings-actions">
           <button value="done" type="submit" class="primary-button">完成</button>
         </div>
+      </form>
+    </dialog>
+
+    <dialog id="agentDialog" class="settings-dialog agent-dialog">
+      <form method="dialog" class="settings-card">
+        <div class="settings-header">
+          <div>
+            <h2 id="agentDialogTitle">管理论文助手</h2>
+            <p id="agentDialogDescription">每个入口对应一个 Skill；论文评审和参考文献验证为必选。</p>
+          </div>
+          <button value="cancel" type="submit" title="关闭" aria-label="关闭">x</button>
+        </div>
+        <div id="agentChoices" class="agent-choices"></div>
+        <div class="settings-actions agent-dialog-actions">
+          <button id="resetAgents" type="button">恢复默认</button>
+          <button value="save" type="submit" class="primary-button">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="projectDialog" class="settings-dialog project-dialog">
+      <form method="dialog" class="settings-card">
+        <div class="settings-header">
+          <div>
+            <h2 id="projectDialogTitle">科研项目</h2>
+            <p>项目记忆会作为 Rosalind Agent 规划和执行任务的长期上下文。</p>
+          </div>
+          <button value="cancel" type="submit" title="关闭" aria-label="关闭">x</button>
+        </div>
+        <section class="project-memory-editor">
+          <select id="memoryCategory" aria-label="记忆类型">
+            <option value="fact">事实</option>
+            <option value="evidence">证据</option>
+            <option value="decision">决策</option>
+            <option value="constraint">限制</option>
+            <option value="open_question">开放问题</option>
+            <option value="conclusion">结论</option>
+          </select>
+          <textarea id="memoryContent" rows="3" placeholder="例如：当前没有真实患者数据，不得生成样本量、P 值或实验结果。"></textarea>
+          <button id="addMemory" type="button" class="primary-button">添加记忆</button>
+        </section>
+        <h3 class="dialog-section-title">项目记忆</h3>
+        <div id="memoryList" class="dialog-list"></div>
+        <h3 class="dialog-section-title">最近任务</h3>
+        <div id="projectPlanList" class="dialog-list"></div>
       </form>
     </dialog>
 
