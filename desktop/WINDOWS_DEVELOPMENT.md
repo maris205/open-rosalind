@@ -79,6 +79,12 @@ npm install --prefix desktop
 
 桌面启动和构建命令会自动执行 `npm --prefix desktop run runtime:prepare`，将
 `requirements.txt` 中的 Python 包安装到 `desktop/python-packages`。
+准备结果会按 Python 路径和依赖文件哈希缓存；日常启动不会重复安装。依赖升级
+或排查安装问题时，可以强制刷新：
+
+```powershell
+npm --prefix desktop run runtime:force
+```
 
 如果机器上存在多个 Python，明确指定解释器：
 
@@ -206,7 +212,7 @@ MSVC v143 和 Windows SDK，然后重启 PowerShell。
 
 ```powershell
 $env:OPENROSALIND_PYTHON = "C:\Path\To\python.exe"
-npm --prefix desktop run runtime:prepare
+npm --prefix desktop run runtime:force
 ```
 
 先看 pip 输出中的具体包和网络错误。`desktop/python-packages` 是生成目录，失败后

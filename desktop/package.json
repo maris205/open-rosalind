@@ -5,10 +5,12 @@
   "scripts": {
     "tauri": "tauri",
     "runtime:prepare": "node scripts/prepare-python-runtime.mjs",
+    "runtime:force": "cross-env OPENROSALIND_FORCE_RUNTIME=1 node scripts/prepare-python-runtime.mjs",
     "dev": "npm run runtime:prepare && tauri dev",
     "build": "npm run runtime:prepare && tauri build"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.8.5"
+    "@tauri-apps/cli": "^2.8.5",
+    "cross-env": "^7.0.3"
   }
 }
