@@ -26,6 +26,8 @@ For a complete Windows setup, build, test, and troubleshooting guide, see
 [`WINDOWS_DEVELOPMENT.md`](./WINDOWS_DEVELOPMENT.md).
 For the Codex CLI handoff and copy-paste task prompts, see
 [`WINDOWS_CODEX.md`](./WINDOWS_CODEX.md).
+For macOS development and the `desktop-mac` branch workflow, see
+[`MAC_CODEX.md`](./MAC_CODEX.md).
 
 Prerequisites:
 
