@@ -7,6 +7,10 @@ Docker 也是可选能力。
 当前 Alpha 仍调用 Windows 上已经安装的 Python。面向普通用户发布前，会将
 Python 解释器一并打入安装包，最终用户不需要单独配置开发环境。
 
+如果你在 Windows 上通过 Codex CLI 开发，请先阅读
+[`WINDOWS_CODEX.md`](./WINDOWS_CODEX.md)，其中包含可直接发送给 Codex 的
+项目上下文和任务模板。
+
 ## 是否需要迁移聊天 Session
 
 不需要迁移当前与开发助手的聊天 session。开发上下文通过以下内容传递：

@@ -24,6 +24,8 @@ message presentation, and biomedical tools remain shared with the web build.
 
 For a complete Windows setup, build, test, and troubleshooting guide, see
 [`WINDOWS_DEVELOPMENT.md`](./WINDOWS_DEVELOPMENT.md).
+For the Codex CLI handoff and copy-paste task prompts, see
+[`WINDOWS_CODEX.md`](./WINDOWS_CODEX.md).
 
 Prerequisites:
 
