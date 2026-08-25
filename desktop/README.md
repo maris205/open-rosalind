@@ -42,6 +42,11 @@ npm install --prefix desktop
 OPENROSALIND_PYTHON=/path/to/python npm run desktop:dev
 ```
 
+On macOS, use a native Python 3.10+ matching the Node/Rust CPU architecture.
+Platform-specific `.app` and `.dmg` commands, Intel/Apple Silicon guidance,
+and the signing/notarization contract are documented in
+[`MAC_CODEX.md`](./MAC_CODEX.md).
+
 The build prepares a private, bundled Python package directory from
 `requirements.txt`; the selected interpreter does not need those packages
 installed globally. Model credentials can be supplied through the existing environment variables or in

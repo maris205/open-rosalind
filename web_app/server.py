@@ -362,6 +362,16 @@ def collect_output_files(output_dir: Path, job_id: str) -> tuple[list[dict[str, 
     return files, warnings
 
 
+MIME_TYPE_OVERRIDES = {
+    ".md": "text/markdown",
+}
+
+
+def media_type_for(path: Path) -> str:
+    """Return stable artifact media types across operating-system MIME databases."""
+    return MIME_TYPE_OVERRIDES.get(path.suffix.lower()) or mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+
+
 def collect_project_artifacts(workspace: Path, project_id: str) -> list[dict[str, object]]:
     """List user-visible Agent files while excluding runtime metadata and links."""
     root = workspace.resolve()
@@ -386,7 +396,7 @@ def collect_project_artifacts(workspace: Path, project_id: str) -> list[dict[str
                 "name": path.name,
                 "path": relative,
                 "size": stat.st_size,
-                "mime": mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+                "mime": media_type_for(path),
                 "modifiedAt": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
                 "url": f"/api/projects/{project_id}/artifacts/{quote(relative)}",
             }
@@ -1615,7 +1625,7 @@ class Handler(BaseHTTPRequestHandler):
             raw = file_path.read_bytes()
             encoded_name = quote(file_path.name, safe="")
             self.send_response(200)
-            self.send_header("Content-Type", mimetypes.guess_type(file_path.name)[0] or "application/octet-stream")
+            self.send_header("Content-Type", media_type_for(file_path))
             self.send_header("Content-Disposition", f"attachment; filename=artifact; filename*=UTF-8''{encoded_name}")
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
@@ -1640,7 +1650,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             raw = file_path.read_bytes()
             self.send_response(200)
-            self.send_header("Content-Type", mimetypes.guess_type(file_path.name)[0] or "application/octet-stream")
+            self.send_header("Content-Type", media_type_for(file_path))
             self.send_header("Content-Disposition", f'attachment; filename="{file_path.name}"')
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()

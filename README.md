@@ -127,6 +127,10 @@ Desktop runtime details and platform prerequisites are documented in
 snippets can run through the local interpreter, with an explicit warning that
 native execution is audited but not sandboxed.
 
+The macOS branch provides native Apple Silicon and Intel build commands for
+`.app` and `.dmg` bundles. See [`desktop/MAC_CODEX.md`](desktop/MAC_CODEX.md)
+for architecture, WebKit, signing, and notarization requirements.
+
 Document upload is available in the sidebar. Supported formats:
 
 - `.txt`, `.md`, `.csv`, `.tsv`, `.json` and other plain-text files

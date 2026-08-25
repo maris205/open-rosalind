@@ -5,7 +5,11 @@
     "test:web": "playwright test",
     "test:web:headed": "playwright test --headed",
     "desktop:dev": "npm --prefix desktop run dev",
-    "desktop:build": "npm --prefix desktop run build"
+    "desktop:build": "npm --prefix desktop run build",
+    "desktop:build:macos": "npm --prefix desktop run build:macos",
+    "desktop:build:macos:arm64": "npm --prefix desktop run build:macos:arm64",
+    "desktop:build:macos:x64": "npm --prefix desktop run build:macos:x64",
+    "desktop:build:macos:universal": "npm --prefix desktop run build:macos:universal"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1"

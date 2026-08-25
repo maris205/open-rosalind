@@ -67,7 +67,73 @@ fn python_executable(root: &Path) -> PathBuf {
     if windows_venv.is_file() {
         return windows_venv;
     }
+    #[cfg(target_os = "macos")]
+    {
+        let mut candidates = Vec::new();
+        if let Ok(home) = env::var("HOME") {
+            let home = PathBuf::from(home);
+            candidates.push(home.join(".local/bin/python3.11"));
+            candidates.push(home.join(".local/bin/python3"));
+        }
+        candidates.extend([
+            PathBuf::from("/opt/homebrew/bin/python3"),
+            PathBuf::from("/usr/local/bin/python3"),
+            PathBuf::from("/Library/Frameworks/Python.framework/Versions/3.11/bin/python3"),
+        ]);
+        if let Some(candidate) = candidates.into_iter().find(|path| path.is_file()) {
+            return candidate;
+        }
+    }
     PathBuf::from(if cfg!(windows) { "python" } else { "python3" })
+}
+
+fn validate_python(python: &Path) -> Result<(), String> {
+    let output = Command::new(python)
+        .arg("-c")
+        .arg("import platform, sys; print(f'{sys.version_info.major}.{sys.version_info.minor}\\t{platform.machine()}')")
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|error| format!("Unable to inspect {}: {error}", python.display()))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Unable to run {}. OpenRosalind Desktop requires Python 3.10 or newer.",
+            python.display()
+        ));
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut fields = stdout.trim().split('\t');
+    let version = fields.next().unwrap_or_default();
+    let machine = fields.next().unwrap_or_default();
+    let mut version_parts = version
+        .split('.')
+        .filter_map(|part| part.parse::<u16>().ok());
+    let major = version_parts.next().unwrap_or_default();
+    let minor = version_parts.next().unwrap_or_default();
+    if major < 3 || (major == 3 && minor < 10) {
+        return Err(format!(
+            "OpenRosalind Desktop requires Python 3.10 or newer; {} is Python {version}.",
+            python.display()
+        ));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let python_arch = match machine {
+            "arm64" | "aarch64" => "aarch64",
+            "x86_64" => "x86_64",
+            _ => machine,
+        };
+        let app_arch = if cfg!(target_arch = "aarch64") {
+            "aarch64"
+        } else {
+            "x86_64"
+        };
+        if matches!(python_arch, "aarch64" | "x86_64") && python_arch != app_arch {
+            return Err(format!(
+                "Python architecture {machine} does not match the {app_arch} desktop application. Avoid mixing Rosetta and native runtimes."
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn desktop_port() -> Result<u16, String> {
@@ -103,6 +169,7 @@ fn wait_for_backend(child: &mut Child, address: SocketAddr) -> Result<(), String
 fn start_backend(app: &tauri::App) -> Result<(Child, u16), String> {
     let root = repository_root(app)?;
     let python = python_executable(&root);
+    validate_python(&python)?;
     let port = desktop_port()?;
     let data_root = app
         .path()
@@ -136,7 +203,10 @@ fn start_backend(app: &tauri::App) -> Result<(Child, u16), String> {
         .env("PYTHONPATH", python_path)
         .env("ROSALIND_DESKTOP_MODE", "1")
         .env("ROSALIND_COOKIE_SECURE", "0")
-        .env("ROSALIND_AGENT_RUNTIME", env::var("OPENROSALIND_DESKTOP_AGENT_RUNTIME").unwrap_or_else(|_| "legacy".into()))
+        .env(
+            "ROSALIND_AGENT_RUNTIME",
+            env::var("OPENROSALIND_DESKTOP_AGENT_RUNTIME").unwrap_or_else(|_| "legacy".into()),
+        )
         .env("DATABASE_URL", sqlite_url(&data_root.join("rosalind.db")))
         .env("ROSALIND_JOBS_DIR", &jobs_root)
         .env("OPENHANDS_HOST_PROJECTS_ROOT", &workspace_root)
@@ -153,6 +223,18 @@ fn start_backend(app: &tauri::App) -> Result<(Child, u16), String> {
         return Err(error);
     }
     Ok((child, port))
+}
+
+fn stop_backend(app_handle: &tauri::AppHandle) {
+    if let Some(backend) = app_handle.try_state::<BackendProcess>() {
+        if let Ok(mut guard) = backend.0.lock() {
+            if let Some(child) = guard.as_mut() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            guard.take();
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -175,15 +257,24 @@ pub fn run() {
         .expect("error while building OpenRosalind desktop");
 
     app.run(|app_handle, event| {
-        if matches!(event, tauri::RunEvent::Exit | tauri::RunEvent::ExitRequested { .. }) {
-            let backend = app_handle.state::<BackendProcess>();
-            if let Ok(mut guard) = backend.0.lock() {
-                if let Some(child) = guard.as_mut() {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                }
-                guard.take();
-            };
+        let main_window_closed = matches!(
+            &event,
+            tauri::RunEvent::WindowEvent {
+                label,
+                event: tauri::WindowEvent::Destroyed,
+                ..
+            } if label == "main"
+        );
+        if main_window_closed
+            || matches!(
+                event,
+                tauri::RunEvent::Exit | tauri::RunEvent::ExitRequested { .. }
+            )
+        {
+            stop_backend(app_handle);
+        }
+        if main_window_closed {
+            app_handle.exit(0);
         }
     });
 }
