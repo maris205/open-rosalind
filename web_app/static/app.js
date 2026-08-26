@@ -1413,8 +1413,8 @@ function appendMessage(role, content, sourceMessage = null) {
       const runPython = document.createElement("button");
       runPython.type = "button";
       runPython.textContent = "运行 Python";
-      runPython.title = "人工确认后在无网络 Docker 沙箱中执行最后一个 Python 代码块";
-      runPython.addEventListener("click", () => runPythonCode(pythonBlocks.at(-1)[1].trim()));
+      runPython.title = "查看权限并逐次确认后执行最后一个 Python 代码块";
+      runPython.addEventListener("click", () => runPythonCode(pythonBlocks.at(-1)[1].trim(), message.agentJobId));
       actions.appendChild(runPython);
     }
     article.appendChild(actions);
@@ -1434,26 +1434,93 @@ async function copyToClipboard(text, button) {
   }
 }
 
-async function runPythonCode(code) {
+async function desktopToolHostJob(agentJobId) {
+  if (agentJobId) return agentJobId;
+  const conversationId = await desktopAgentConversation();
+  const job = await desktopInvoke("desktop_create_agent_job", {
+    conversationId,
+    request: {
+      mode: "tool-host",
+      purpose: "user-initiated-python-tool"
+    }
+  });
+  let detail = await desktopInvoke("desktop_start_agent_job", { jobId: job.id });
+  for (let attempt = 0; attempt < 40 && ["queued", "running", "cancelling"].includes(detail.job.status); attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    detail = await desktopInvoke("desktop_refresh_agent_job", { jobId: job.id });
+  }
+  if (detail.job.status !== "completed") {
+    throw new Error(`Tool-host AgentJob ended with status ${detail.job.status}`);
+  }
+  return job.id;
+}
+
+async function runPythonCode(code, agentJobId = "") {
   let execution = { runtime: "Docker / Python", network: "disabled", readOnlyRoot: true };
+  let contractRun = null;
+  let contractRunStarted = false;
   try {
     execution = await authenticatedFetch("/api/execution/config").then((response) => response.json());
   } catch {
     // The execution endpoint will return the authoritative error if unavailable.
   }
+  if (state.desktopMode) {
+    try {
+      agentJobId = await desktopToolHostJob(agentJobId);
+      contractRun = await desktopInvoke("desktop_propose_tool_run", {
+        agentJobId,
+        toolName: "python.run",
+        input: { code }
+      });
+    } catch (error) {
+      addSessionMessage("assistant", `## 无法创建 Python ToolRun\n\n${String(error.message || error)}`);
+      renderConversation();
+      setBadge("error", "error");
+      return;
+    }
+  }
+  const permissions = contractRun?.permissionSnapshot;
   const warning = execution.runtime === "Local Python"
-    ? "将在本机 Python 中直接执行此代码。它不是 Docker 沙箱，理论上拥有当前用户的文件和网络权限。请确认你已经逐行检查代码，是否继续？"
+    ? `极高风险工具 python.run 请求逐次授权。\n\n将在本机 Python 中直接执行此代码。它不是 Docker 沙箱，拥有当前用户级文件和网络能力。\n\n权限快照：文件 ${permissions?.filesystem?.map((item) => `${item.scope}:${item.mode}`).join(", ") || "未声明"}；网络 ${permissions?.network || "host"}；Secret ${permissions?.secrets?.length || 0} 项。\n\n请确认你已经逐行检查代码，是否继续？`
     : "将在无网络、只读根文件系统的 Docker 沙箱中执行此代码。请确认你已经逐行检查代码，是否继续？";
   const approved = window.confirm(warning);
-  if (!approved) return;
+  if (contractRun) {
+    try {
+      await desktopInvoke("desktop_decide_tool_run", {
+        toolRunId: contractRun.id,
+        approved
+      });
+    } catch (error) {
+      addSessionMessage("assistant", `## 无法保存工具授权决定\n\n${String(error.message || error)}`);
+      renderConversation();
+      return;
+    }
+  }
+  if (!approved) {
+    setBadge("tool denied");
+    return;
+  }
   setBadge("python running");
   try {
+    if (contractRun) {
+      await desktopInvoke("desktop_start_approved_tool_run", { toolRunId: contractRun.id });
+      contractRunStarted = true;
+    }
     const data = await agentRequest("/api/execute/python", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, confirmed: true })
     });
+    if (contractRun) {
+      await desktopInvoke("desktop_finish_external_tool_run", {
+        toolRunId: contractRun.id,
+        succeeded: Boolean(data.ok),
+        output: data
+      });
+      contractRunStarted = false;
+    }
     const lines = ["# Python 沙箱结果", "", `**状态：** ${data.status}`, `**Job ID：** \`${data.jobId}\``, ""];
+    if (contractRun) lines.splice(4, 0, `**ToolRun ID：** \`${contractRun.id}\``, "");
     if (data.stdout) lines.push("## stdout", "", "```text", data.stdout, "```", "");
     if (data.stderr) lines.push("## stderr", "", "```text", data.stderr, "```", "");
     if (data.files?.length) {
@@ -1464,6 +1531,17 @@ async function runPythonCode(code) {
     renderConversation();
     setBadge(data.ok ? "python done" : "error", data.ok ? "" : "error");
   } catch (error) {
+    if (contractRun && contractRunStarted) {
+      try {
+        await desktopInvoke("desktop_finish_external_tool_run", {
+          toolRunId: contractRun.id,
+          succeeded: false,
+          output: { error: String(error.message || error).slice(0, 2000) }
+        });
+      } catch {
+        // Preserve the original execution error in the conversation.
+      }
+    }
     currentSession().push({ role: "assistant", content: `## Python 执行失败\n\n${String(error.message || error)}` });
     renderConversation();
     setBadge("error", "error");

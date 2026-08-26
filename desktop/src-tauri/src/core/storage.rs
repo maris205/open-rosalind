@@ -80,10 +80,10 @@ pub struct ProviderProfile {
 #[serde(rename_all = "camelCase")]
 pub struct ToolRun {
     pub(crate) id: String,
-    agent_job_id: String,
-    tool_name: String,
+    pub(crate) agent_job_id: String,
+    pub(crate) tool_name: String,
     executor: String,
-    status: String,
+    pub(crate) status: String,
     input: Value,
     output: Option<Value>,
     permission_snapshot: Value,
@@ -551,6 +551,7 @@ impl DesktopStore {
         executor: &str,
         input: Value,
         permission_snapshot: Value,
+        initial_status: &str,
     ) -> Result<ToolRun, String> {
         if !input.is_object() {
             return Err("Tool input must be a JSON object".into());
@@ -560,6 +561,9 @@ impl DesktopStore {
         }
         if !permission_snapshot.is_object() {
             return Err("Tool permission snapshot must be a JSON object".into());
+        }
+        if !matches!(initial_status, "running" | "awaiting_approval") {
+            return Err("ToolRun initial status is invalid".into());
         }
         self.get_agent_job(agent_job_id)?;
         let tool_name = validate_text("Tool name", tool_name.to_string(), 200)?;
@@ -580,12 +584,12 @@ impl DesktopStore {
             agent_job_id: agent_job_id.into(),
             tool_name,
             executor,
-            status: "running".into(),
+            status: initial_status.into(),
             input,
             output: None,
             permission_snapshot,
             created_at: now,
-            started_at: Some(now),
+            started_at: (initial_status == "running").then_some(now),
             ended_at: None,
         };
         let connection = self.lock_connection()?;
@@ -606,6 +610,43 @@ impl DesktopStore {
             )
             .map_err(|error| format!("Unable to create ToolRun: {error}"))?;
         Ok(tool_run)
+    }
+
+    pub(crate) fn decide_tool_run(
+        &self,
+        tool_run_id: &str,
+        approved: bool,
+    ) -> Result<ToolRun, String> {
+        let status = if approved { "approved" } else { "denied" };
+        let ended_at = (!approved).then_some(unix_millis());
+        let output_json = (!approved).then_some(r#"{"decision":"denied"}"#);
+        let connection = self.lock_connection()?;
+        let updated = connection
+            .execute(
+                "UPDATE tool_runs SET status = ?2, output_json = ?3, ended_at = ?4 WHERE id = ?1 AND status = 'awaiting_approval'",
+                params![tool_run_id, status, output_json, ended_at],
+            )
+            .map_err(|error| format!("Unable to record ToolRun approval: {error}"))?;
+        if updated != 1 {
+            return Err("ToolRun is not waiting for approval".into());
+        }
+        drop(connection);
+        self.get_tool_run(tool_run_id)
+    }
+
+    pub(crate) fn start_approved_tool_run(&self, tool_run_id: &str) -> Result<ToolRun, String> {
+        let connection = self.lock_connection()?;
+        let updated = connection
+            .execute(
+                "UPDATE tool_runs SET status = 'running', started_at = ?2 WHERE id = ?1 AND status = 'approved'",
+                params![tool_run_id, unix_millis()],
+            )
+            .map_err(|error| format!("Unable to start approved ToolRun: {error}"))?;
+        if updated != 1 {
+            return Err("ToolRun is not approved".into());
+        }
+        drop(connection);
+        self.get_tool_run(tool_run_id)
     }
 
     pub(crate) fn finish_tool_run(
@@ -650,7 +691,7 @@ impl DesktopStore {
             .map_err(|error| format!("Unable to decode ToolRun: {error}"))
     }
 
-    fn get_tool_run(&self, tool_run_id: &str) -> Result<ToolRun, String> {
+    pub(crate) fn get_tool_run(&self, tool_run_id: &str) -> Result<ToolRun, String> {
         let connection = self.lock_connection()?;
         connection
             .query_row(
@@ -1107,6 +1148,7 @@ mod tests {
                 "native",
                 json!({"text": "Rosalind"}),
                 json!({"risk": "low", "approval": "automatic", "network": "none"}),
+                "running",
             )
             .unwrap();
 
@@ -1120,6 +1162,55 @@ mod tests {
         assert_eq!(completed.permission_snapshot["network"], "none");
         assert_eq!(listed.len(), 1);
         assert!(listed[0].ended_at.is_some());
+    }
+
+    #[test]
+    fn high_risk_tool_run_requires_approval_before_start() {
+        let store = store();
+        let (_, job) = conversation_and_job(&store);
+        let proposed = store
+            .create_tool_run(
+                &job.id,
+                "python.run",
+                "native",
+                json!({"code": "print('safe test')"}),
+                json!({"risk": "high", "approval": "per-run", "network": "host"}),
+                "awaiting_approval",
+            )
+            .unwrap();
+
+        assert!(store.start_approved_tool_run(&proposed.id).is_err());
+        let approved = store.decide_tool_run(&proposed.id, true).unwrap();
+        let running = store.start_approved_tool_run(&proposed.id).unwrap();
+        let completed = store
+            .finish_tool_run(&proposed.id, "succeeded", json!({"stdout": "safe test"}))
+            .unwrap();
+
+        assert_eq!(approved.status, "approved");
+        assert_eq!(running.status, "running");
+        assert_eq!(completed.status, "succeeded");
+    }
+
+    #[test]
+    fn denied_tool_run_is_terminal() {
+        let store = store();
+        let (_, job) = conversation_and_job(&store);
+        let proposed = store
+            .create_tool_run(
+                &job.id,
+                "python.run",
+                "native",
+                json!({"code": "print('no')"}),
+                json!({"risk": "high", "approval": "per-run"}),
+                "awaiting_approval",
+            )
+            .unwrap();
+
+        let denied = store.decide_tool_run(&proposed.id, false).unwrap();
+
+        assert_eq!(denied.status, "denied");
+        assert!(denied.ended_at.is_some());
+        assert!(store.start_approved_tool_run(&proposed.id).is_err());
     }
 
     #[test]

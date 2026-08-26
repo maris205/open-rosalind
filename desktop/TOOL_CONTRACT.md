@@ -18,6 +18,13 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 网络或 Secret 权限。输入、输出、Executor、权限快照、状态和时间线都会写入本地
 `desktop-core.db`，从而验证完整的低风险自动执行链路。
 
+`python.run@1.0.0-alpha.1` 已接入逐次批准状态机。Desktop Core 先创建
+`awaiting_approval` ToolRun 并冻结权限快照，UI 展示权限后记录批准或拒绝；只有
+`approved` 才能进入 `running`，最终写入 `succeeded` 或 `failed`。当前桌面 Python
+仍由现有本地 Sidecar 执行，因此 Contract 按最坏情况声明为 `critical`：主机文件
+读写、主机网络、无 Secret。该入口只能由用户点击模型回答中的“运行 Python”触发，
+Agent Worker 无权自行批准或启动。
+
 ## 权限规则
 
 | 风险 | 示例 | v1 行为 |
@@ -38,6 +45,6 @@ Token 或密码不得出现在 Tool input、命令行、日志或 Agent Worker �
 - Compose Executor：独立项目名、网络和 Volume，由 Tool Manager 管理健康状态；
 - Remote Executor：必须声明 HTTPS 目标、上传数据范围、费用和数据处理政策。
 
-下一步是实现高风险工具的“提出请求 → 展示权限 → 用户批准/拒绝 → 执行”状态机，
-再把现有 Python 代码执行迁移为 `python.run` Tool Contract。未经这一步，不应让 Agent
-自动调用本机 Python 或 Shell。
+下一步是把 Python Executor 从 Sidecar 迁入 Rust Tool Manager，增加独立进程组、
+取消和资源限制；随后实现 Container Executor。即使这些 Executor 完成，Agent 也不能
+自动批准本机 Python 或 Shell。

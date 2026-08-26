@@ -32,9 +32,9 @@ message presentation, and biomedical tools remain shared with the web build.
   these calls do not pass through an OpenRosalind model service.
 - Desktop Core includes a Tool Contract v1 registry and durable ToolRun audit
   records. The first `text.statistics` Native Tool is low risk and has no
-  filesystem, network, or Secret permissions. High-risk Python and Shell tools
-  are not available to the Agent until the explicit approval state machine is
-  complete.
+  filesystem, network, or Secret permissions. `python.run` uses a per-run
+  approval state machine and records its critical host filesystem/network
+  snapshot before execution; the Agent Worker cannot approve or start it.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.

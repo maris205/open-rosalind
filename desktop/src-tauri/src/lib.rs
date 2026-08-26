@@ -281,6 +281,10 @@ pub fn run() {
             core::tools::desktop_list_tool_contracts,
             core::tools::desktop_run_low_risk_tool,
             core::tools::desktop_list_tool_runs,
+            core::tools::desktop_propose_tool_run,
+            core::tools::desktop_decide_tool_run,
+            core::tools::desktop_start_approved_tool_run,
+            core::tools::desktop_finish_external_tool_run,
         ])
         .setup(|app| {
             let mut launch = start_backend(app)?;

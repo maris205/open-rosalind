@@ -63,7 +63,7 @@
             "additionalProperties": false,
             "required": ["scope", "mode"],
             "properties": {
-              "scope": { "enum": ["job-input", "job-output", "project"] },
+              "scope": { "enum": ["job-input", "job-output", "project", "host"] },
               "mode": { "enum": ["read", "write"] }
             }
           }
