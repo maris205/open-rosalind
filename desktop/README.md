@@ -28,6 +28,9 @@ For the Codex CLI handoff and copy-paste task prompts, see
 [`WINDOWS_CODEX.md`](./WINDOWS_CODEX.md).
 For macOS development and the `desktop-mac` branch workflow, see
 [`MAC_CODEX.md`](./MAC_CODEX.md).
+For the shared macOS/Windows local-first Agent, Provider, tool, Docker, security,
+and migration architecture, see
+[`LOCAL_DESKTOP_ARCHITECTURE.md`](./LOCAL_DESKTOP_ARCHITECTURE.md).
 
 Prerequisites:
 
