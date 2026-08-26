@@ -9,10 +9,10 @@ use std::{
     time::Duration,
 };
 
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 
-const PROTOCOL_VERSION: u32 = 1;
+const PROTOCOL_VERSION: u32 = 2;
 const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -26,6 +26,28 @@ pub struct AgentWorkerInfo {
 #[serde(rename_all = "camelCase")]
 struct InitializeResult {
     protocol_version: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkerJobProgress {
+    pub sequence: i64,
+    pub kind: String,
+    pub payload: Value,
+    pub created_at: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkerJobStatus {
+    pub job_id: String,
+    pub status: String,
+    pub cancellation_requested: bool,
+    pub progress: Vec<WorkerJobProgress>,
+    pub result: Option<Value>,
+    pub error: Option<String>,
+    pub started_at: Option<i64>,
+    pub ended_at: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -173,6 +195,24 @@ impl AgentWorkerProcess {
             .ok_or("Agent Worker response did not contain a result")?;
         serde_json::from_value(result)
             .map_err(|error| format!("Invalid Agent Worker result: {error}"))
+    }
+
+    pub fn start_job(&mut self, job_id: &str, request: &Value) -> Result<WorkerJobStatus, String> {
+        self.request(
+            "job.start",
+            json!({
+                "jobId": job_id,
+                "request": request,
+            }),
+        )
+    }
+
+    pub fn job_status(&mut self, job_id: &str) -> Result<WorkerJobStatus, String> {
+        self.request("job.status", json!({"jobId": job_id}))
+    }
+
+    pub fn cancel_job(&mut self, job_id: &str) -> Result<WorkerJobStatus, String> {
+        self.request("job.cancel", json!({"jobId": job_id}))
     }
 
     pub fn stop(&mut self) {

@@ -1,12 +1,14 @@
 use std::{process::Child, sync::Mutex};
 
 use serde::Serialize;
+use serde_json::Value;
 use tauri::State;
 
 mod agent;
+pub mod jobs;
 pub mod storage;
 
-pub use agent::{AgentWorkerInfo, AgentWorkerProcess};
+pub use agent::{AgentWorkerInfo, AgentWorkerProcess, WorkerJobStatus};
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -77,6 +79,43 @@ impl DesktopCore {
             }
             backend.take();
         }
+    }
+
+    pub fn start_agent_job(
+        &self,
+        job_id: &str,
+        request: &Value,
+    ) -> Result<WorkerJobStatus, String> {
+        let mut worker = self
+            .agent_worker
+            .lock()
+            .map_err(|_| "Agent Worker lock was poisoned".to_string())?;
+        worker
+            .as_mut()
+            .ok_or_else(|| "Agent Worker is not running".to_string())?
+            .start_job(job_id, request)
+    }
+
+    pub fn refresh_agent_job(&self, job_id: &str) -> Result<WorkerJobStatus, String> {
+        let mut worker = self
+            .agent_worker
+            .lock()
+            .map_err(|_| "Agent Worker lock was poisoned".to_string())?;
+        worker
+            .as_mut()
+            .ok_or_else(|| "Agent Worker is not running".to_string())?
+            .job_status(job_id)
+    }
+
+    pub fn cancel_agent_job(&self, job_id: &str) -> Result<WorkerJobStatus, String> {
+        let mut worker = self
+            .agent_worker
+            .lock()
+            .map_err(|_| "Agent Worker lock was poisoned".to_string())?;
+        worker
+            .as_mut()
+            .ok_or_else(|| "Agent Worker is not running".to_string())?
+            .cancel_job(job_id)
     }
 }
 

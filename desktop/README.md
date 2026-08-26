@@ -13,11 +13,14 @@ message presentation, and biomedical tools remain shared with the web build.
   system's application-data directory.
 - Agent jobs use an in-process background queue, so Redis and an RQ worker are
   not required.
-- A separate, long-lived local Agent Worker starts outside Docker and performs
-  a versioned JSON-RPC handshake over stdio. The initial protocol exposes only
-  lifecycle methods and never receives model credentials.
-- Desktop Core stores Conversations, AgentJobs, ToolRuns, and Artifacts in its
-  own `desktop-core.db`; a Conversation does not own a process or container.
+- A separate, long-lived local Agent Worker starts outside Docker and uses a
+  versioned JSON-RPC protocol over stdio. Protocol v2 supports AgentJob start,
+  status polling, cooperative cancellation, and structured progress, while
+  still exposing no model, tool, Shell, filesystem, network, or Docker access.
+- Desktop Core stores Conversations, AgentJobs, ordered AgentJob events,
+  ToolRuns, and Artifacts in its own `desktop-core.db`; a Conversation does not
+  own a process or container. Unfinished jobs recover as `interrupted` after an
+  application restart.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.

@@ -14,6 +14,7 @@ use uuid::Uuid;
 mod core;
 
 use core::{
+    jobs,
     storage::{self, DesktopStore},
     AgentWorkerProcess, DesktopCore, DesktopRuntimeStatus,
 };
@@ -266,6 +267,10 @@ pub fn run() {
             storage::desktop_list_conversations,
             storage::desktop_create_agent_job,
             storage::desktop_list_agent_jobs,
+            jobs::desktop_get_agent_job,
+            jobs::desktop_start_agent_job,
+            jobs::desktop_refresh_agent_job,
+            jobs::desktop_cancel_agent_job,
         ])
         .setup(|app| {
             let mut launch = start_backend(app)?;

@@ -4,13 +4,16 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, Row};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 use tauri::State;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 1;
+use super::agent::WorkerJobStatus;
+
+const SCHEMA_VERSION: i64 = 2;
+const TERMINAL_STATUSES: &[&str] = &["completed", "cancelled", "failed", "interrupted"];
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,15 +28,33 @@ pub struct Conversation {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentJob {
-    id: String,
+    pub(crate) id: String,
     conversation_id: String,
-    status: String,
-    request: Value,
+    pub(crate) status: String,
+    pub(crate) request: Value,
     result: Option<Value>,
     cancellation_requested: bool,
     created_at: i64,
     started_at: Option<i64>,
     ended_at: Option<i64>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentJobEvent {
+    id: i64,
+    agent_job_id: String,
+    sequence: i64,
+    kind: String,
+    payload: Value,
+    created_at: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentJobDetail {
+    pub(crate) job: AgentJob,
+    events: Vec<AgentJobEvent>,
 }
 
 pub struct DesktopStore {
@@ -88,6 +109,16 @@ impl DesktopStore {
                     ended_at INTEGER
                 );
 
+                CREATE TABLE IF NOT EXISTS agent_job_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_job_id TEXT NOT NULL REFERENCES agent_jobs(id) ON DELETE CASCADE,
+                    sequence INTEGER NOT NULL,
+                    kind TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    UNIQUE(agent_job_id, sequence)
+                );
+
                 CREATE TABLE IF NOT EXISTS tool_runs (
                     id TEXT PRIMARY KEY,
                     agent_job_id TEXT NOT NULL REFERENCES agent_jobs(id) ON DELETE CASCADE,
@@ -117,6 +148,8 @@ impl DesktopStore {
                     ON conversations(updated_at DESC);
                 CREATE INDEX IF NOT EXISTS agent_jobs_conversation_created
                     ON agent_jobs(conversation_id, created_at DESC);
+                CREATE INDEX IF NOT EXISTS agent_job_events_job_sequence
+                    ON agent_job_events(agent_job_id, sequence);
                 CREATE INDEX IF NOT EXISTS tool_runs_job_created
                     ON tool_runs(agent_job_id, created_at);
                 CREATE INDEX IF NOT EXISTS artifacts_job_created
@@ -124,6 +157,29 @@ impl DesktopStore {
                 "#,
             )
             .map_err(|error| format!("Unable to migrate Desktop Core database: {error}"))?;
+
+        let recovered_at = unix_millis();
+        connection
+            .execute(
+                r#"
+                INSERT INTO agent_job_events (agent_job_id, sequence, kind, payload_json, created_at)
+                SELECT jobs.id,
+                       COALESCE((SELECT MAX(events.sequence) FROM agent_job_events events WHERE events.agent_job_id = jobs.id), 0) + 1,
+                       'interrupted',
+                       '{"reason":"desktop-core-restarted"}',
+                       ?1
+                  FROM agent_jobs jobs
+                 WHERE jobs.status IN ('queued', 'running', 'cancelling')
+                "#,
+                [recovered_at],
+            )
+            .map_err(|error| format!("Unable to record interrupted Agent jobs: {error}"))?;
+        connection
+            .execute(
+                "UPDATE agent_jobs SET status = 'interrupted', ended_at = ?1 WHERE status IN ('queued', 'running', 'cancelling')",
+                [recovered_at],
+            )
+            .map_err(|error| format!("Unable to recover interrupted Agent jobs: {error}"))?;
         connection
             .pragma_update(None, "user_version", SCHEMA_VERSION)
             .map_err(|error| format!("Unable to record Desktop Core schema version: {error}"))?;
@@ -149,10 +205,7 @@ impl DesktopStore {
             created_at: now,
             updated_at: now,
         };
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| "Desktop Core database lock was poisoned".to_string())?;
+        let connection = self.lock_connection()?;
         connection
             .execute(
                 "INSERT INTO conversations (id, project_id, title, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -169,10 +222,7 @@ impl DesktopStore {
     }
 
     fn list_conversations(&self) -> Result<Vec<Conversation>, String> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| "Desktop Core database lock was poisoned".to_string())?;
+        let connection = self.lock_connection()?;
         let mut statement = connection
             .prepare(
                 "SELECT id, project_id, title, created_at, updated_at FROM conversations ORDER BY updated_at DESC, id",
@@ -224,10 +274,7 @@ impl DesktopStore {
         };
         let request_json = serde_json::to_string(&job.request)
             .map_err(|error| format!("Unable to encode Agent job request: {error}"))?;
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| "Desktop Core database lock was poisoned".to_string())?;
+        let connection = self.lock_connection()?;
         connection
             .execute(
                 "INSERT INTO agent_jobs (id, conversation_id, status, request_json, cancellation_requested, created_at) VALUES (?1, ?2, ?3, ?4, 0, ?5)",
@@ -238,36 +285,271 @@ impl DesktopStore {
     }
 
     fn list_agent_jobs(&self, conversation_id: String) -> Result<Vec<AgentJob>, String> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| "Desktop Core database lock was poisoned".to_string())?;
+        let connection = self.lock_connection()?;
         let mut statement = connection
             .prepare(
                 "SELECT id, conversation_id, status, request_json, result_json, cancellation_requested, created_at, started_at, ended_at FROM agent_jobs WHERE conversation_id = ?1 ORDER BY created_at DESC, id",
             )
             .map_err(|error| format!("Unable to list Agent jobs: {error}"))?;
         let rows = statement
-            .query_map([conversation_id], |row| {
-                let request_json: String = row.get(3)?;
-                let result_json: Option<String> = row.get(4)?;
-                Ok(AgentJob {
-                    id: row.get(0)?,
-                    conversation_id: row.get(1)?,
-                    status: row.get(2)?,
-                    request: serde_json::from_str(&request_json).unwrap_or(Value::Null),
-                    result: result_json
-                        .as_deref()
-                        .and_then(|value| serde_json::from_str(value).ok()),
-                    cancellation_requested: row.get::<_, i64>(5)? != 0,
-                    created_at: row.get(6)?,
-                    started_at: row.get(7)?,
-                    ended_at: row.get(8)?,
-                })
-            })
+            .query_map([conversation_id], decode_agent_job)
             .map_err(|error| format!("Unable to read Agent jobs: {error}"))?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|error| format!("Unable to decode Agent job: {error}"))
+    }
+
+    pub(crate) fn get_agent_job(&self, job_id: &str) -> Result<AgentJob, String> {
+        let connection = self.lock_connection()?;
+        connection
+            .query_row(
+                "SELECT id, conversation_id, status, request_json, result_json, cancellation_requested, created_at, started_at, ended_at FROM agent_jobs WHERE id = ?1",
+                [job_id],
+                decode_agent_job,
+            )
+            .map_err(|error| format!("Unable to find Agent job {job_id}: {error}"))
+    }
+
+    pub(crate) fn get_agent_job_detail(&self, job_id: &str) -> Result<AgentJobDetail, String> {
+        let connection = self.lock_connection()?;
+        let job = connection
+            .query_row(
+                "SELECT id, conversation_id, status, request_json, result_json, cancellation_requested, created_at, started_at, ended_at FROM agent_jobs WHERE id = ?1",
+                [job_id],
+                decode_agent_job,
+            )
+            .map_err(|error| format!("Unable to find Agent job {job_id}: {error}"))?;
+        let mut statement = connection
+            .prepare(
+                "SELECT id, agent_job_id, sequence, kind, payload_json, created_at FROM agent_job_events WHERE agent_job_id = ?1 ORDER BY sequence",
+            )
+            .map_err(|error| format!("Unable to list Agent job events: {error}"))?;
+        let rows = statement
+            .query_map([job_id], |row| {
+                let payload_json: String = row.get(4)?;
+                Ok(AgentJobEvent {
+                    id: row.get(0)?,
+                    agent_job_id: row.get(1)?,
+                    sequence: row.get(2)?,
+                    kind: row.get(3)?,
+                    payload: serde_json::from_str(&payload_json).unwrap_or(Value::Null),
+                    created_at: row.get(5)?,
+                })
+            })
+            .map_err(|error| format!("Unable to read Agent job events: {error}"))?;
+        let events = rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("Unable to decode Agent job event: {error}"))?;
+        Ok(AgentJobDetail { job, events })
+    }
+
+    pub(crate) fn apply_worker_status(
+        &self,
+        expected_job_id: &str,
+        worker: WorkerJobStatus,
+    ) -> Result<AgentJobDetail, String> {
+        if worker.job_id != expected_job_id {
+            return Err("Agent Worker returned status for a different AgentJob".into());
+        }
+        if !is_known_status(&worker.status) {
+            return Err(format!(
+                "Agent Worker returned unknown status {}",
+                worker.status
+            ));
+        }
+
+        let mut connection = self.lock_connection()?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("Unable to begin Agent job update: {error}"))?;
+        let current_status: String = transaction
+            .query_row(
+                "SELECT status FROM agent_jobs WHERE id = ?1",
+                [expected_job_id],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("Unable to inspect Agent job {expected_job_id}: {error}"))?;
+        if !valid_transition(&current_status, &worker.status) {
+            return Err(format!(
+                "Invalid AgentJob transition from {current_status} to {}",
+                worker.status
+            ));
+        }
+
+        let result = worker
+            .result
+            .clone()
+            .or_else(|| worker.error.as_ref().map(|error| json!({"error": error})));
+        let result_json = result
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|error| format!("Unable to encode Agent job result: {error}"))?;
+        transaction
+            .execute(
+                r#"
+                UPDATE agent_jobs
+                   SET status = ?2,
+                       result_json = COALESCE(?3, result_json),
+                       cancellation_requested = CASE WHEN ?4 THEN 1 ELSE cancellation_requested END,
+                       started_at = COALESCE(started_at, ?5),
+                       ended_at = COALESCE(?6, ended_at)
+                 WHERE id = ?1
+                "#,
+                params![
+                    expected_job_id,
+                    worker.status,
+                    result_json,
+                    worker.cancellation_requested,
+                    worker.started_at,
+                    worker.ended_at,
+                ],
+            )
+            .map_err(|error| format!("Unable to update Agent job: {error}"))?;
+
+        for event in &worker.progress {
+            let payload_json = serde_json::to_string(&event.payload)
+                .map_err(|error| format!("Unable to encode Agent job progress: {error}"))?;
+            transaction
+                .execute(
+                    "INSERT OR IGNORE INTO agent_job_events (agent_job_id, sequence, kind, payload_json, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![expected_job_id, event.sequence, event.kind, payload_json, event.created_at],
+                )
+                .map_err(|error| format!("Unable to persist Agent job progress: {error}"))?;
+        }
+        transaction
+            .commit()
+            .map_err(|error| format!("Unable to commit Agent job update: {error}"))?;
+        drop(connection);
+        self.get_agent_job_detail(expected_job_id)
+    }
+
+    pub(crate) fn request_cancellation(&self, job_id: &str) -> Result<AgentJobDetail, String> {
+        let now = unix_millis();
+        let mut connection = self.lock_connection()?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("Unable to begin Agent job cancellation: {error}"))?;
+        let current_status: String = transaction
+            .query_row(
+                "SELECT status FROM agent_jobs WHERE id = ?1",
+                [job_id],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("Unable to inspect Agent job {job_id}: {error}"))?;
+        match current_status.as_str() {
+            "queued" => {
+                transaction
+                    .execute(
+                        "UPDATE agent_jobs SET status = 'cancelled', cancellation_requested = 1, ended_at = ?2 WHERE id = ?1",
+                        params![job_id, now],
+                    )
+                    .map_err(|error| format!("Unable to cancel queued Agent job: {error}"))?;
+                append_database_event(
+                    &transaction,
+                    job_id,
+                    "cancelled",
+                    &json!({"reason": "cancelled-before-start"}),
+                    now,
+                )?;
+            }
+            "running" => {
+                transaction
+                    .execute(
+                        "UPDATE agent_jobs SET status = 'cancelling', cancellation_requested = 1 WHERE id = ?1",
+                        [job_id],
+                    )
+                    .map_err(|error| format!("Unable to request Agent job cancellation: {error}"))?;
+            }
+            "cancelling" => {}
+            status if is_terminal_status(status) => {}
+            status => {
+                return Err(format!(
+                    "Agent job cannot be cancelled from status {status}"
+                ))
+            }
+        }
+        transaction
+            .commit()
+            .map_err(|error| format!("Unable to commit Agent job cancellation: {error}"))?;
+        drop(connection);
+        self.get_agent_job_detail(job_id)
+    }
+
+    fn lock_connection(&self) -> Result<std::sync::MutexGuard<'_, Connection>, String> {
+        self.connection
+            .lock()
+            .map_err(|_| "Desktop Core database lock was poisoned".to_string())
+    }
+}
+
+fn decode_agent_job(row: &Row<'_>) -> rusqlite::Result<AgentJob> {
+    let request_json: String = row.get(3)?;
+    let result_json: Option<String> = row.get(4)?;
+    Ok(AgentJob {
+        id: row.get(0)?,
+        conversation_id: row.get(1)?,
+        status: row.get(2)?,
+        request: serde_json::from_str(&request_json).unwrap_or(Value::Null),
+        result: result_json
+            .as_deref()
+            .and_then(|value| serde_json::from_str(value).ok()),
+        cancellation_requested: row.get::<_, i64>(5)? != 0,
+        created_at: row.get(6)?,
+        started_at: row.get(7)?,
+        ended_at: row.get(8)?,
+    })
+}
+
+fn append_database_event(
+    transaction: &rusqlite::Transaction<'_>,
+    job_id: &str,
+    kind: &str,
+    payload: &Value,
+    created_at: i64,
+) -> Result<(), String> {
+    let payload_json = serde_json::to_string(payload)
+        .map_err(|error| format!("Unable to encode Agent job event: {error}"))?;
+    transaction
+        .execute(
+            r#"
+            INSERT INTO agent_job_events (agent_job_id, sequence, kind, payload_json, created_at)
+            VALUES (
+                ?1,
+                COALESCE((SELECT MAX(sequence) FROM agent_job_events WHERE agent_job_id = ?1), 0) + 1,
+                ?2,
+                ?3,
+                ?4
+            )
+            "#,
+            params![job_id, kind, payload_json, created_at],
+        )
+        .map_err(|error| format!("Unable to persist Agent job event: {error}"))?;
+    Ok(())
+}
+
+pub(crate) fn is_terminal_status(status: &str) -> bool {
+    TERMINAL_STATUSES.contains(&status)
+}
+
+fn is_known_status(status: &str) -> bool {
+    matches!(
+        status,
+        "queued" | "running" | "cancelling" | "completed" | "cancelled" | "failed"
+    )
+}
+
+fn valid_transition(from: &str, to: &str) -> bool {
+    if from == to {
+        return true;
+    }
+    match from {
+        "queued" => matches!(
+            to,
+            "running" | "cancelling" | "completed" | "cancelled" | "failed"
+        ),
+        "running" => matches!(to, "cancelling" | "completed" | "cancelled" | "failed"),
+        "cancelling" => matches!(to, "completed" | "cancelled" | "failed"),
+        _ => false,
     }
 }
 
@@ -338,10 +620,23 @@ pub fn desktop_list_agent_jobs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use crate::core::agent::{WorkerJobProgress, WorkerJobStatus};
 
     fn store() -> DesktopStore {
         DesktopStore::from_connection(Connection::open_in_memory().unwrap()).unwrap()
+    }
+
+    fn conversation_and_job(store: &DesktopStore) -> (Conversation, AgentJob) {
+        let conversation = store
+            .create_conversation("Research plan".into(), Some("project-1".into()))
+            .unwrap();
+        let job = store
+            .create_agent_job(
+                conversation.id.clone(),
+                json!({"input": "Summarize the dataset"}),
+            )
+            .unwrap();
+        (conversation, job)
     }
 
     #[test]
@@ -350,7 +645,7 @@ mod tests {
         let connection = store.connection.lock().unwrap();
         let mut statement = connection
             .prepare(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('conversations', 'agent_jobs', 'tool_runs', 'artifacts') ORDER BY name",
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('conversations', 'agent_jobs', 'agent_job_events', 'tool_runs', 'artifacts') ORDER BY name",
             )
             .unwrap();
         let tables = statement
@@ -361,7 +656,13 @@ mod tests {
 
         assert_eq!(
             tables,
-            vec!["agent_jobs", "artifacts", "conversations", "tool_runs"]
+            vec![
+                "agent_job_events",
+                "agent_jobs",
+                "artifacts",
+                "conversations",
+                "tool_runs"
+            ]
         );
         assert_eq!(
             connection
@@ -374,7 +675,7 @@ mod tests {
     #[test]
     fn refuses_to_downgrade_a_newer_schema() {
         let connection = Connection::open_in_memory().unwrap();
-        connection.pragma_update(None, "user_version", 2).unwrap();
+        connection.pragma_update(None, "user_version", 3).unwrap();
 
         let error = match DesktopStore::from_connection(connection) {
             Ok(_) => panic!("newer schemas must be rejected"),
@@ -387,15 +688,7 @@ mod tests {
     #[test]
     fn conversation_and_agent_job_are_separate_records() {
         let store = store();
-        let conversation = store
-            .create_conversation("Research plan".into(), Some("project-1".into()))
-            .unwrap();
-        let job = store
-            .create_agent_job(
-                conversation.id.clone(),
-                json!({"input": "Summarize the dataset"}),
-            )
-            .unwrap();
+        let (conversation, job) = conversation_and_job(&store);
 
         assert_eq!(store.list_conversations().unwrap().len(), 1);
         let jobs = store.list_agent_jobs(conversation.id.clone()).unwrap();
@@ -434,5 +727,66 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM agent_jobs", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn worker_status_and_progress_are_persisted_idempotently() {
+        let store = store();
+        let (_, job) = conversation_and_job(&store);
+        let worker = WorkerJobStatus {
+            job_id: job.id.clone(),
+            status: "running".into(),
+            cancellation_requested: false,
+            progress: vec![WorkerJobProgress {
+                sequence: 1,
+                kind: "accepted".into(),
+                payload: json!({"protocolVersion": 2}),
+                created_at: 100,
+            }],
+            result: None,
+            error: None,
+            started_at: Some(101),
+            ended_at: None,
+        };
+
+        store.apply_worker_status(&job.id, worker.clone()).unwrap();
+        let detail = store.apply_worker_status(&job.id, worker).unwrap();
+
+        assert_eq!(detail.job.status, "running");
+        assert_eq!(detail.events.len(), 1);
+        assert_eq!(detail.events[0].kind, "accepted");
+    }
+
+    #[test]
+    fn queued_job_can_be_cancelled_without_starting_worker() {
+        let store = store();
+        let (_, job) = conversation_and_job(&store);
+
+        let detail = store.request_cancellation(&job.id).unwrap();
+
+        assert_eq!(detail.job.status, "cancelled");
+        assert!(detail.job.cancellation_requested);
+        assert_eq!(detail.events[0].kind, "cancelled");
+    }
+
+    #[test]
+    fn unfinished_jobs_recover_as_interrupted() {
+        let store = store();
+        let (_, job) = conversation_and_job(&store);
+        {
+            let connection = store.connection.lock().unwrap();
+            connection
+                .execute(
+                    "UPDATE agent_jobs SET status = 'running', started_at = 10 WHERE id = ?1",
+                    [&job.id],
+                )
+                .unwrap();
+        }
+        let DesktopStore { connection } = store;
+        let reopened = DesktopStore::from_connection(connection.into_inner().unwrap()).unwrap();
+
+        let detail = reopened.get_agent_job_detail(&job.id).unwrap();
+        assert_eq!(detail.job.status, "interrupted");
+        assert_eq!(detail.events[0].kind, "interrupted");
     }
 }
