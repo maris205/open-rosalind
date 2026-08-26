@@ -30,6 +30,11 @@ message presentation, and biomedical tools remain shared with the web build.
   Broker to an OpenAI-compatible HTTPS endpoint. The broker supports streaming,
   cooperative cancellation, timeouts, bounded requests, and sanitized errors;
   these calls do not pass through an OpenRosalind model service.
+- Desktop Core includes a Tool Contract v1 registry and durable ToolRun audit
+  records. The first `text.statistics` Native Tool is low risk and has no
+  filesystem, network, or Secret permissions. High-risk Python and Shell tools
+  are not available to the Agent until the explicit approval state machine is
+  complete.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.
@@ -52,6 +57,8 @@ and migration architecture, see
 [`LOCAL_DESKTOP_ARCHITECTURE.md`](./LOCAL_DESKTOP_ARCHITECTURE.md).
 For the versioned Rust-to-Python local Worker contract, see
 [`AGENT_WORKER_PROTOCOL.md`](./AGENT_WORKER_PROTOCOL.md).
+For the cross-platform tool extension and permission contract, see
+[`TOOL_CONTRACT.md`](./TOOL_CONTRACT.md).
 
 Prerequisites:
 

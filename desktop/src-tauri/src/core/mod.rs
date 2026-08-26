@@ -8,6 +8,7 @@ mod agent;
 pub mod jobs;
 pub mod provider;
 pub mod storage;
+pub mod tools;
 
 pub use agent::{AgentWorkerInfo, AgentWorkerProcess, WorkerJobStatus};
 

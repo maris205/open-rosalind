@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openrosalind.bio/schemas/desktop/tool-contract-v1.json",
+  "title": "OpenRosalind Desktop Tool Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "name",
+    "version",
+    "title",
+    "description",
+    "executor",
+    "permissions",
+    "resources"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$",
+      "maxLength": 200
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "inputSchema": { "type": "object" },
+    "outputSchema": { "type": "object" },
+    "platforms": {
+      "type": "array",
+      "items": { "enum": ["macos-arm64", "macos-x86_64", "windows-x86_64"] },
+      "uniqueItems": true
+    },
+    "executor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["native", "container", "compose", "remote"] },
+        "entrypoint": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "image": {
+          "type": "string",
+          "pattern": "^.+@sha256:[a-f0-9]{64}$"
+        },
+        "manifest": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "endpoint": { "type": "string", "format": "uri", "pattern": "^https://" }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk", "approval", "filesystem", "network", "secrets"],
+      "properties": {
+        "risk": { "enum": ["low", "medium", "high", "critical"] },
+        "approval": { "enum": ["automatic", "per-task", "per-run"] },
+        "filesystem": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scope", "mode"],
+            "properties": {
+              "scope": { "enum": ["job-input", "job-output", "project"] },
+              "mode": { "enum": ["read", "write"] }
+            }
+          }
+        },
+        "network": { "enum": ["none", "allowlist", "host"] },
+        "domains": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "uniqueItems": true
+        },
+        "secrets": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeoutSeconds", "maxInputBytes", "maxOutputBytes"],
+      "properties": {
+        "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+        "maxInputBytes": { "type": "integer", "minimum": 1 },
+        "maxOutputBytes": { "type": "integer", "minimum": 1 },
+        "memoryMb": { "type": "integer", "minimum": 16 },
+        "cpu": { "type": "number", "exclusiveMinimum": 0 },
+        "pids": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

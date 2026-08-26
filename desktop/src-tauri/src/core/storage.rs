@@ -76,6 +76,22 @@ pub struct ProviderProfile {
     pub(crate) updated_at: i64,
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolRun {
+    pub(crate) id: String,
+    agent_job_id: String,
+    tool_name: String,
+    executor: String,
+    status: String,
+    input: Value,
+    output: Option<Value>,
+    permission_snapshot: Value,
+    created_at: i64,
+    started_at: Option<i64>,
+    ended_at: Option<i64>,
+}
+
 pub struct DesktopStore {
     connection: Mutex<Connection>,
 }
@@ -528,6 +544,123 @@ impl DesktopStore {
         self.get_agent_job_detail(job_id)
     }
 
+    pub(crate) fn create_tool_run(
+        &self,
+        agent_job_id: &str,
+        tool_name: &str,
+        executor: &str,
+        input: Value,
+        permission_snapshot: Value,
+    ) -> Result<ToolRun, String> {
+        if !input.is_object() {
+            return Err("Tool input must be a JSON object".into());
+        }
+        if contains_secret_field(&input) {
+            return Err("Tool input must reference credentials, not contain secrets".into());
+        }
+        if !permission_snapshot.is_object() {
+            return Err("Tool permission snapshot must be a JSON object".into());
+        }
+        self.get_agent_job(agent_job_id)?;
+        let tool_name = validate_text("Tool name", tool_name.to_string(), 200)?;
+        let executor = validate_text("Tool executor", executor.to_string(), 100)?;
+        let input_json = serde_json::to_string(&input)
+            .map_err(|error| format!("Unable to encode Tool input: {error}"))?;
+        if input_json.len() > MAX_AGENT_JOB_REQUEST_BYTES {
+            return Err("Tool input exceeds the 512 KiB protocol limit".into());
+        }
+        let permission_snapshot_json = serde_json::to_string(&permission_snapshot)
+            .map_err(|error| format!("Unable to encode Tool permission snapshot: {error}"))?;
+        if permission_snapshot_json.len() > 32 * 1024 {
+            return Err("Tool permission snapshot exceeds the 32 KiB limit".into());
+        }
+        let now = unix_millis();
+        let tool_run = ToolRun {
+            id: Uuid::new_v4().to_string(),
+            agent_job_id: agent_job_id.into(),
+            tool_name,
+            executor,
+            status: "running".into(),
+            input,
+            output: None,
+            permission_snapshot,
+            created_at: now,
+            started_at: Some(now),
+            ended_at: None,
+        };
+        let connection = self.lock_connection()?;
+        connection
+            .execute(
+                "INSERT INTO tool_runs (id, agent_job_id, tool_name, executor, status, input_json, permission_snapshot_json, created_at, started_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                params![
+                    tool_run.id,
+                    tool_run.agent_job_id,
+                    tool_run.tool_name,
+                    tool_run.executor,
+                    tool_run.status,
+                    input_json,
+                    permission_snapshot_json,
+                    tool_run.created_at,
+                    tool_run.started_at,
+                ],
+            )
+            .map_err(|error| format!("Unable to create ToolRun: {error}"))?;
+        Ok(tool_run)
+    }
+
+    pub(crate) fn finish_tool_run(
+        &self,
+        tool_run_id: &str,
+        status: &str,
+        output: Value,
+    ) -> Result<ToolRun, String> {
+        if !matches!(status, "succeeded" | "failed") {
+            return Err("ToolRun can finish only as succeeded or failed".into());
+        }
+        let output_json = serde_json::to_string(&output)
+            .map_err(|error| format!("Unable to encode Tool output: {error}"))?;
+        if output_json.len() > MAX_AGENT_JOB_REQUEST_BYTES {
+            return Err("Tool output exceeds the 512 KiB protocol limit".into());
+        }
+        let connection = self.lock_connection()?;
+        let updated = connection
+            .execute(
+                "UPDATE tool_runs SET status = ?2, output_json = ?3, ended_at = ?4 WHERE id = ?1 AND status = 'running'",
+                params![tool_run_id, status, output_json, unix_millis()],
+            )
+            .map_err(|error| format!("Unable to finish ToolRun: {error}"))?;
+        if updated != 1 {
+            return Err("ToolRun was not found or is already terminal".into());
+        }
+        drop(connection);
+        self.get_tool_run(tool_run_id)
+    }
+
+    pub(crate) fn list_tool_runs(&self, agent_job_id: &str) -> Result<Vec<ToolRun>, String> {
+        let connection = self.lock_connection()?;
+        let mut statement = connection
+            .prepare(
+                "SELECT id, agent_job_id, tool_name, executor, status, input_json, output_json, permission_snapshot_json, created_at, started_at, ended_at FROM tool_runs WHERE agent_job_id = ?1 ORDER BY created_at, id",
+            )
+            .map_err(|error| format!("Unable to list ToolRuns: {error}"))?;
+        let rows = statement
+            .query_map([agent_job_id], decode_tool_run)
+            .map_err(|error| format!("Unable to read ToolRuns: {error}"))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("Unable to decode ToolRun: {error}"))
+    }
+
+    fn get_tool_run(&self, tool_run_id: &str) -> Result<ToolRun, String> {
+        let connection = self.lock_connection()?;
+        connection
+            .query_row(
+                "SELECT id, agent_job_id, tool_name, executor, status, input_json, output_json, permission_snapshot_json, created_at, started_at, ended_at FROM tool_runs WHERE id = ?1",
+                [tool_run_id],
+                decode_tool_run,
+            )
+            .map_err(|error| format!("Unable to find ToolRun {tool_run_id}: {error}"))
+    }
+
     pub(crate) fn list_provider_profiles(&self) -> Result<Vec<ProviderProfile>, String> {
         let connection = self.lock_connection()?;
         let mut statement = connection
@@ -657,6 +790,25 @@ fn decode_provider_profile(row: &Row<'_>) -> rusqlite::Result<ProviderProfile> {
         is_default: row.get::<_, i64>(6)? != 0,
         created_at: row.get(7)?,
         updated_at: row.get(8)?,
+    })
+}
+
+fn decode_tool_run(row: &Row<'_>) -> rusqlite::Result<ToolRun> {
+    let input_json: String = row.get(5)?;
+    let output_json: Option<String> = row.get(6)?;
+    let permission_snapshot_json: String = row.get(7)?;
+    Ok(ToolRun {
+        id: row.get(0)?,
+        agent_job_id: row.get(1)?,
+        tool_name: row.get(2)?,
+        executor: row.get(3)?,
+        status: row.get(4)?,
+        input: serde_json::from_str(&input_json).unwrap_or(Value::Null),
+        output: output_json.and_then(|value| serde_json::from_str(&value).ok()),
+        permission_snapshot: serde_json::from_str(&permission_snapshot_json).unwrap_or(Value::Null),
+        created_at: row.get(8)?,
+        started_at: row.get(9)?,
+        ended_at: row.get(10)?,
     })
 }
 
@@ -942,6 +1094,32 @@ mod tests {
             .unwrap_err();
 
         assert!(error.contains("512 KiB"));
+    }
+
+    #[test]
+    fn tool_run_persists_permission_snapshot_and_terminal_output() {
+        let store = store();
+        let (_, job) = conversation_and_job(&store);
+        let tool_run = store
+            .create_tool_run(
+                &job.id,
+                "text.statistics",
+                "native",
+                json!({"text": "Rosalind"}),
+                json!({"risk": "low", "approval": "automatic", "network": "none"}),
+            )
+            .unwrap();
+
+        let completed = store
+            .finish_tool_run(&tool_run.id, "succeeded", json!({"characters": 8}))
+            .unwrap();
+        let listed = store.list_tool_runs(&job.id).unwrap();
+
+        assert_eq!(completed.status, "succeeded");
+        assert_eq!(completed.output, Some(json!({"characters": 8})));
+        assert_eq!(completed.permission_snapshot["network"], "none");
+        assert_eq!(listed.len(), 1);
+        assert!(listed[0].ended_at.is_some());
     }
 
     #[test]

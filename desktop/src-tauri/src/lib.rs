@@ -278,6 +278,9 @@ pub fn run() {
             provider::desktop_clear_provider_credential,
             provider::desktop_stream_provider_chat,
             provider::desktop_cancel_provider_chat,
+            core::tools::desktop_list_tool_contracts,
+            core::tools::desktop_run_low_risk_tool,
+            core::tools::desktop_list_tool_runs,
         ])
         .setup(|app| {
             let mut launch = start_backend(app)?;

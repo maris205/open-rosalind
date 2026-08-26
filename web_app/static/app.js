@@ -635,6 +635,7 @@ function normalizeMessage(message) {
       url: String(artifact?.url || "")
     })).filter((artifact) => artifact.path && artifact.url) : [];
     normalized.feedback = ["like", "dislike"].includes(normalized.feedback) ? normalized.feedback : "none";
+    normalized.agentJobId = String(normalized.agentJobId || "");
     if (!normalized.agentPlan && normalized.content.includes("任务已提交后台执行")) {
       const legacyJobId = normalized.content.match(/任务 ID：?\s*`?([a-f0-9]{32})`?/i)?.[1] || "";
       if (legacyJobId) normalized.agentPlan = { planId: "", status: "submitted", jobId: legacyJobId, error: "" };
@@ -1402,6 +1403,11 @@ function appendMessage(role, content, sourceMessage = null) {
         actions.appendChild(download);
       }
     }
+    if (state.desktopMode && message.agentJobId) {
+      const textStatistics = makeActionButton("trace", "使用低风险本地工具统计这条回答", "文本统计");
+      textStatistics.addEventListener("click", () => runDesktopTextStatistics(message.agentJobId, String(content || "")));
+      actions.appendChild(textStatistics);
+    }
     const pythonBlocks = [...String(content || "").matchAll(/```(?:python|py)\s*\n([\s\S]*?)```/gi)];
     if (pythonBlocks.length) {
       const runPython = document.createElement("button");
@@ -1459,6 +1465,44 @@ async function runPythonCode(code) {
     setBadge(data.ok ? "python done" : "error", data.ok ? "" : "error");
   } catch (error) {
     currentSession().push({ role: "assistant", content: `## Python 执行失败\n\n${String(error.message || error)}` });
+    renderConversation();
+    setBadge("error", "error");
+  }
+}
+
+async function runDesktopTextStatistics(agentJobId, text) {
+  setBadge("tool running");
+  try {
+    const toolRun = await desktopInvoke("desktop_run_low_risk_tool", {
+      agentJobId,
+      toolName: "text.statistics",
+      input: { text }
+    });
+    const output = toolRun.output || {};
+    addSessionMessage(
+      "assistant",
+      [
+        "## 本地文本统计",
+        "",
+        `- 字符数：${output.characters ?? 0}`,
+        `- 非空白字符：${output.nonWhitespaceCharacters ?? 0}`,
+        `- 单词数：${output.words ?? 0}`,
+        `- 行数：${output.lines ?? 0}`,
+        `- UTF-8 字节数：${output.bytes ?? 0}`
+      ].join("\n"),
+      {
+        trace: [{
+          title: "Tool Contract · text.statistics",
+          kind: "tool",
+          confidence: 100,
+          detail: `Native Executor · ${toolRun.status} · 无文件、网络或 Secret 权限`
+        }]
+      }
+    );
+    renderConversation();
+    setBadge(toolRun.status === "succeeded" ? "tool done" : "error", toolRun.status === "succeeded" ? "" : "error");
+  } catch (error) {
+    addSessionMessage("assistant", `## ToolRun 失败\n\n${String(error.message || error)}`);
     renderConversation();
     setBadge("error", "error");
   }
@@ -2360,6 +2404,7 @@ async function generateWithDesktopAgent(requestInput, displayInput) {
     addSessionMessage("user", displayInput, { requestContent: requestInput });
     addSessionMessage("assistant", result.content || "No output.", {
       skill: currentFunction().skill,
+      agentJobId: job.id,
       trace: [
         {
           title: "本地 AgentJob · Provider Broker v3",
