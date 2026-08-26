@@ -12,6 +12,7 @@ import argparse
 import email
 import email.policy
 import hashlib
+import hmac
 import io
 import json
 import mimetypes
@@ -30,7 +31,7 @@ from datetime import datetime, timezone
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, quote_plus, unquote, urlparse
+from urllib.parse import parse_qs, quote, quote_plus, unquote, urlparse
 
 if __package__:
     from .database import (
@@ -71,6 +72,7 @@ PROMPTS_DIR = ROOT / "prompts"
 DEFAULT_BASE_URL = "https://llm-jl24o09ebj303z4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
 DEFAULT_MODEL = "qwen3.7-max"
 DESKTOP_MODE = os.environ.get("ROSALIND_DESKTOP_MODE", "0") == "1"
+DESKTOP_TOKEN = os.environ.get("ROSALIND_DESKTOP_TOKEN", "")
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 MAX_EXTRACTED_CHARS = 120_000
 MAX_CODE_CHARS = 50_000
@@ -88,6 +90,7 @@ EXECUTION_ENABLED = os.environ.get("ROSALIND_EXECUTION_ENABLED", "0") == "1"
 NATIVE_EXECUTION_ENABLED = DESKTOP_MODE and os.environ.get("ROSALIND_DESKTOP_NATIVE_EXECUTION", "1") == "1"
 EXECUTION_SLOTS = threading.BoundedSemaphore(int(os.environ.get("ROSALIND_EXECUTION_CONCURRENCY", "2")))
 COOKIE_NAME = "rosalind_session"
+DESKTOP_COOKIE_NAME = "rosalind_desktop"
 COOKIE_SECURE = os.environ.get("ROSALIND_COOKIE_SECURE", "0") == "1"
 AUTH_ATTEMPT_LIMIT = 10
 AUTH_ATTEMPT_WINDOW = 15 * 60
@@ -1450,7 +1453,13 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "OpenRosalindEdu/0.2"
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002
-        print(f"{self.address_string()} - {format % args}")
+        message = format % args
+        message = re.sub(
+            r"(/desktop/bootstrap\?token=)[^\s]+",
+            r"\1[REDACTED]",
+            message,
+        )
+        print(f"{self.address_string()} - {message}")
 
     def send_json(self, data: dict | list, status: int = 200, headers: dict[str, str] | None = None) -> None:
         raw = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -1479,6 +1488,54 @@ class Handler(BaseHTTPRequestHandler):
         morsel = cookie.get(COOKIE_NAME)
         return morsel.value if morsel else ""
 
+    def desktop_cookie_token(self) -> str:
+        cookie = SimpleCookie()
+        cookie.load(self.headers.get("Cookie", ""))
+        morsel = cookie.get(DESKTOP_COOKIE_NAME)
+        return morsel.value if morsel else ""
+
+    def desktop_access_authorized(self) -> bool:
+        if not DESKTOP_MODE:
+            return True
+        supplied = self.desktop_cookie_token()
+        return bool(DESKTOP_TOKEN and supplied) and hmac.compare_digest(
+            supplied,
+            DESKTOP_TOKEN,
+        )
+
+    def require_desktop_access(self) -> bool:
+        if self.desktop_access_authorized():
+            return True
+        if self.path.startswith("/api/"):
+            self.send_json(
+                {"ok": False, "error": "Desktop transport authentication required."},
+                status=403,
+            )
+        else:
+            self.send_error(403)
+        return False
+
+    def handle_desktop_bootstrap(self) -> None:
+        query = parse_qs(urlparse(self.path).query)
+        supplied = str((query.get("token") or [""])[0])
+        if not DESKTOP_TOKEN or not hmac.compare_digest(supplied, DESKTOP_TOKEN):
+            self.send_error(403)
+            return
+        cookie = "; ".join(
+            [
+                f"{DESKTOP_COOKIE_NAME}={DESKTOP_TOKEN}",
+                "Path=/",
+                "HttpOnly",
+                "SameSite=Strict",
+            ]
+        )
+        self.send_response(303)
+        self.send_header("Location", "/app")
+        self.send_header("Set-Cookie", cookie)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def current_user(self) -> dict[str, str] | None:
         return get_user_for_token(self.session_token())
 
@@ -1495,6 +1552,11 @@ class Handler(BaseHTTPRequestHandler):
         return "; ".join(parts)
 
     def do_GET(self) -> None:  # noqa: N802
+        if DESKTOP_MODE and urlparse(self.path).path == "/desktop/bootstrap":
+            self.handle_desktop_bootstrap()
+            return
+        if not self.require_desktop_access():
+            return
         if self.path == "/api/auth/me":
             user = self.current_user()
             if not user:
@@ -1678,6 +1740,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_POST(self) -> None:  # noqa: N802
+        if not self.require_desktop_access():
+            return
         if self.path in {"/api/auth/register", "/api/auth/login"}:
             address = self.client_address[0]
             if auth_rate_limited(address):
@@ -1903,6 +1967,8 @@ def main() -> int:
     args = parser.parse_args()
     if DESKTOP_MODE and args.host not in {"127.0.0.1", "localhost", "::1"}:
         parser.error("Desktop mode may only bind to a loopback address.")
+    if DESKTOP_MODE and len(DESKTOP_TOKEN) < 32:
+        parser.error("Desktop mode requires a per-launch ROSALIND_DESKTOP_TOKEN.")
 
     initialize_database()
     if DESKTOP_MODE:

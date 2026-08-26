@@ -6,6 +6,10 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   const context = await browser.newContext({ locale: "zh-CN" });
   const page = await context.newPage();
   const email = `desktop-alpha-${Date.now()}@openrosalind.local`;
+  const desktopToken = process.env.OPENROSALIND_DESKTOP_TEST_TOKEN;
+
+  expect(desktopToken).toBeTruthy();
+  await page.goto(`/desktop/bootstrap?token=${encodeURIComponent(desktopToken)}`);
 
   const configResponse = await context.request.get("/api/config");
   expect(configResponse.ok()).toBe(true);

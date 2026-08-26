@@ -6,7 +6,9 @@ message presentation, and biomedical tools remain shared with the web build.
 
 ## Current Runtime
 
-- The local API binds only to `127.0.0.1:18765`.
+- The local API binds to a random loopback port by default. Tauri generates a
+  per-launch transport token and exchanges it for an HttpOnly, SameSite cookie
+  before the shared UI can access the local API.
 - SQLite data, generated jobs, and Agent workspaces live in the operating
   system's application-data directory.
 - Agent jobs use an in-process background queue, so Redis and an RQ worker are
@@ -63,3 +65,11 @@ This alpha does not grant the Agent general access to the user's home
 directory. Runtime data is confined to the application-data workspace. Native
 project-directory selection and per-command permission prompts are the next
 desktop milestone.
+
+The Rust Desktop Core owns the Python process and exposes a read-only
+`desktop_core_status` Tauri command. The bootstrap token is never included in
+that status payload, persisted to SQLite, or made available to Agent tools.
+
+For browser automation, Debug builds accept
+`OPENROSALIND_DESKTOP_TEST_TOKEN` when it contains at least 32 characters.
+Release builds ignore this override and always generate a fresh random token.

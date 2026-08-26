@@ -43,7 +43,7 @@ codex
 
 当前工作分支是 desktop-alpha。桌面版使用 Tauri 2，复用 web_app 的 Web UI、
 Python API、Agent、Skills 和生物医学工具。桌面 sidecar 只绑定
-127.0.0.1:18765，默认使用进程内任务队列，不要求 Redis；Docker 是可选能力。
+127.0.0.1 的随机端口，并使用每次启动随机生成的传输令牌；默认使用进程内任务队列，不要求 Redis；Docker 是可选能力。
 
 请遵守以下规则：
 
@@ -67,10 +67,11 @@ $env:OPENROSALIND_PYTHON = "C:\Path\To\Python311\python.exe"
 & $env:OPENROSALIND_PYTHON --version
 ```
 
-桌面开发端口默认是 `18765`。如端口被占用，可以临时改为：
+桌面开发端口默认随机分配。仅在调试或自动化测试需要固定地址时设置：
 
 ```powershell
-$env:OPENROSALIND_DESKTOP_PORT = "18766"
+$env:OPENROSALIND_DESKTOP_PORT = "18765"
+$env:OPENROSALIND_DESKTOP_TEST_TOKEN = "desktop-e2e-only-not-for-production"
 ```
 
 需要强制重新准备 Python 依赖时：
@@ -84,7 +85,7 @@ npm --prefix desktop run runtime:force
 ### 启动并做基础检查
 
 ```text
-请先检查当前分支、git status、Node/Python/Rust 版本和 18765 端口。
+请先检查当前分支、git status、Node/Python/Rust 版本和 loopback 端口。
 然后安装缺失的 Node 依赖，准备桌面 Python runtime，运行 cargo check 和
 Python 单测。不要修改业务代码，只报告问题。
 ```
@@ -119,6 +120,9 @@ npm run desktop:dev
 $env:PYTHONPATH = (Get-Location).Path
 python -m unittest discover -s tests/python -p "test_*.py"
 
+# 启动桌面 Debug 进程的终端也必须使用下面两个 OPENROSALIND 变量
+$env:OPENROSALIND_DESKTOP_PORT = "18765"
+$env:OPENROSALIND_DESKTOP_TEST_TOKEN = "desktop-e2e-only-not-for-production"
 $env:ROSALIND_DESKTOP_TEST = "1"
 $env:ROSALIND_WEB_BASE_URL = "http://127.0.0.1:18765"
 npx playwright test tests/web/desktop.spec.js

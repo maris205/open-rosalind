@@ -1,8 +1,8 @@
 # OpenRosalind Windows 开发说明
 
 桌面版使用 Tauri 2 作为桌面壳，复用仓库中的 Web UI、Python API、Agent、Skills
-和生物医学工具。开发时本地服务只监听 `127.0.0.1:18765`，不依赖 Redis，
-Docker 也是可选能力。
+和生物医学工具。开发时本地服务只监听 `127.0.0.1` 的随机端口，并使用每次启动
+随机生成的传输令牌；不依赖 Redis，Docker 也是可选能力。
 
 当前 Alpha 仍调用 Windows 上已经安装的 Python。面向普通用户发布前，会将
 Python 解释器一并打入安装包，最终用户不需要单独配置开发环境。
@@ -106,11 +106,8 @@ $env:OPENROSALIND_PYTHON = "C:\Path\To\python.exe"
 npm run desktop:dev
 ```
 
-启动后 Tauri 会拉起本地 Python sidecar，并打开桌面窗口。API 地址为：
-
-```text
-http://127.0.0.1:18765
-```
+启动后 Tauri 会拉起本地 Python sidecar，并打开桌面窗口。API 默认使用随机
+loopback 端口，由 Rust Desktop Core 管理；不应将其当作公开或固定接口。
 
 关闭桌面窗口后，sidecar 应同步退出并释放端口。
 
@@ -150,12 +147,20 @@ $env:PYTHONPATH = (Get-Location).Path
 python -m unittest discover -s tests/python -p "test_*.py"
 ```
 
-运行桌面交互测试时，先在一个 PowerShell 窗口保持 `npm run desktop:dev`
-运行，再在另一个窗口执行：
+运行桌面交互测试时，先在一个 PowerShell 窗口固定测试端口和 Debug 测试令牌：
+
+```powershell
+$env:OPENROSALIND_DESKTOP_PORT = "18765"
+$env:OPENROSALIND_DESKTOP_TEST_TOKEN = "desktop-e2e-only-not-for-production"
+npm run desktop:dev
+```
+
+再在另一个窗口执行：
 
 ```powershell
 $env:ROSALIND_DESKTOP_TEST = "1"
 $env:ROSALIND_WEB_BASE_URL = "http://127.0.0.1:18765"
+$env:OPENROSALIND_DESKTOP_TEST_TOKEN = "desktop-e2e-only-not-for-production"
 npx playwright test tests/web/desktop.spec.js
 ```
 

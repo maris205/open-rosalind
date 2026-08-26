@@ -1,30 +1,18 @@
 use std::{
     env,
-    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
-    sync::Mutex,
     thread,
     time::{Duration, Instant},
 };
 
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use uuid::Uuid;
 
-const DEFAULT_PORT: u16 = 18_765;
+mod core;
 
-struct BackendProcess(Mutex<Option<Child>>);
-
-impl Drop for BackendProcess {
-    fn drop(&mut self) {
-        if let Ok(child) = self.0.get_mut() {
-            if let Some(child) = child.as_mut() {
-                let _ = child.kill();
-                let _ = child.wait();
-            }
-            child.take();
-        }
-    }
-}
+use core::{DesktopCore, DesktopRuntimeStatus};
 
 fn repository_root(app: &tauri::App) -> Result<PathBuf, String> {
     if let Ok(value) = env::var("OPENROSALIND_REPO_ROOT") {
@@ -141,8 +129,21 @@ fn desktop_port() -> Result<u16, String> {
         Ok(value) => value
             .parse::<u16>()
             .map_err(|_| "OPENROSALIND_DESKTOP_PORT must be a valid TCP port".into()),
-        Err(_) => Ok(DEFAULT_PORT),
+        Err(_) => TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .and_then(|listener| listener.local_addr())
+            .map(|address| address.port())
+            .map_err(|error| format!("Unable to allocate a local service port: {error}")),
     }
+}
+
+fn desktop_token() -> String {
+    #[cfg(debug_assertions)]
+    if let Ok(value) = env::var("OPENROSALIND_DESKTOP_TEST_TOKEN") {
+        if value.len() >= 32 {
+            return value;
+        }
+    }
+    format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple())
 }
 
 fn sqlite_url(path: &Path) -> String {
@@ -166,11 +167,22 @@ fn wait_for_backend(child: &mut Child, address: SocketAddr) -> Result<(), String
     Err("Timed out while starting the local OpenRosalind service".into())
 }
 
-fn start_backend(app: &tauri::App) -> Result<(Child, u16), String> {
+struct BackendLaunch {
+    child: Child,
+    port: u16,
+    bootstrap_token: String,
+    data_root: PathBuf,
+    agent_runtime: String,
+}
+
+fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
     let root = repository_root(app)?;
     let python = python_executable(&root);
     validate_python(&python)?;
     let port = desktop_port()?;
+    let bootstrap_token = desktop_token();
+    let agent_runtime =
+        env::var("OPENROSALIND_DESKTOP_AGENT_RUNTIME").unwrap_or_else(|_| "legacy".into());
     let data_root = app
         .path()
         .app_data_dir()
@@ -202,11 +214,9 @@ fn start_backend(app: &tauri::App) -> Result<(Child, u16), String> {
         .current_dir(&root)
         .env("PYTHONPATH", python_path)
         .env("ROSALIND_DESKTOP_MODE", "1")
+        .env("ROSALIND_DESKTOP_TOKEN", &bootstrap_token)
         .env("ROSALIND_COOKIE_SECURE", "0")
-        .env(
-            "ROSALIND_AGENT_RUNTIME",
-            env::var("OPENROSALIND_DESKTOP_AGENT_RUNTIME").unwrap_or_else(|_| "legacy".into()),
-        )
+        .env("ROSALIND_AGENT_RUNTIME", &agent_runtime)
         .env("DATABASE_URL", sqlite_url(&data_root.join("rosalind.db")))
         .env("ROSALIND_JOBS_DIR", &jobs_root)
         .env("OPENHANDS_HOST_PROJECTS_ROOT", &workspace_root)
@@ -222,30 +232,40 @@ fn start_backend(app: &tauri::App) -> Result<(Child, u16), String> {
         let _ = child.kill();
         return Err(error);
     }
-    Ok((child, port))
+    Ok(BackendLaunch {
+        child,
+        port,
+        bootstrap_token,
+        data_root,
+        agent_runtime,
+    })
 }
 
 fn stop_backend(app_handle: &tauri::AppHandle) {
-    if let Some(backend) = app_handle.try_state::<BackendProcess>() {
-        if let Ok(mut guard) = backend.0.lock() {
-            if let Some(child) = guard.as_mut() {
-                let _ = child.kill();
-                let _ = child.wait();
-            }
-            guard.take();
-        }
+    if let Some(core) = app_handle.try_state::<DesktopCore>() {
+        core.stop();
     }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![core::desktop_core_status])
         .setup(|app| {
-            let (child, port) = start_backend(app)?;
-            app.manage(BackendProcess(Mutex::new(Some(child))));
-            let url = format!("http://127.0.0.1:{port}/app")
-                .parse()
-                .map_err(|error| format!("Invalid local application URL: {error}"))?;
+            let launch = start_backend(app)?;
+            let status = DesktopRuntimeStatus::new(
+                launch.port,
+                launch.child.id(),
+                &launch.data_root,
+                launch.agent_runtime.clone(),
+            );
+            let url = format!(
+                "http://127.0.0.1:{}/desktop/bootstrap?token={}",
+                launch.port, launch.bootstrap_token
+            )
+            .parse()
+            .map_err(|error| format!("Invalid local application URL: {error}"))?;
+            app.manage(DesktopCore::new(launch.child, status));
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title("OpenRosalind")
                 .inner_size(1320.0, 840.0)
@@ -277,4 +297,20 @@ pub fn run() {
             app_handle.exit(0);
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::desktop_token;
+
+    #[test]
+    fn desktop_tokens_are_random_and_not_empty() {
+        let first = desktop_token();
+        let second = desktop_token();
+
+        assert_eq!(first.len(), 64);
+        assert_eq!(second.len(), 64);
+        assert_ne!(first, second);
+        assert!(first.chars().all(|character| character.is_ascii_hexdigit()));
+    }
 }

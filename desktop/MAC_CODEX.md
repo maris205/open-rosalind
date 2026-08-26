@@ -82,7 +82,7 @@ Python 和 Rust，不要混用 Rosetta 与原生工具链。
 
 当前应在 desktop-mac 分支上工作，该分支从 desktop-alpha 创建。桌面版使用
 Tauri 2，复用 web_app 的 Web UI、Python API、Agent、Skills 和生物医学工具。
-sidecar 只监听 127.0.0.1:18765，默认使用进程内任务队列，不要求 Redis；
+sidecar 只监听 127.0.0.1 的随机端口，并使用每次启动随机生成的传输令牌；默认使用进程内任务队列，不要求 Redis；
 Docker 是可选能力。
 
 规则：
@@ -124,10 +124,11 @@ Python 版本或 CPU 架构时会自动重建，避免遗留不兼容的原生�
 npm run desktop:dev
 ```
 
-本地 API 仍然是 `http://127.0.0.1:18765`。端口冲突时：
+本地 API 默认使用随机 loopback 端口。仅在调试或自动化测试需要固定地址时：
 
 ```bash
-export OPENROSALIND_DESKTOP_PORT=18766
+export OPENROSALIND_DESKTOP_PORT=18765
+export OPENROSALIND_DESKTOP_TEST_TOKEN=desktop-e2e-only-not-for-production
 npm run desktop:dev
 ```
 
@@ -138,8 +139,12 @@ export PYTHONPATH="$PWD:$PWD/desktop/python-packages"
 "$OPENROSALIND_PYTHON" -m unittest discover -s tests/python -p 'test_*.py'
 
 npx playwright install chromium
+export OPENROSALIND_DESKTOP_PORT=18765
+export OPENROSALIND_DESKTOP_TEST_TOKEN=desktop-e2e-only-not-for-production
+# 另一个终端保持 npm run desktop:dev 运行
 export ROSALIND_DESKTOP_TEST=1
 export ROSALIND_WEB_BASE_URL=http://127.0.0.1:18765
+export OPENROSALIND_DESKTOP_TEST_TOKEN=desktop-e2e-only-not-for-production
 npx playwright test tests/web/desktop.spec.js
 
 cargo check --manifest-path desktop/src-tauri/Cargo.toml
@@ -204,7 +209,7 @@ GitHub Actions 日志或构建产物中暴露凭据。
 
 ```text
 请在 desktop-mac 分支完成本次 macOS 任务。先检查 git status、CPU 架构、
-Node/Python/Rust 版本和 18765 端口。只修改相关文件，完成后运行最小必要测试。
+Node/Python/Rust 版本和 loopback 端口。只修改相关文件，完成后运行最小必要测试。
 如果涉及桌面壳，请至少运行 cargo check；如果涉及登录、队列或本机执行，请运行
 tests/web/desktop.spec.js。不要自动推送、创建 PR、签名或发布安装包，除非我明确授权。
 ```
