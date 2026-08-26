@@ -13,6 +13,11 @@ message presentation, and biomedical tools remain shared with the web build.
   system's application-data directory.
 - Agent jobs use an in-process background queue, so Redis and an RQ worker are
   not required.
+- A separate, long-lived local Agent Worker starts outside Docker and performs
+  a versioned JSON-RPC handshake over stdio. The initial protocol exposes only
+  lifecycle methods and never receives model credentials.
+- Desktop Core stores Conversations, AgentJobs, ToolRuns, and Artifacts in its
+  own `desktop-core.db`; a Conversation does not own a process or container.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.
@@ -33,6 +38,8 @@ For macOS development and the `desktop-mac` branch workflow, see
 For the shared macOS/Windows local-first Agent, Provider, tool, Docker, security,
 and migration architecture, see
 [`LOCAL_DESKTOP_ARCHITECTURE.md`](./LOCAL_DESKTOP_ARCHITECTURE.md).
+For the versioned Rust-to-Python local Worker contract, see
+[`AGENT_WORKER_PROTOCOL.md`](./AGENT_WORKER_PROTOCOL.md).
 
 Prerequisites:
 

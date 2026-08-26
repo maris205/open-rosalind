@@ -21,6 +21,7 @@
       "../../web_app/biology_tools.py": "runtime/web_app/biology_tools.py",
       "../../web_app/openhands_runtime.py": "runtime/web_app/openhands_runtime.py",
       "../../web_app/task_queue.py": "runtime/web_app/task_queue.py",
+      "../../web_app/desktop_agent_worker.py": "runtime/web_app/desktop_agent_worker.py",
       "../../web_app/static": "runtime/web_app/static",
       "../../.openhands": "runtime/.openhands",
       "../../prompts": "runtime/prompts",

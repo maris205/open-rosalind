@@ -1,5 +1,6 @@
 use std::{
     env,
+    ffi::OsString,
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
@@ -12,7 +13,10 @@ use uuid::Uuid;
 
 mod core;
 
-use core::{DesktopCore, DesktopRuntimeStatus};
+use core::{
+    storage::{self, DesktopStore},
+    AgentWorkerProcess, DesktopCore, DesktopRuntimeStatus,
+};
 
 fn repository_root(app: &tauri::App) -> Result<PathBuf, String> {
     if let Ok(value) = env::var("OPENROSALIND_REPO_ROOT") {
@@ -173,6 +177,9 @@ struct BackendLaunch {
     bootstrap_token: String,
     data_root: PathBuf,
     agent_runtime: String,
+    repository_root: PathBuf,
+    python: PathBuf,
+    python_path: OsString,
 }
 
 fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
@@ -212,7 +219,7 @@ fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
         .arg("--port")
         .arg(port.to_string())
         .current_dir(&root)
-        .env("PYTHONPATH", python_path)
+        .env("PYTHONPATH", &python_path)
         .env("ROSALIND_DESKTOP_MODE", "1")
         .env("ROSALIND_DESKTOP_TOKEN", &bootstrap_token)
         .env("ROSALIND_COOKIE_SECURE", "0")
@@ -238,6 +245,9 @@ fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
         bootstrap_token,
         data_root,
         agent_runtime,
+        repository_root: root,
+        python,
+        python_path,
     })
 }
 
@@ -250,12 +260,35 @@ fn stop_backend(app_handle: &tauri::AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![core::desktop_core_status])
+        .invoke_handler(tauri::generate_handler![
+            core::desktop_core_status,
+            storage::desktop_create_conversation,
+            storage::desktop_list_conversations,
+            storage::desktop_create_agent_job,
+            storage::desktop_list_agent_jobs,
+        ])
         .setup(|app| {
-            let launch = start_backend(app)?;
+            let mut launch = start_backend(app)?;
+            let store = DesktopStore::open(&launch.data_root.join("desktop-core.db")).inspect_err(
+                |_| {
+                    let _ = launch.child.kill();
+                    let _ = launch.child.wait();
+                },
+            )?;
+            let (agent_worker, agent_worker_info) = AgentWorkerProcess::spawn(
+                &launch.python,
+                &launch.repository_root,
+                &launch.python_path,
+                &launch.data_root,
+            )
+            .inspect_err(|_| {
+                let _ = launch.child.kill();
+                let _ = launch.child.wait();
+            })?;
             let status = DesktopRuntimeStatus::new(
                 launch.port,
                 launch.child.id(),
+                &agent_worker_info,
                 &launch.data_root,
                 launch.agent_runtime.clone(),
             );
@@ -265,7 +298,8 @@ pub fn run() {
             )
             .parse()
             .map_err(|error| format!("Invalid local application URL: {error}"))?;
-            app.manage(DesktopCore::new(launch.child, status));
+            app.manage(store);
+            app.manage(DesktopCore::new(launch.child, agent_worker, status));
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title("OpenRosalind")
                 .inner_size(1320.0, 840.0)
