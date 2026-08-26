@@ -12,8 +12,12 @@ use uuid::Uuid;
 
 use super::agent::WorkerJobStatus;
 
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 3;
 const TERMINAL_STATUSES: &[&str] = &["completed", "cancelled", "failed", "interrupted"];
+pub(crate) const DEFAULT_PROVIDER_ID: &str = "default-qwen-openai-compatible";
+const DEFAULT_PROVIDER_BASE_URL: &str =
+    "https://llm-jl24o09ebj303z4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1";
+const DEFAULT_PROVIDER_MODEL: &str = "qwen3.7-max";
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,6 +59,20 @@ pub struct AgentJobEvent {
 pub struct AgentJobDetail {
     pub(crate) job: AgentJob,
     events: Vec<AgentJobEvent>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderProfile {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) provider_type: String,
+    pub(crate) base_url: String,
+    pub(crate) model: String,
+    pub(crate) credential_ref: String,
+    pub(crate) is_default: bool,
+    pub(crate) created_at: i64,
+    pub(crate) updated_at: i64,
 }
 
 pub struct DesktopStore {
@@ -119,6 +137,18 @@ impl DesktopStore {
                     UNIQUE(agent_job_id, sequence)
                 );
 
+                CREATE TABLE IF NOT EXISTS provider_profiles (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    provider_type TEXT NOT NULL,
+                    base_url TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    credential_ref TEXT NOT NULL UNIQUE,
+                    is_default INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS tool_runs (
                     id TEXT PRIMARY KEY,
                     agent_job_id TEXT NOT NULL REFERENCES agent_jobs(id) ON DELETE CASCADE,
@@ -150,6 +180,8 @@ impl DesktopStore {
                     ON agent_jobs(conversation_id, created_at DESC);
                 CREATE INDEX IF NOT EXISTS agent_job_events_job_sequence
                     ON agent_job_events(agent_job_id, sequence);
+                CREATE INDEX IF NOT EXISTS provider_profiles_default_updated
+                    ON provider_profiles(is_default DESC, updated_at DESC);
                 CREATE INDEX IF NOT EXISTS tool_runs_job_created
                     ON tool_runs(agent_job_id, created_at);
                 CREATE INDEX IF NOT EXISTS artifacts_job_created
@@ -157,6 +189,23 @@ impl DesktopStore {
                 "#,
             )
             .map_err(|error| format!("Unable to migrate Desktop Core database: {error}"))?;
+
+        let provider_created_at = unix_millis();
+        connection
+            .execute(
+                r#"
+                INSERT OR IGNORE INTO provider_profiles
+                    (id, name, provider_type, base_url, model, credential_ref, is_default, created_at, updated_at)
+                VALUES (?1, '通义千问', 'openai_compatible', ?2, ?3, ?1, 1, ?4, ?4)
+                "#,
+                params![
+                    DEFAULT_PROVIDER_ID,
+                    DEFAULT_PROVIDER_BASE_URL,
+                    DEFAULT_PROVIDER_MODEL,
+                    provider_created_at,
+                ],
+            )
+            .map_err(|error| format!("Unable to create default Provider profile: {error}"))?;
 
         let recovered_at = unix_millis();
         connection
@@ -475,6 +524,99 @@ impl DesktopStore {
         self.get_agent_job_detail(job_id)
     }
 
+    pub(crate) fn list_provider_profiles(&self) -> Result<Vec<ProviderProfile>, String> {
+        let connection = self.lock_connection()?;
+        let mut statement = connection
+            .prepare(
+                "SELECT id, name, provider_type, base_url, model, credential_ref, is_default, created_at, updated_at FROM provider_profiles ORDER BY is_default DESC, updated_at DESC, id",
+            )
+            .map_err(|error| format!("Unable to list Provider profiles: {error}"))?;
+        let rows = statement
+            .query_map([], decode_provider_profile)
+            .map_err(|error| format!("Unable to read Provider profiles: {error}"))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("Unable to decode Provider profile: {error}"))
+    }
+
+    pub(crate) fn get_provider_profile(&self, profile_id: &str) -> Result<ProviderProfile, String> {
+        let connection = self.lock_connection()?;
+        connection
+            .query_row(
+                "SELECT id, name, provider_type, base_url, model, credential_ref, is_default, created_at, updated_at FROM provider_profiles WHERE id = ?1",
+                [profile_id],
+                decode_provider_profile,
+            )
+            .map_err(|error| format!("Unable to find Provider profile {profile_id}: {error}"))
+    }
+
+    pub(crate) fn save_provider_profile(
+        &self,
+        profile_id: Option<String>,
+        name: String,
+        provider_type: String,
+        base_url: String,
+        model: String,
+        set_default: bool,
+    ) -> Result<ProviderProfile, String> {
+        let name = validate_text("Provider name", name, 100)?;
+        let provider_type = provider_type.trim();
+        if provider_type != "openai_compatible" {
+            return Err(
+                "Only openai_compatible Provider profiles are supported in this version".into(),
+            );
+        }
+        let base_url = validate_provider_base_url(base_url)?;
+        let model = validate_text("Provider model", model, 200)?;
+        let now = unix_millis();
+        let profile_id = profile_id
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
+        if profile_id.len() > 128 {
+            return Err("Provider profile id is too long".into());
+        }
+
+        let mut connection = self.lock_connection()?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("Unable to begin Provider profile update: {error}"))?;
+        if set_default {
+            transaction
+                .execute("UPDATE provider_profiles SET is_default = 0", [])
+                .map_err(|error| format!("Unable to update default Provider profile: {error}"))?;
+        }
+        transaction
+            .execute(
+                r#"
+                INSERT INTO provider_profiles
+                    (id, name, provider_type, base_url, model, credential_ref, is_default, created_at, updated_at)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?1, ?6, ?7, ?7)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    provider_type = excluded.provider_type,
+                    base_url = excluded.base_url,
+                    model = excluded.model,
+                    is_default = CASE WHEN excluded.is_default = 1 THEN 1 ELSE provider_profiles.is_default END,
+                    updated_at = excluded.updated_at
+                "#,
+                params![
+                    profile_id,
+                    name,
+                    provider_type,
+                    base_url,
+                    model,
+                    set_default,
+                    now,
+                ],
+            )
+            .map_err(|error| format!("Unable to save Provider profile: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("Unable to commit Provider profile: {error}"))?;
+        drop(connection);
+        self.get_provider_profile(&profile_id)
+    }
+
     fn lock_connection(&self) -> Result<std::sync::MutexGuard<'_, Connection>, String> {
         self.connection
             .lock()
@@ -498,6 +640,58 @@ fn decode_agent_job(row: &Row<'_>) -> rusqlite::Result<AgentJob> {
         started_at: row.get(7)?,
         ended_at: row.get(8)?,
     })
+}
+
+fn decode_provider_profile(row: &Row<'_>) -> rusqlite::Result<ProviderProfile> {
+    Ok(ProviderProfile {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        provider_type: row.get(2)?,
+        base_url: row.get(3)?,
+        model: row.get(4)?,
+        credential_ref: row.get(5)?,
+        is_default: row.get::<_, i64>(6)? != 0,
+        created_at: row.get(7)?,
+        updated_at: row.get(8)?,
+    })
+}
+
+fn validate_text(label: &str, value: String, max_characters: usize) -> Result<String, String> {
+    let value = value.trim();
+    if value.is_empty()
+        || value.chars().count() > max_characters
+        || value.chars().any(char::is_control)
+    {
+        return Err(format!(
+            "{label} must contain 1 to {max_characters} printable characters"
+        ));
+    }
+    Ok(value.to_string())
+}
+
+fn validate_provider_base_url(value: String) -> Result<String, String> {
+    let value = value.trim().trim_end_matches('/');
+    let url = tauri::Url::parse(value).map_err(|_| "Provider Base URL is invalid".to_string())?;
+    if url.username() != ""
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err("Provider Base URL cannot contain credentials, query, or fragment".into());
+    }
+    let secure = url.scheme() == "https";
+    let loopback_http = cfg!(debug_assertions)
+        && url.scheme() == "http"
+        && matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "::1"));
+    if !secure && !loopback_http {
+        return Err(
+            "Provider Base URL must use HTTPS (debug builds also allow loopback HTTP)".into(),
+        );
+    }
+    if url.host_str().is_none() {
+        return Err("Provider Base URL must include a host".into());
+    }
+    Ok(value.to_string())
 }
 
 fn append_database_event(
@@ -675,7 +869,7 @@ mod tests {
     #[test]
     fn refuses_to_downgrade_a_newer_schema() {
         let connection = Connection::open_in_memory().unwrap();
-        connection.pragma_update(None, "user_version", 3).unwrap();
+        connection.pragma_update(None, "user_version", 4).unwrap();
 
         let error = match DesktopStore::from_connection(connection) {
             Ok(_) => panic!("newer schemas must be rejected"),
@@ -788,5 +982,66 @@ mod tests {
         let detail = reopened.get_agent_job_detail(&job.id).unwrap();
         assert_eq!(detail.job.status, "interrupted");
         assert_eq!(detail.events[0].kind, "interrupted");
+    }
+
+    #[test]
+    fn creates_default_provider_without_a_secret() {
+        let store = store();
+
+        let profiles = store.list_provider_profiles().unwrap();
+
+        assert_eq!(profiles.len(), 1);
+        assert_eq!(profiles[0].id, DEFAULT_PROVIDER_ID);
+        assert_eq!(profiles[0].model, DEFAULT_PROVIDER_MODEL);
+        let connection = store.connection.lock().unwrap();
+        let columns = connection
+            .prepare("PRAGMA table_info(provider_profiles)")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert!(!columns
+            .iter()
+            .any(|column| column.contains("key") || column.contains("secret")));
+    }
+
+    #[test]
+    fn validates_and_updates_provider_profile() {
+        let store = store();
+
+        let profile = store
+            .save_provider_profile(
+                Some(DEFAULT_PROVIDER_ID.into()),
+                "Qwen Desktop".into(),
+                "openai_compatible".into(),
+                "https://example.test/v1/".into(),
+                "qwen-test".into(),
+                true,
+            )
+            .unwrap();
+
+        assert_eq!(profile.base_url, "https://example.test/v1");
+        assert_eq!(profile.model, "qwen-test");
+        assert!(profile.is_default);
+        assert_eq!(profile.credential_ref, DEFAULT_PROVIDER_ID);
+    }
+
+    #[test]
+    fn provider_profile_rejects_insecure_remote_url() {
+        let store = store();
+
+        let error = store
+            .save_provider_profile(
+                None,
+                "Unsafe".into(),
+                "openai_compatible".into(),
+                "http://example.test/v1".into(),
+                "model".into(),
+                false,
+            )
+            .unwrap_err();
+
+        assert!(error.contains("HTTPS"));
     }
 }

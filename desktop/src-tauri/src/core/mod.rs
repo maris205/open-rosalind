@@ -6,6 +6,7 @@ use tauri::State;
 
 mod agent;
 pub mod jobs;
+pub mod provider;
 pub mod storage;
 
 pub use agent::{AgentWorkerInfo, AgentWorkerProcess, WorkerJobStatus};

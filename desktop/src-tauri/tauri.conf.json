@@ -7,6 +7,7 @@
     "frontendDist": "../../web_app/static"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [],
     "security": {
       "csp": null

@@ -21,6 +21,14 @@ message presentation, and biomedical tools remain shared with the web build.
   ToolRuns, and Artifacts in its own `desktop-core.db`; a Conversation does not
   own a process or container. Unfinished jobs recover as `interrupted` after an
   application restart.
+- Provider Profiles store only non-sensitive metadata in `desktop-core.db`.
+  Model API Keys are saved through the operating system credential vault
+  (macOS Keychain or Windows Credential Manager) and are never returned to the
+  Web UI or local Python API.
+- Ordinary desktop model requests are sent directly from the Rust Provider
+  Broker to an OpenAI-compatible HTTPS endpoint. The broker supports streaming,
+  cooperative cancellation, timeouts, bounded requests, and sanitized errors;
+  these calls do not pass through an OpenRosalind model service.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.
@@ -64,10 +72,15 @@ and the signing/notarization contract are documented in
 
 The build prepares a private, bundled Python package directory from
 `requirements.txt`; the selected interpreter does not need those packages
-installed globally. Model credentials can be supplied through the existing environment variables or in
-the application's model settings for the current session. In desktop mode,
-temporary Agent-plan credentials are held in memory only and are discarded
-when the task completes or the application exits.
+installed globally. In desktop mode, save an OpenAI-compatible Base URL, model,
+and API Key in Settings. The Base URL and model are local SQLite metadata; the
+API Key is written directly to the system credential vault. Web mode continues
+to support the existing environment-variable and session settings.
+
+The current Provider Broker covers ordinary desktop conversations. The local
+Agent plan executor has not yet migrated to the broker-backed model-result
+protocol, so this alpha routes the desktop research assistant through direct
+chat until Agent Worker protocol v3 is implemented.
 
 ## Security Boundary
 
@@ -76,9 +89,11 @@ directory. Runtime data is confined to the application-data workspace. Native
 project-directory selection and per-command permission prompts are the next
 desktop milestone.
 
-The Rust Desktop Core owns the Python process and exposes a read-only
-`desktop_core_status` Tauri command. The bootstrap token is never included in
-that status payload, persisted to SQLite, or made available to Agent tools.
+The Rust Desktop Core owns the Python process and exposes a restricted set of
+Tauri commands to the authenticated loopback UI. The bootstrap token is never
+included in status payloads, persisted to SQLite, or made available to Agent
+tools. Navigation is limited to the exact per-launch loopback origin and the
+desktop page uses a restrictive Content Security Policy.
 
 For browser automation, Debug builds accept
 `OPENROSALIND_DESKTOP_TEST_TOKEN` when it contains at least 32 characters.

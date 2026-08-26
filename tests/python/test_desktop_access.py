@@ -1,8 +1,11 @@
 import http.cookiejar
+import json
 import threading
 import unittest
 import urllib.error
 import urllib.request
+import uuid
+from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
@@ -47,6 +50,11 @@ class DesktopAccessTests(unittest.TestCase):
         )
         self.assertTrue(response.geturl().endswith("/app"))
         self.assertEqual(response.status, 200)
+        self.assertIn(
+            "default-src 'self'",
+            response.headers.get("Content-Security-Policy", ""),
+        )
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
         desktop_cookies = [
             cookie for cookie in cookie_jar if cookie.name == server.DESKTOP_COOKIE_NAME
         ]
@@ -55,6 +63,61 @@ class DesktopAccessTests(unittest.TestCase):
 
         config = opener.open(f"{self.base_url}/api/config", timeout=2)
         self.assertEqual(config.status, 200)
+
+    def test_model_request_returns_messages_without_provider_credentials(self) -> None:
+        cookie_jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(cookie_jar)
+        )
+        opener.open(
+            f"{self.base_url}/desktop/bootstrap?token={self.token}", timeout=2
+        )
+
+        user = {
+            "id": str(uuid.uuid4()),
+            "email": "desktop-test@example.test",
+        }
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        with (
+            patch.object(server, "create_user", return_value=user),
+            patch.object(
+                server,
+                "create_login_session",
+                return_value=("desktop-test-session", expires_at),
+            ),
+            patch.object(server, "get_user_for_token", return_value=user),
+        ):
+            register = urllib.request.Request(
+                f"{self.base_url}/api/auth/register",
+                data=json.dumps(
+                    {"email": user["email"], "password": "test-password"}
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            self.assertEqual(opener.open(register, timeout=2).status, 200)
+
+            model_request = urllib.request.Request(
+                f"{self.base_url}/api/desktop/model-request",
+                data=json.dumps(
+                    {
+                        "skill": "paper_summary",
+                        "input": "Summarize this abstract.",
+                        "history": [],
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            response = opener.open(model_request, timeout=2)
+
+        payload = json.loads(response.read().decode("utf-8"))
+        encoded = json.dumps(payload)
+        self.assertTrue(payload["ok"])
+        self.assertGreaterEqual(len(payload["messages"]), 2)
+        self.assertNotIn("apiKey", encoded)
+        self.assertNotIn("credential", encoded.lower())
+        self.assertNotIn("desktop-test-session", encoded)
 
     def test_bootstrap_rejects_an_invalid_token(self) -> None:
         with self.assertRaises(urllib.error.HTTPError) as context:

@@ -305,7 +305,9 @@ const state = {
   biologyToolIds: savedBiologyToolIds(),
   managingGroupId: "paper_assistant",
   projectId: "",
-  projects: []
+  projects: [],
+  desktopMode: false,
+  providerProfileId: ""
 };
 
 const agentPlanPolls = new Map();
@@ -355,6 +357,7 @@ const els = {
   clearChat: document.getElementById("clearChat"),
   openSettings: document.getElementById("openSettings"),
   settingsDialog: document.getElementById("settingsDialog"),
+  providerStorageNote: document.getElementById("providerStorageNote"),
   agentDialog: document.getElementById("agentDialog"),
   agentDialogTitle: document.getElementById("agentDialogTitle"),
   agentDialogDescription: document.getElementById("agentDialogDescription"),
@@ -364,6 +367,7 @@ const els = {
   model: document.getElementById("model"),
   apiKey: document.getElementById("apiKey"),
   keyStatus: document.getElementById("keyStatus"),
+  clearProviderKey: document.getElementById("clearProviderKey"),
   temperature: document.getElementById("temperature"),
   temperatureValue: document.getElementById("temperatureValue"),
   documentFile: document.getElementById("documentFile"),
@@ -1663,12 +1667,14 @@ function chooseFunction(functionId) {
 
 async function loadConfig() {
   const config = await fetch("/api/config").then((response) => response.json());
+  state.desktopMode = Boolean(config.desktopMode);
   els.baseUrl.value = config.baseUrl;
   els.model.value = config.model;
   els.keyStatus.textContent = config.hasEnvApiKey
     ? "已检测到环境变量 DASHSCOPE_API_KEY。"
     : "未检测到环境变量，可在此临时填写 API Key。";
   if (config.desktopMode) {
+    await loadDesktopProviderProfile();
     try {
       const status = await fetch("/api/desktop/status").then((response) => response.json());
       els.desktopRuntime.hidden = false;
@@ -1680,6 +1686,64 @@ async function loadConfig() {
       els.desktopRuntime.textContent = "本地模式";
     }
   }
+}
+
+function desktopInvoke(command, args = {}) {
+  const invoke = window.__TAURI__?.core?.invoke;
+  if (!invoke) throw new Error("Desktop Core IPC 不可用。");
+  return invoke(command, args);
+}
+
+async function loadDesktopProviderProfile() {
+  try {
+    const [vault, profiles] = await Promise.all([
+      desktopInvoke("desktop_credential_vault_status"),
+      desktopInvoke("desktop_list_provider_profiles")
+    ]);
+    const profile = profiles.find((item) => item.isDefault) || profiles[0];
+    if (!profile) throw new Error("未找到模型 Provider 配置。");
+    state.providerProfileId = profile.id;
+    els.baseUrl.value = profile.baseUrl;
+    els.model.value = profile.model;
+    els.providerStorageNote.textContent = `API Key 安全保存在 ${vault.backend}，不会发送给 OpenRosalind 服务。`;
+    els.keyStatus.textContent = profile.hasCredential
+      ? `已在 ${vault.backend} 中配置 API Key。留空将保留现有 Key。`
+      : `尚未配置 API Key；保存后将写入 ${vault.backend}。`;
+    els.clearProviderKey.hidden = !profile.hasCredential;
+  } catch (error) {
+    els.keyStatus.textContent = `系统凭据库不可用：${String(error.message || error)}`;
+    els.clearProviderKey.hidden = true;
+  }
+}
+
+async function saveDesktopProviderProfile() {
+  const apiKey = els.apiKey.value.trim();
+  const profile = await desktopInvoke("desktop_save_provider_profile", {
+    profileId: state.providerProfileId || null,
+    name: "通义千问",
+    providerType: "openai_compatible",
+    baseUrl: els.baseUrl.value.trim(),
+    model: els.model.value.trim(),
+    apiKey: apiKey || null,
+    setDefault: true
+  });
+  state.providerProfileId = profile.id;
+  els.apiKey.value = "";
+  els.apiKey.readOnly = true;
+  els.clearProviderKey.hidden = !profile.hasCredential;
+  els.keyStatus.textContent = profile.hasCredential
+    ? "Provider 配置已保存，API Key 位于系统凭据库。"
+    : "Provider 配置已保存，尚未配置 API Key。";
+}
+
+async function clearDesktopProviderCredential() {
+  const profile = await desktopInvoke("desktop_clear_provider_credential", {
+    profileId: state.providerProfileId || null
+  });
+  els.apiKey.value = "";
+  els.apiKey.readOnly = true;
+  els.clearProviderKey.hidden = true;
+  els.keyStatus.textContent = profile.hasCredential ? "API Key 仍存在。" : "系统凭据库中的 API Key 已清除。";
 }
 
 function attachmentBlock() {
@@ -2183,6 +2247,65 @@ async function generate(requestInput, displayInput) {
   }
 }
 
+function providerRequestId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function generateWithDesktopProvider(requestInput, displayInput) {
+  els.sendButton.disabled = true;
+  setBadge("preparing local model");
+  let unlisten = null;
+  try {
+    const prepared = await agentRequest("/api/desktop/model-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        skill: currentFunction().skill,
+        input: requestInput,
+        history: historyForApi()
+      })
+    });
+    const requestId = providerRequestId();
+    const listen = window.__TAURI__?.event?.listen;
+    if (listen) {
+      unlisten = await listen("desktop-provider-delta", (event) => {
+        if (event.payload?.requestId === requestId) {
+          setBadge(`local streaming ${event.payload.index}`);
+        }
+      });
+    }
+    const result = await desktopInvoke("desktop_stream_provider_chat", {
+      profileId: state.providerProfileId || null,
+      requestId,
+      messages: prepared.messages,
+      temperature: Number(els.temperature.value)
+    });
+    addSessionMessage("user", displayInput, { requestContent: requestInput });
+    addSessionMessage("assistant", result.content || "No output.", {
+      skill: currentFunction().skill,
+      trace: [
+        {
+          title: "Desktop Core 直连模型 Provider",
+          kind: "model",
+          confidence: 85,
+          detail: `${result.model} · ${result.elapsedMillis} ms · API Key 未进入 Web/Python 服务`
+        }
+      ]
+    });
+    setBadge("local provider");
+  } catch (error) {
+    addSessionMessage("user", displayInput, { requestContent: requestInput });
+    addSessionMessage("assistant", `## 本地模型调用失败\n\n${String(error.message || error)}`, {
+      skill: currentFunction().skill
+    });
+    setBadge("error", "error");
+  } finally {
+    if (unlisten) unlisten();
+    els.sendButton.disabled = false;
+  }
+}
+
 async function sendMessage() {
   if (state.isSending) return;
   const input = els.taskInput.value.trim();
@@ -2226,12 +2349,14 @@ async function sendMessage() {
   els.conversation.scrollTop = els.conversation.scrollHeight;
 
   try {
-    if (item.id === "research_assistant") {
+    if (item.id === "research_assistant" && !state.desktopMode) {
       await executeAgentTask(input, displayInput);
     } else if (["protein_analysis", "mutation_assessment"].includes(item.id)) {
       await executeBiologyTool(item, input, displayInput);
     } else if (shouldVerifyReferences(item, input)) {
       await verifyReferences(input || state.uploaded.text, displayInput);
+    } else if (state.desktopMode) {
+      await generateWithDesktopProvider(requestInput, displayInput);
     } else {
       await generate(requestInput, displayInput);
     }
@@ -2374,6 +2499,23 @@ function bindEvents() {
   els.newProject.addEventListener("click", closeAccountMenu);
   els.settingsDialog.addEventListener("click", (event) => {
     if (event.target === els.settingsDialog) els.settingsDialog.close();
+  });
+  els.settingsDialog.querySelector("form").addEventListener("submit", async (event) => {
+    if (!state.desktopMode || event.submitter?.value !== "done") return;
+    event.preventDefault();
+    try {
+      await saveDesktopProviderProfile();
+      els.settingsDialog.close("done");
+    } catch (error) {
+      els.keyStatus.textContent = String(error.message || error);
+    }
+  });
+  els.clearProviderKey.addEventListener("click", async () => {
+    try {
+      await clearDesktopProviderCredential();
+    } catch (error) {
+      els.keyStatus.textContent = String(error.message || error);
+    }
   });
   els.temperature.addEventListener("input", () => {
     els.temperatureValue.textContent = els.temperature.value;

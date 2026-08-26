@@ -1452,6 +1452,19 @@ def run_all_task_steps(user_id: str, plan_id: str) -> dict[str, object]:
 class Handler(BaseHTTPRequestHandler):
     server_version = "OpenRosalindEdu/0.2"
 
+    def end_headers(self) -> None:
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        if DESKTOP_MODE:
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; "
+                "script-src 'self'; style-src 'self'; img-src 'self' data:; "
+                "connect-src 'self' ipc: http://ipc.localhost",
+            )
+        super().end_headers()
+
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         message = format % args
         message = re.sub(
@@ -1784,6 +1797,22 @@ class Handler(BaseHTTPRequestHandler):
                     str(payload.get("content", ""))[:100_000],
                 )
                 self.send_json({"ok": True, "feedback": feedback})
+            except (json.JSONDecodeError, ValueError) as exc:
+                self.send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        if self.path == "/api/desktop/model-request":
+            if not DESKTOP_MODE:
+                self.send_error(404)
+                return
+            try:
+                payload = self.read_json()
+                skill = str(payload.get("skill", "paper_summary"))
+                user_input = payload.get("input", "")
+                if not isinstance(user_input, str):
+                    raise ValueError("输入内容必须是文本。")
+                history = payload.get("history") if isinstance(payload.get("history"), list) else []
+                messages = build_messages(skill, user_input, history)
+                self.send_json({"ok": True, "messages": messages})
             except (json.JSONDecodeError, ValueError) as exc:
                 self.send_json({"ok": False, "error": str(exc)}, status=400)
             return

@@ -140,7 +140,7 @@
         <div class="settings-header">
           <div>
             <h2>千问模型设置</h2>
-            <p>配置仅保留在当前页面会话中。</p>
+            <p id="providerStorageNote">配置仅保留在当前页面会话中。</p>
           </div>
           <button value="cancel" type="submit" title="关闭设置" aria-label="关闭设置">x</button>
         </div>
@@ -154,7 +154,7 @@
           <input id="model" type="text" spellcheck="false" />
         </label>
         <label>
-          API Key（留空使用服务器配置）
+          API Key
           <input
             id="apiKey"
             name="rosalind-temporary-model-key"
@@ -163,7 +163,7 @@
             data-lpignore="true"
             data-1p-ignore="true"
             readonly
-            placeholder="可选：临时填写，不写入文件"
+            placeholder="桌面版保存到系统凭据库"
           />
         </label>
         <label class="temperature">
@@ -173,6 +173,7 @@
         </label>
         <p id="keyStatus" class="hint"></p>
         <div class="settings-actions">
+          <button id="clearProviderKey" value="keep-open" type="button" hidden>清除 Key</button>
           <button value="done" type="submit" class="primary-button">完成</button>
         </div>
       </form>

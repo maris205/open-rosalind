@@ -15,6 +15,7 @@ mod core;
 
 use core::{
     jobs,
+    provider::{self, ProviderManager},
     storage::{self, DesktopStore},
     AgentWorkerProcess, DesktopCore, DesktopRuntimeStatus,
 };
@@ -271,6 +272,12 @@ pub fn run() {
             jobs::desktop_start_agent_job,
             jobs::desktop_refresh_agent_job,
             jobs::desktop_cancel_agent_job,
+            provider::desktop_credential_vault_status,
+            provider::desktop_list_provider_profiles,
+            provider::desktop_save_provider_profile,
+            provider::desktop_clear_provider_credential,
+            provider::desktop_stream_provider_chat,
+            provider::desktop_cancel_provider_chat,
         ])
         .setup(|app| {
             let mut launch = start_backend(app)?;
@@ -303,12 +310,19 @@ pub fn run() {
             )
             .parse()
             .map_err(|error| format!("Invalid local application URL: {error}"))?;
+            let allowed_port = launch.port;
             app.manage(store);
+            app.manage(ProviderManager::system());
             app.manage(DesktopCore::new(launch.child, agent_worker, status));
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title("OpenRosalind")
                 .inner_size(1320.0, 840.0)
                 .min_inner_size(960.0, 640.0)
+                .on_navigation(move |url| {
+                    url.scheme() == "http"
+                        && url.host_str() == Some("127.0.0.1")
+                        && url.port() == Some(allowed_port)
+                })
                 .build()?;
             Ok(())
         })

@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/remote-schema.json",
+  "identifier": "desktop-loopback",
+  "description": "Minimal Desktop Core IPC for the authenticated loopback UI",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*"]
+  },
+  "permissions": ["core:event:default"]
+}
