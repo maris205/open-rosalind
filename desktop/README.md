@@ -14,9 +14,10 @@ message presentation, and biomedical tools remain shared with the web build.
 - Agent jobs use an in-process background queue, so Redis and an RQ worker are
   not required.
 - A separate, long-lived local Agent Worker starts outside Docker and uses a
-  versioned JSON-RPC protocol over stdio. Protocol v2 supports AgentJob start,
-  status polling, cooperative cancellation, and structured progress, while
-  still exposing no model, tool, Shell, filesystem, network, or Docker access.
+  versioned JSON-RPC protocol over stdio. Protocol v3 supports AgentJob start,
+  status polling, cooperative cancellation, structured progress, and
+  credential-free model requests. The Worker still has no direct model,
+  credential, Shell, filesystem, network, Docker, or tool access.
 - Desktop Core stores Conversations, AgentJobs, ordered AgentJob events,
   ToolRuns, and Artifacts in its own `desktop-core.db`; a Conversation does not
   own a process or container. Unfinished jobs recover as `interrupted` after an
@@ -77,10 +78,11 @@ and API Key in Settings. The Base URL and model are local SQLite metadata; the
 API Key is written directly to the system credential vault. Web mode continues
 to support the existing environment-variable and session settings.
 
-The current Provider Broker covers ordinary desktop conversations. The local
-Agent plan executor has not yet migrated to the broker-backed model-result
-protocol, so this alpha routes the desktop research assistant through direct
-chat until Agent Worker protocol v3 is implemented.
+The desktop research assistant now runs as a persisted AgentJob. The Worker
+submits a bounded model request to Desktop Core, Desktop Core resolves the
+system credential and performs the HTTPS call, then returns only the model
+result. Protocol v3 currently implements this single model stage; multi-step
+planning and Tool Contract execution remain later milestones.
 
 ## Security Boundary
 

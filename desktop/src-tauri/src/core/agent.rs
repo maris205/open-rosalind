@@ -12,7 +12,9 @@ use std::{
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 
-const PROTOCOL_VERSION: u32 = 2;
+use super::provider::ProviderChatMessage;
+
+const PROTOCOL_VERSION: u32 = 3;
 const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -48,6 +50,16 @@ pub struct WorkerJobStatus {
     pub error: Option<String>,
     pub started_at: Option<i64>,
     pub ended_at: Option<i64>,
+    pub pending_model_request: Option<WorkerModelRequest>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkerModelRequest {
+    pub request_id: String,
+    pub provider_profile_id: Option<String>,
+    pub messages: Vec<ProviderChatMessage>,
+    pub temperature: f32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -213,6 +225,24 @@ impl AgentWorkerProcess {
 
     pub fn cancel_job(&mut self, job_id: &str) -> Result<WorkerJobStatus, String> {
         self.request("job.cancel", json!({"jobId": job_id}))
+    }
+
+    pub fn complete_model_request(
+        &mut self,
+        job_id: &str,
+        request_id: &str,
+        result: Option<Value>,
+        error: Option<String>,
+    ) -> Result<WorkerJobStatus, String> {
+        self.request(
+            "model.complete",
+            json!({
+                "jobId": job_id,
+                "requestId": request_id,
+                "result": result,
+                "error": error,
+            }),
+        )
     }
 
     pub fn stop(&mut self) {

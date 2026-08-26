@@ -22,11 +22,11 @@ class DesktopAgentWorkerTests(unittest.TestCase):
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "initialize",
-                "params": {"client": "test-suite", "protocolVersion": 2},
+                "params": {"client": "test-suite", "protocolVersion": 3},
             },
             state,
         )
-        self.assertEqual(response["result"]["protocolVersion"], 2)
+        self.assertEqual(response["result"]["protocolVersion"], 3)
         return state
 
     def test_oversized_message_fails_closed(self) -> None:
@@ -54,7 +54,7 @@ class DesktopAgentWorkerTests(unittest.TestCase):
                 "method": "initialize",
                 "params": {
                     "client": "test-suite",
-                    "protocolVersion": 2,
+                    "protocolVersion": 3,
                 },
             },
             {"jsonrpc": "2.0", "id": 2, "method": "ping", "params": {}},
@@ -76,9 +76,10 @@ class DesktopAgentWorkerTests(unittest.TestCase):
         self.assertEqual(process.returncode, 0, process.stderr)
         responses = [json.loads(line) for line in process.stdout.splitlines()]
         self.assertEqual([response["id"] for response in responses], [1, 2, 3])
-        self.assertEqual(responses[0]["result"]["protocolVersion"], 2)
+        self.assertEqual(responses[0]["result"]["protocolVersion"], 3)
         self.assertTrue(responses[0]["result"]["capabilities"]["jobControl"])
         self.assertFalse(responses[0]["result"]["capabilities"]["modelCredentials"])
+        self.assertTrue(responses[0]["result"]["capabilities"]["modelBrokerRequests"])
         self.assertTrue(responses[1]["result"]["ok"])
         self.assertTrue(responses[2]["result"]["ok"])
 
@@ -116,7 +117,7 @@ class DesktopAgentWorkerTests(unittest.TestCase):
 
         result = snapshot["result"]
         self.assertEqual(result["status"], "completed")
-        self.assertEqual(result["result"]["mode"], "lifecycle-stub-v2")
+        self.assertEqual(result["result"]["mode"], "lifecycle-stub-v3")
         self.assertEqual(
             [event["sequence"] for event in result["progress"]],
             list(range(1, len(result["progress"]) + 1)),
@@ -183,6 +184,87 @@ class DesktopAgentWorkerTests(unittest.TestCase):
 
         self.assertEqual(response["error"]["code"], -32602)
         self.assertEqual(state.jobs, {})
+
+    def test_model_job_round_trip_never_contains_credentials(self) -> None:
+        state = self.initialized_state()
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "job.start",
+                "params": {
+                    "jobId": "job-model",
+                    "request": {
+                        "mode": "model",
+                        "providerProfileId": "profile-1",
+                        "messages": [
+                            {"role": "system", "content": "Be concise."},
+                            {"role": "user", "content": "Summarize the result."},
+                        ],
+                        "temperature": 0.2,
+                    },
+                },
+            },
+            state,
+        )
+
+        pending = None
+        for request_id in range(3, 30):
+            snapshot = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-model"},
+                },
+                state,
+            )
+            pending = snapshot["result"]["pendingModelRequest"]
+            if pending:
+                break
+            time.sleep(0.01)
+
+        self.assertIsNotNone(pending)
+        self.assertEqual(pending["providerProfileId"], "profile-1")
+        encoded_pending = json.dumps(pending)
+        self.assertNotIn("apiKey", encoded_pending)
+        self.assertNotIn("credential", encoded_pending.lower())
+
+        completed = handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 30,
+                "method": "model.complete",
+                "params": {
+                    "jobId": "job-model",
+                    "requestId": pending["requestId"],
+                    "result": {
+                        "content": "A brokered answer.",
+                        "model": "test-model",
+                        "finishReason": "stop",
+                        "elapsedMillis": 12,
+                    },
+                },
+            },
+            state,
+        )
+        for request_id in range(31, 60):
+            completed = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-model"},
+                },
+                state,
+            )
+            if completed["result"]["status"] == "completed":
+                break
+            time.sleep(0.01)
+
+        self.assertEqual(completed["result"]["status"], "completed")
+        self.assertEqual(completed["result"]["result"]["mode"], "provider-broker-v3")
+        self.assertEqual(completed["result"]["result"]["content"], "A brokered answer.")
 
     def test_unknown_job_returns_protocol_error(self) -> None:
         state = self.initialized_state()

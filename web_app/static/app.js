@@ -307,7 +307,8 @@ const state = {
   projectId: "",
   projects: [],
   desktopMode: false,
-  providerProfileId: ""
+  providerProfileId: "",
+  desktopConversationIds: {}
 };
 
 const agentPlanPolls = new Map();
@@ -2306,6 +2307,81 @@ async function generateWithDesktopProvider(requestInput, displayInput) {
   }
 }
 
+async function desktopAgentConversation() {
+  const chatId = activeChat().id;
+  if (state.desktopConversationIds[chatId]) return state.desktopConversationIds[chatId];
+  const conversation = await desktopInvoke("desktop_create_conversation", {
+    title: activeChat().title || "Research Assistant",
+    projectId: state.projectId || null
+  });
+  state.desktopConversationIds[chatId] = conversation.id;
+  return conversation.id;
+}
+
+async function generateWithDesktopAgent(requestInput, displayInput) {
+  els.sendButton.disabled = true;
+  setBadge("starting local agent");
+  let unlisten = null;
+  try {
+    const prepared = await agentRequest("/api/desktop/model-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        skill: currentFunction().skill,
+        input: requestInput,
+        history: historyForApi()
+      })
+    });
+    const conversationId = await desktopAgentConversation();
+    const job = await desktopInvoke("desktop_create_agent_job", {
+      conversationId,
+      request: {
+        mode: "model",
+        providerProfileId: state.providerProfileId || null,
+        messages: prepared.messages,
+        temperature: Number(els.temperature.value)
+      }
+    });
+    const listen = window.__TAURI__?.event?.listen;
+    if (listen) {
+      unlisten = await listen("desktop-provider-delta", (event) => {
+        setBadge(`agent streaming ${event.payload?.index || 0}`);
+      });
+    }
+    let detail = await desktopInvoke("desktop_start_agent_job", { jobId: job.id });
+    for (let attempt = 0; attempt < 120 && ["queued", "running", "cancelling"].includes(detail.job.status); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      detail = await desktopInvoke("desktop_refresh_agent_job", { jobId: job.id });
+    }
+    const result = detail.job.result || {};
+    if (detail.job.status !== "completed") {
+      throw new Error(result.error || `AgentJob ended with status ${detail.job.status}`);
+    }
+    addSessionMessage("user", displayInput, { requestContent: requestInput });
+    addSessionMessage("assistant", result.content || "No output.", {
+      skill: currentFunction().skill,
+      trace: [
+        {
+          title: "本地 AgentJob · Provider Broker v3",
+          kind: "agent",
+          confidence: 88,
+          detail: `${result.model || "configured model"} · ${detail.events.length} events · Worker 未接触 API Key`
+        }
+      ]
+    });
+    setBadge("local agent");
+  } catch (error) {
+    addSessionMessage("user", displayInput, { requestContent: requestInput });
+    addSessionMessage("assistant", `## 本地 Agent 执行失败\n\n${String(error.message || error)}`, {
+      skill: currentFunction().skill
+    });
+    setBadge("error", "error");
+  } finally {
+    if (unlisten) unlisten();
+    els.sendButton.disabled = false;
+  }
+}
+
 async function sendMessage() {
   if (state.isSending) return;
   const input = els.taskInput.value.trim();
@@ -2349,7 +2425,9 @@ async function sendMessage() {
   els.conversation.scrollTop = els.conversation.scrollHeight;
 
   try {
-    if (item.id === "research_assistant" && !state.desktopMode) {
+    if (item.id === "research_assistant" && state.desktopMode) {
+      await generateWithDesktopAgent(requestInput, displayInput);
+    } else if (item.id === "research_assistant") {
       await executeAgentTask(input, displayInput);
     } else if (["protein_analysis", "mutation_assessment"].includes(item.id)) {
       await executeBiologyTool(item, input, displayInput);

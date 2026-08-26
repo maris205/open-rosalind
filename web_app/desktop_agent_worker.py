@@ -6,11 +6,12 @@ import json
 import sys
 import threading
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import BinaryIO
 
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 MAX_MESSAGE_BYTES = 1024 * 1024
 MAX_JOB_ID_LENGTH = 128
 MAX_LIFECYCLE_WORK_UNITS = 50
@@ -33,6 +34,10 @@ class LocalJob:
     started_at: int | None = None
     ended_at: int | None = None
     cancel_event: threading.Event = field(default_factory=threading.Event)
+    model_event: threading.Event = field(default_factory=threading.Event)
+    pending_model_request: dict[str, object] | None = None
+    model_response: dict[str, object] | None = None
+    model_error: str | None = None
 
 
 @dataclass
@@ -93,6 +98,9 @@ def job_snapshot(job: LocalJob) -> dict[str, object]:
         "error": job.error,
         "startedAt": job.started_at,
         "endedAt": job.ended_at,
+        "pendingModelRequest": (
+            dict(job.pending_model_request) if job.pending_model_request else None
+        ),
     }
 
 
@@ -132,7 +140,7 @@ def run_lifecycle_job(state: WorkerState, job_id: str) -> None:
         with state.lock:
             job.status = "completed"
             job.result = {
-                "mode": "lifecycle-stub-v2",
+                "mode": "lifecycle-stub-v3",
                 "summary": "AgentJob lifecycle completed without model or tool execution",
                 "inputLength": len(json.dumps(job.request, ensure_ascii=False)),
             }
@@ -144,6 +152,106 @@ def run_lifecycle_job(state: WorkerState, job_id: str) -> None:
             job.error = f"Lifecycle worker failed: {type(error).__name__}"
             job.ended_at = unix_millis()
             append_progress(job, "failed", {"errorType": type(error).__name__})
+
+
+def validate_model_job_request(request: dict[str, object]) -> str | None:
+    messages = request.get("messages")
+    if not isinstance(messages, list) or not 1 <= len(messages) <= 64:
+        return "model jobs require 1 to 64 messages"
+    total_characters = 0
+    for message in messages:
+        if not isinstance(message, dict):
+            return "each model message must be an object"
+        if message.get("role") not in {"system", "user", "assistant"}:
+            return "model message role is invalid"
+        content = message.get("content")
+        if not isinstance(content, str) or not 1 <= len(content) <= 100_000:
+            return "model message content must contain 1 to 100000 characters"
+        total_characters += len(content)
+    if total_characters > 500_000:
+        return "model message content exceeds the 500000 character limit"
+    profile_id = request.get("providerProfileId")
+    if profile_id is not None and (
+        not isinstance(profile_id, str) or not profile_id or len(profile_id) > 128
+    ):
+        return "providerProfileId is invalid"
+    temperature = request.get("temperature", 0.2)
+    if isinstance(temperature, bool) or not isinstance(temperature, (int, float)):
+        return "temperature must be a number"
+    if not 0 <= float(temperature) <= 2:
+        return "temperature must be between 0 and 2"
+    return None
+
+
+def run_model_job(state: WorkerState, job_id: str) -> None:
+    with state.lock:
+        job = state.jobs[job_id]
+        validation_error = validate_model_job_request(job.request)
+        if validation_error:
+            job.status = "failed"
+            job.error = validation_error
+            job.ended_at = unix_millis()
+            append_progress(job, "failed", {"phase": "model-request-validation"})
+            return
+        model_request_id = str(uuid.uuid4())
+        job.pending_model_request = {
+            "requestId": model_request_id,
+            "providerProfileId": job.request.get("providerProfileId"),
+            "messages": job.request["messages"],
+            "temperature": float(job.request.get("temperature", 0.2)),
+        }
+        append_progress(
+            job,
+            "model_requested",
+            {
+                "requestId": model_request_id,
+                "messageCount": len(job.request["messages"]),
+            },
+        )
+
+    while not job.model_event.wait(0.05):
+        if job.cancel_event.is_set():
+            with state.lock:
+                job.status = "cancelled"
+                job.cancellation_requested = True
+                job.pending_model_request = None
+                job.ended_at = unix_millis()
+                append_progress(job, "cancelled", {"phase": "model-request"})
+            return
+
+    with state.lock:
+        job.pending_model_request = None
+        if job.cancel_event.is_set():
+            job.status = "cancelled"
+            job.cancellation_requested = True
+            job.ended_at = unix_millis()
+            append_progress(job, "cancelled", {"phase": "model-response"})
+        elif job.model_error:
+            job.status = "failed"
+            job.error = job.model_error
+            job.ended_at = unix_millis()
+            append_progress(job, "failed", {"phase": "provider-broker"})
+        elif job.model_response:
+            job.status = "completed"
+            job.result = {
+                "mode": "provider-broker-v3",
+                **job.model_response,
+            }
+            job.ended_at = unix_millis()
+            append_progress(
+                job,
+                "model_completed",
+                {
+                    "requestId": model_request_id,
+                    "model": job.model_response.get("model"),
+                },
+            )
+            append_progress(job, "completed", {"executor": "local-agent-v3"})
+        else:  # pragma: no cover - defensive protocol boundary
+            job.status = "failed"
+            job.error = "Provider Broker returned no result"
+            job.ended_at = unix_millis()
+            append_progress(job, "failed", {"phase": "provider-broker"})
 
 
 def validate_job_params(params: dict[str, object]) -> tuple[str | None, dict[str, object] | None, str | None]:
@@ -182,6 +290,7 @@ def handle_request(payload: object, state: WorkerState) -> dict[str, object]:
                 "progressPolling": True,
                 "toolCalls": False,
                 "modelCredentials": False,
+                "modelBrokerRequests": True,
             },
         }
     elif not state.initialized:
@@ -199,15 +308,44 @@ def handle_request(payload: object, state: WorkerState) -> dict[str, object]:
             append_progress(job, "accepted", {"protocolVersion": PROTOCOL_VERSION})
             job.status = "running"
             job.started_at = unix_millis()
-            append_progress(job, "started", {"executor": "lifecycle-stub-v2"})
+            executor = (
+                "provider-broker-v3"
+                if request.get("mode") == "model"
+                else "lifecycle-stub-v3"
+            )
+            append_progress(job, "started", {"executor": executor})
             state.jobs[job_id] = job
             result = job_snapshot(job)
         threading.Thread(
-            target=run_lifecycle_job,
+            target=(run_model_job if request.get("mode") == "model" else run_lifecycle_job),
             args=(state, job_id),
             name=f"agent-job-{job_id[:24]}",
             daemon=True,
         ).start()
+    elif method == "model.complete":
+        job_id = params.get("jobId")
+        model_request_id = params.get("requestId")
+        if not isinstance(job_id, str) or not isinstance(model_request_id, str):
+            return rpc_error(request_id, -32602, "jobId and requestId are required")
+        response = params.get("result")
+        error = params.get("error")
+        if response is not None and (not isinstance(response, dict) or contains_secret_field(response)):
+            return rpc_error(request_id, -32602, "model result is invalid")
+        if error is not None and (not isinstance(error, str) or len(error) > 2000):
+            return rpc_error(request_id, -32602, "model error is invalid")
+        if (response is None) == (error is None):
+            return rpc_error(request_id, -32602, "provide exactly one model result or error")
+        with state.lock:
+            job = state.jobs.get(job_id)
+            if job is None:
+                return rpc_error(request_id, -32011, "AgentJob was not found")
+            pending = job.pending_model_request
+            if pending is None or pending.get("requestId") != model_request_id:
+                return rpc_error(request_id, -32012, "Model request was not found")
+            job.model_response = response
+            job.model_error = error
+            job.model_event.set()
+            result = job_snapshot(job)
     elif method == "job.status":
         job_id = params.get("jobId")
         if not isinstance(job_id, str) or not job_id:

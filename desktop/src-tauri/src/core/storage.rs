@@ -13,6 +13,7 @@ use uuid::Uuid;
 use super::agent::WorkerJobStatus;
 
 const SCHEMA_VERSION: i64 = 3;
+const MAX_AGENT_JOB_REQUEST_BYTES: usize = 512 * 1024;
 const TERMINAL_STATUSES: &[&str] = &["completed", "cancelled", "failed", "interrupted"];
 pub(crate) const DEFAULT_PROVIDER_ID: &str = "default-qwen-openai-compatible";
 const DEFAULT_PROVIDER_BASE_URL: &str =
@@ -323,6 +324,9 @@ impl DesktopStore {
         };
         let request_json = serde_json::to_string(&job.request)
             .map_err(|error| format!("Unable to encode Agent job request: {error}"))?;
+        if request_json.len() > MAX_AGENT_JOB_REQUEST_BYTES {
+            return Err("Agent job request exceeds the 512 KiB protocol limit".into());
+        }
         let connection = self.lock_connection()?;
         connection
             .execute(
@@ -924,6 +928,23 @@ mod tests {
     }
 
     #[test]
+    fn agent_job_rejects_oversized_protocol_payloads() {
+        let store = store();
+        let conversation = store
+            .create_conversation("Large request".into(), None)
+            .unwrap();
+
+        let error = store
+            .create_agent_job(
+                conversation.id,
+                json!({"messages": [{"role": "user", "content": "x".repeat(MAX_AGENT_JOB_REQUEST_BYTES)}]}),
+            )
+            .unwrap_err();
+
+        assert!(error.contains("512 KiB"));
+    }
+
+    #[test]
     fn worker_status_and_progress_are_persisted_idempotently() {
         let store = store();
         let (_, job) = conversation_and_job(&store);
@@ -934,13 +955,14 @@ mod tests {
             progress: vec![WorkerJobProgress {
                 sequence: 1,
                 kind: "accepted".into(),
-                payload: json!({"protocolVersion": 2}),
+                payload: json!({"protocolVersion": 3}),
                 created_at: 100,
             }],
             result: None,
             error: None,
             started_at: Some(101),
             ended_at: None,
+            pending_model_request: None,
         };
 
         store.apply_worker_status(&job.id, worker.clone()).unwrap();

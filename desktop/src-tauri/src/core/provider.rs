@@ -25,6 +25,7 @@ const CREDENTIAL_SERVICE: &str = "bio.openrosalind.desktop.model-provider";
 const MAX_CREDENTIAL_BYTES: usize = 32 * 1024;
 const MAX_MESSAGE_CHARACTERS: usize = 100_000;
 const MAX_TOTAL_MESSAGE_CHARACTERS: usize = 500_000;
+const MAX_RESPONSE_BYTES: usize = 512 * 1024;
 
 trait CredentialVault: Send + Sync {
     fn available(&self) -> Result<(), String>;
@@ -114,7 +115,7 @@ impl ProviderManager {
         Ok(self.vault.get(reference)?.is_some())
     }
 
-    fn begin_request(&self, request_id: &str) -> Result<Arc<AtomicBool>, String> {
+    pub(crate) fn begin_request(&self, request_id: &str) -> Result<Arc<AtomicBool>, String> {
         if request_id.is_empty()
             || request_id.len() > 128
             || !request_id
@@ -135,13 +136,13 @@ impl ProviderManager {
         Ok(cancellation)
     }
 
-    fn end_request(&self, request_id: &str) {
+    pub(crate) fn end_request(&self, request_id: &str) {
         if let Ok(mut cancellations) = self.cancellations.lock() {
             cancellations.remove(request_id);
         }
     }
 
-    fn cancel_request(&self, request_id: &str) -> Result<bool, String> {
+    pub(crate) fn cancel_request(&self, request_id: &str) -> Result<bool, String> {
         let cancellations = self
             .cancellations
             .lock()
@@ -276,6 +277,9 @@ fn parse_non_streaming_response(response: Response) -> Result<(String, Option<St
         .pointer("/choices/0/finish_reason")
         .and_then(Value::as_str)
         .map(str::to_string);
+    if content.len() > MAX_RESPONSE_BYTES {
+        return Err("Provider response exceeded the 512 KiB limit".into());
+    }
     Ok((content.to_string(), finish_reason))
 }
 
@@ -306,6 +310,9 @@ fn stream_response(
             .and_then(Value::as_str)
         {
             if !delta.is_empty() {
+                if content.len().saturating_add(delta.len()) > MAX_RESPONSE_BYTES {
+                    return Err("Provider response exceeded the 512 KiB limit".into());
+                }
                 content.push_str(delta);
                 window
                     .emit(
@@ -332,7 +339,7 @@ fn stream_response(
     Ok((content, finish_reason))
 }
 
-fn execute_provider_chat(
+pub(crate) fn execute_provider_chat(
     manager: &ProviderManager,
     profile: &ProviderProfile,
     request_id: &str,
