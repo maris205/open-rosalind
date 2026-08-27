@@ -113,7 +113,28 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
           if (command === "desktop_create_conversation") return { id: "conversation-123" };
           if (command === "desktop_create_agent_job") return { id: "agent-job-123" };
           if (command === "desktop_start_agent_job") {
-            return { job: { id: "agent-job-123", status: "completed" }, events: [] };
+            return {
+              job: {
+                id: "agent-job-123",
+                status: "completed",
+                result: {
+                  content: "共有 3 个单词。",
+                  model: "test-model",
+                  toolRuns: [{
+                    toolRunId: "automatic-tool-run-123",
+                    toolName: "text.statistics",
+                    status: "succeeded",
+                    output: { words: 3 }
+                  }]
+                }
+              },
+              events: [
+                { kind: "model_requested" },
+                { kind: "tool_requested" },
+                { kind: "tool_completed" },
+                { kind: "completed" }
+              ]
+            };
           }
           if (command === "desktop_propose_tool_run") {
             return {
@@ -254,6 +275,15 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   const approval = await page.evaluate(() => window.__desktopArtifactInvocations
     .find((item) => item.command === "desktop_decide_tool_run"));
   expect(approval.args).toEqual({ toolRunId: "tool-run-123", approved: true });
+
+  await page.locator("#taskInput").fill("统计 a b c 的单词数");
+  await page.locator("#sendButton").click();
+  const agentAnswer = page.locator(".message.assistant").last();
+  await expect(agentAnswer).toContainText("共有 3 个单词");
+  await expect(agentAnswer.getByRole("button", { name: "查看 Agent 执行过程" })).toBeVisible();
+  await agentAnswer.getByRole("button", { name: "查看 Agent 执行过程" }).click();
+  await expect(page.locator("#detailPanelTitle")).toHaveText("执行过程 (1)");
+  await expect(page.locator("#detailPanelContent")).toContainText("text.statistics");
 
   await context.close();
 });

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "OpenRosalind",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "identifier": "bio.openrosalind.desktop",
   "build": {
     "frontendDist": "../../web_app/static"

@@ -14,7 +14,7 @@ use serde_json::{json, Value};
 
 use super::provider::ProviderChatMessage;
 
-const PROTOCOL_VERSION: u32 = 3;
+const PROTOCOL_VERSION: u32 = 4;
 const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -51,6 +51,7 @@ pub struct WorkerJobStatus {
     pub started_at: Option<i64>,
     pub ended_at: Option<i64>,
     pub pending_model_request: Option<WorkerModelRequest>,
+    pub pending_tool_request: Option<WorkerToolRequest>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -60,6 +61,14 @@ pub struct WorkerModelRequest {
     pub provider_profile_id: Option<String>,
     pub messages: Vec<ProviderChatMessage>,
     pub temperature: f32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkerToolRequest {
+    pub request_id: String,
+    pub tool_name: String,
+    pub input: Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -237,6 +246,24 @@ impl AgentWorkerProcess {
     ) -> Result<WorkerJobStatus, String> {
         self.request(
             "model.complete",
+            json!({
+                "jobId": job_id,
+                "requestId": request_id,
+                "result": result,
+                "error": error,
+            }),
+        )
+    }
+
+    pub fn complete_tool_request(
+        &mut self,
+        job_id: &str,
+        request_id: &str,
+        result: Option<Value>,
+        error: Option<String>,
+    ) -> Result<WorkerJobStatus, String> {
+        self.request(
+            "tool.complete",
             json!({
                 "jobId": job_id,
                 "requestId": request_id,

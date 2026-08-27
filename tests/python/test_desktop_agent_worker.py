@@ -22,11 +22,11 @@ class DesktopAgentWorkerTests(unittest.TestCase):
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "initialize",
-                "params": {"client": "test-suite", "protocolVersion": 3},
+                "params": {"client": "test-suite", "protocolVersion": 4},
             },
             state,
         )
-        self.assertEqual(response["result"]["protocolVersion"], 3)
+        self.assertEqual(response["result"]["protocolVersion"], 4)
         return state
 
     def test_oversized_message_fails_closed(self) -> None:
@@ -54,7 +54,7 @@ class DesktopAgentWorkerTests(unittest.TestCase):
                 "method": "initialize",
                 "params": {
                     "client": "test-suite",
-                    "protocolVersion": 3,
+                    "protocolVersion": 4,
                 },
             },
             {"jsonrpc": "2.0", "id": 2, "method": "ping", "params": {}},
@@ -76,10 +76,11 @@ class DesktopAgentWorkerTests(unittest.TestCase):
         self.assertEqual(process.returncode, 0, process.stderr)
         responses = [json.loads(line) for line in process.stdout.splitlines()]
         self.assertEqual([response["id"] for response in responses], [1, 2, 3])
-        self.assertEqual(responses[0]["result"]["protocolVersion"], 3)
+        self.assertEqual(responses[0]["result"]["protocolVersion"], 4)
         self.assertTrue(responses[0]["result"]["capabilities"]["jobControl"])
         self.assertFalse(responses[0]["result"]["capabilities"]["modelCredentials"])
         self.assertTrue(responses[0]["result"]["capabilities"]["modelBrokerRequests"])
+        self.assertTrue(responses[0]["result"]["capabilities"]["toolCalls"])
         self.assertTrue(responses[1]["result"]["ok"])
         self.assertTrue(responses[2]["result"]["ok"])
 
@@ -117,7 +118,7 @@ class DesktopAgentWorkerTests(unittest.TestCase):
 
         result = snapshot["result"]
         self.assertEqual(result["status"], "completed")
-        self.assertEqual(result["result"]["mode"], "lifecycle-stub-v3")
+        self.assertEqual(result["result"]["mode"], "lifecycle-stub-v4")
         self.assertEqual(
             [event["sequence"] for event in result["progress"]],
             list(range(1, len(result["progress"]) + 1)),
@@ -263,8 +264,232 @@ class DesktopAgentWorkerTests(unittest.TestCase):
             time.sleep(0.01)
 
         self.assertEqual(completed["result"]["status"], "completed")
-        self.assertEqual(completed["result"]["result"]["mode"], "provider-broker-v3")
+        self.assertEqual(completed["result"]["result"]["mode"], "tool-agent-v4")
         self.assertEqual(completed["result"]["result"]["content"], "A brokered answer.")
+
+    def test_agent_closes_model_tool_model_loop_without_credentials(self) -> None:
+        state = self.initialized_state()
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "job.start",
+                "params": {
+                    "jobId": "job-tool-loop",
+                    "request": {
+                        "mode": "agent",
+                        "providerProfileId": "profile-1",
+                        "messages": [{"role": "user", "content": "Count these words: a b c"}],
+                        "temperature": 0.2,
+                    },
+                },
+            },
+            state,
+        )
+
+        first_model = None
+        for request_id in range(3, 30):
+            snapshot = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-tool-loop"},
+                },
+                state,
+            )
+            first_model = snapshot["result"]["pendingModelRequest"]
+            if first_model:
+                break
+            time.sleep(0.01)
+        self.assertIsNotNone(first_model)
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 30,
+                "method": "model.complete",
+                "params": {
+                    "jobId": "job-tool-loop",
+                    "requestId": first_model["requestId"],
+                    "result": {
+                        "content": json.dumps(
+                            {
+                                "type": "tool",
+                                "tool": "text.statistics",
+                                "input": {"text": "a b c"},
+                            }
+                        ),
+                        "model": "test-model",
+                        "finishReason": "stop",
+                        "elapsedMillis": 3,
+                    },
+                },
+            },
+            state,
+        )
+
+        pending_tool = None
+        for request_id in range(31, 60):
+            snapshot = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-tool-loop"},
+                },
+                state,
+            )
+            pending_tool = snapshot["result"]["pendingToolRequest"]
+            if pending_tool:
+                break
+            time.sleep(0.01)
+        self.assertEqual(pending_tool["toolName"], "text.statistics")
+        self.assertEqual(pending_tool["input"], {"text": "a b c"})
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 60,
+                "method": "tool.complete",
+                "params": {
+                    "jobId": "job-tool-loop",
+                    "requestId": pending_tool["requestId"],
+                    "result": {
+                        "toolRunId": "run-1",
+                        "status": "succeeded",
+                        "output": {"words": 3},
+                    },
+                },
+            },
+            state,
+        )
+
+        second_model = None
+        for request_id in range(61, 90):
+            snapshot = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-tool-loop"},
+                },
+                state,
+            )
+            second_model = snapshot["result"]["pendingModelRequest"]
+            if second_model:
+                break
+            time.sleep(0.01)
+        self.assertIsNotNone(second_model)
+        encoded_messages = json.dumps(second_model["messages"])
+        self.assertIn("untrusted data", encoded_messages)
+        self.assertIn('"words":3', second_model["messages"][-1]["content"])
+        self.assertNotIn("apiKey", encoded_messages)
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 90,
+                "method": "model.complete",
+                "params": {
+                    "jobId": "job-tool-loop",
+                    "requestId": second_model["requestId"],
+                    "result": {
+                        "content": json.dumps({"type": "final", "content": "There are 3 words."}),
+                        "model": "test-model",
+                        "finishReason": "stop",
+                        "elapsedMillis": 4,
+                    },
+                },
+            },
+            state,
+        )
+        completed = None
+        for request_id in range(91, 120):
+            completed = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-tool-loop"},
+                },
+                state,
+            )
+            if completed["result"]["status"] == "completed":
+                break
+            time.sleep(0.01)
+        result = completed["result"]["result"]
+        self.assertEqual(result["content"], "There are 3 words.")
+        self.assertEqual(result["toolRuns"][0]["toolRunId"], "run-1")
+        self.assertEqual(result["toolRuns"][0]["status"], "succeeded")
+
+    def test_agent_rejects_high_risk_tool_before_desktop_execution(self) -> None:
+        state = self.initialized_state()
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "job.start",
+                "params": {
+                    "jobId": "job-high-risk-tool",
+                    "request": {
+                        "mode": "agent",
+                        "messages": [{"role": "user", "content": "Run Python"}],
+                    },
+                },
+            },
+            state,
+        )
+        pending = None
+        for request_id in range(3, 30):
+            snapshot = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-high-risk-tool"},
+                },
+                state,
+            )
+            pending = snapshot["result"]["pendingModelRequest"]
+            if pending:
+                break
+            time.sleep(0.01)
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 30,
+                "method": "model.complete",
+                "params": {
+                    "jobId": "job-high-risk-tool",
+                    "requestId": pending["requestId"],
+                    "result": {
+                        "content": json.dumps(
+                            {
+                                "type": "tool",
+                                "tool": "python.run",
+                                "input": {"code": "print('no')"},
+                            }
+                        ),
+                        "model": "test-model",
+                    },
+                },
+            },
+            state,
+        )
+        completed = None
+        for request_id in range(31, 60):
+            completed = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-high-risk-tool"},
+                },
+                state,
+            )
+            if completed["result"]["status"] == "failed":
+                break
+            time.sleep(0.01)
+        self.assertIn("not available for automatic", completed["result"]["error"])
+        self.assertIsNone(completed["result"]["pendingToolRequest"])
 
     def test_unknown_job_returns_protocol_error(self) -> None:
         state = self.initialized_state()

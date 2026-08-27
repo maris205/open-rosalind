@@ -2984,7 +2984,7 @@ async function generateWithDesktopAgent(requestInput, displayInput) {
     const job = await desktopInvoke("desktop_create_agent_job", {
       conversationId,
       request: {
-        mode: "model",
+        mode: "agent",
         providerProfileId: state.providerProfileId || null,
         messages: prepared.messages,
         temperature: Number(els.temperature.value)
@@ -3005,17 +3005,35 @@ async function generateWithDesktopAgent(requestInput, displayInput) {
     if (detail.job.status !== "completed") {
       throw new Error(result.error || `AgentJob ended with status ${detail.job.status}`);
     }
+    const toolRuns = Array.isArray(result.toolRuns) ? result.toolRuns : [];
     addSessionMessage("user", displayInput, { requestContent: requestInput });
     addSessionMessage("assistant", result.content || "No output.", {
       skill: currentFunction().skill,
       agentJobId: job.id,
+      agentProcess: toolRuns.map((toolRun, index) => ({
+        position: index + 1,
+        title: String(toolRun.toolName || "本地工具"),
+        skill: "desktop-tool-contract",
+        status: String(toolRun.status || "unknown"),
+        attempts: 1,
+        instruction: `Desktop Core 校验并执行 ${String(toolRun.toolName || "Tool Contract")}`,
+        output: JSON.stringify(toolRun.output ?? { error: toolRun.error || "" }, null, 2),
+        error: String(toolRun.error || ""),
+        confidence: toolRun.status === "succeeded" ? 95 : 30
+      })),
       trace: [
         {
-          title: "本地 AgentJob · Provider Broker v3",
+          title: "本地 AgentJob · Tool Agent v4",
           kind: "agent",
           confidence: 88,
-          detail: `${result.model || "configured model"} · ${detail.events.length} events · Worker 未接触 API Key`
-        }
+          detail: `${result.model || "configured model"} · ${detail.events.length} events · ${toolRuns.length} 个 ToolRun · Worker 未接触 API Key`
+        },
+        ...toolRuns.map((toolRun) => ({
+          title: `Tool Contract · ${String(toolRun.toolName || "unknown")}`,
+          kind: "tool",
+          confidence: toolRun.status === "succeeded" ? 95 : 30,
+          detail: `${String(toolRun.status || "unknown")} · ${String(toolRun.toolRunId || "未创建 ToolRun")}`
+        }))
       ]
     });
     setBadge("local agent");

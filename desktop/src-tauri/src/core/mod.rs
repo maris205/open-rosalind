@@ -136,6 +136,23 @@ impl DesktopCore {
             .ok_or_else(|| "Agent Worker is not running".to_string())?
             .complete_model_request(job_id, request_id, result, error)
     }
+
+    pub fn complete_agent_tool_request(
+        &self,
+        job_id: &str,
+        request_id: &str,
+        result: Option<Value>,
+        error: Option<String>,
+    ) -> Result<WorkerJobStatus, String> {
+        let mut worker = self
+            .agent_worker
+            .lock()
+            .map_err(|_| "Agent Worker lock was poisoned".to_string())?;
+        worker
+            .as_mut()
+            .ok_or_else(|| "Agent Worker is not running".to_string())?
+            .complete_tool_request(job_id, request_id, result, error)
+    }
 }
 
 impl Drop for DesktopCore {

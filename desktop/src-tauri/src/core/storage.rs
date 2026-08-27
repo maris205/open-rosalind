@@ -138,7 +138,7 @@ pub struct ToolRun {
     executor: String,
     pub(crate) status: String,
     input: Value,
-    output: Option<Value>,
+    pub(crate) output: Option<Value>,
     permission_snapshot: Value,
     created_at: i64,
     started_at: Option<i64>,
@@ -2463,7 +2463,7 @@ mod tests {
             progress: vec![WorkerJobProgress {
                 sequence: 1,
                 kind: "accepted".into(),
-                payload: json!({"protocolVersion": 3}),
+                payload: json!({"protocolVersion": 4}),
                 created_at: 100,
             }],
             result: None,
@@ -2471,6 +2471,7 @@ mod tests {
             started_at: Some(101),
             ended_at: None,
             pending_model_request: None,
+            pending_tool_request: None,
         };
 
         store.apply_worker_status(&job.id, worker.clone()).unwrap();

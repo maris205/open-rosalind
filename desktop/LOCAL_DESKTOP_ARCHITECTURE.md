@@ -126,6 +126,13 @@ Docker Socket。
 Core 通信。若保留 loopback HTTP，必须使用随机端口、每次启动随机 Token、严格
 Origin 校验和最小接口，不再固定使用未认证的高权限端口。
 
+当前 macOS alpha.3 已落地 stdio JSON-RPC v4：Worker 可以在最多四轮的
+模型/工具循环中请求 `text.statistics`、`project.files.list` 和
+`project.file.read`。Worker 只提出结构化请求，Desktop Core 负责检查项目目录
+授权、Tool Contract 风险和自动批准策略，并持久化 ToolRun；工具结果会被标记为
+不可信数据后再交回模型。Python、Shell、Docker、网络和写入操作仍不能自动执行，
+必须继续走用户可见的提案和批准流程。
+
 ### 6.4 Provider Broker
 
 Provider Broker 统一支持 OpenAI-compatible、Anthropic、OpenRouter、阿里云百炼

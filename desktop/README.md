@@ -14,10 +14,11 @@ message presentation, and biomedical tools remain shared with the web build.
 - Agent jobs use an in-process background queue, so Redis and an RQ worker are
   not required.
 - A separate, long-lived local Agent Worker starts outside Docker and uses a
-  versioned JSON-RPC protocol over stdio. Protocol v3 supports AgentJob start,
-  status polling, cooperative cancellation, structured progress, and
-  credential-free model requests. The Worker still has no direct model,
-  credential, Shell, filesystem, network, Docker, or tool access.
+  versioned JSON-RPC protocol over stdio. Protocol v4 supports AgentJob start,
+  status polling, cooperative cancellation, structured progress, credential-
+  free model requests, and bounded low-risk Tool Contract requests. The Worker
+  still has no direct model, credential, Shell, filesystem, network, Docker, or
+  tool access.
 - Desktop Core stores UI chats and messages, Conversations, AgentJobs, ordered
   AgentJob events, ToolRuns, and Artifacts in its own `desktop-core.db`; a
   Conversation does not own a process or container. Chat snapshots are replaced
@@ -106,10 +107,12 @@ API Key is written directly to the system credential vault. Web mode continues
 to support the existing environment-variable and session settings.
 
 The desktop research assistant now runs as a persisted AgentJob. The Worker
-submits a bounded model request to Desktop Core, Desktop Core resolves the
-system credential and performs the HTTPS call, then returns only the model
-result. Protocol v3 currently implements this single model stage; multi-step
-planning and Tool Contract execution remain later milestones.
+submits bounded model and automatic-tool requests to Desktop Core. Desktop Core
+resolves the system credential, performs HTTPS calls, validates Tool Contracts,
+executes the three low-risk tools, and returns sanitized results. Protocol v4
+supports up to four model/tool rounds for text statistics and authorized project
+file listing/preview. High-risk Python and Docker remain in the explicit user
+approval flow.
 
 Desktop chat persistence is separate from execution Conversations so replacing
 or clearing UI history cannot cascade-delete AgentJob audit records. Desktop IPC

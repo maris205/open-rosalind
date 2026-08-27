@@ -1598,6 +1598,15 @@ pub fn desktop_run_low_risk_tool(
     tool_name: String,
     input: Value,
 ) -> Result<ToolRun, String> {
+    run_low_risk_tool(&store, agent_job_id.trim(), tool_name.trim(), input)
+}
+
+pub(crate) fn run_low_risk_tool(
+    store: &DesktopStore,
+    agent_job_id: &str,
+    tool_name: &str,
+    input: Value,
+) -> Result<ToolRun, String> {
     let tool_name = tool_name.trim();
     let contract =
         contract(tool_name).ok_or_else(|| format!("Tool {tool_name} is not installed"))?;
@@ -1606,7 +1615,7 @@ pub fn desktop_run_low_risk_tool(
     }
     let project_directory = match contract.name {
         "project.files.list" | "project.file.read" => {
-            Some(store.authorized_project_directory_for_agent_job(agent_job_id.trim())?)
+            Some(store.authorized_project_directory_for_agent_job(agent_job_id)?)
         }
         _ => None,
     };
@@ -1627,7 +1636,7 @@ pub fn desktop_run_low_risk_tool(
             );
     }
     let tool_run = store.create_tool_run(
-        agent_job_id.trim(),
+        agent_job_id,
         contract.name,
         contract.executor.kind,
         input.clone(),
@@ -2058,6 +2067,22 @@ mod tests {
         assert_eq!(encoded["permissions"]["network"], "none");
         assert_eq!(encoded["permissions"]["filesystem"], json!([]));
         assert_eq!(encoded["permissions"]["secrets"], json!([]));
+    }
+
+    #[test]
+    fn automatic_agent_tools_exclude_python_and_container_executors() {
+        let automatic = contracts()
+            .into_iter()
+            .filter(|contract| contract.permissions.approval == "automatic")
+            .map(|contract| contract.name)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            automatic,
+            vec!["text.statistics", "project.files.list", "project.file.read"]
+        );
+        assert!(!automatic.contains(&"python.run"));
+        assert!(!automatic.contains(&"python.container"));
     }
 
     #[test]
