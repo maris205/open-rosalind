@@ -1327,6 +1327,24 @@ function renderToolArtifactsPanel(artifacts) {
       }
     });
     controls.appendChild(reveal);
+    const exportButton = document.createElement("button");
+    exportButton.type = "button";
+    exportButton.textContent = "另存为";
+    exportButton.addEventListener("click", async () => {
+      exportButton.disabled = true;
+      exportButton.textContent = "选择位置";
+      try {
+        const result = await desktopInvoke("desktop_export_tool_artifact", { artifactId: artifact.artifactId });
+        exportButton.textContent = result ? "已保存" : "另存为";
+        if (result) exportButton.title = `${result.fileName} · ${formatFileSize(result.sizeBytes)}`;
+      } catch (error) {
+        exportButton.textContent = "保存失败";
+        exportButton.title = String(error.message || error);
+      } finally {
+        exportButton.disabled = false;
+      }
+    });
+    controls.appendChild(exportButton);
     card.append(icon, copy, controls);
     list.appendChild(card);
   }

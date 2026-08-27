@@ -41,7 +41,9 @@ message presentation, and biomedical tools remain shared with the web build.
 - Native Python output files are indexed in SQLite as immutable Artifacts with
   relative paths, sizes, and SHA-256 digests. The shared WebView receives only
   Artifact IDs. Desktop Core revalidates the path, size, and digest before a
-  bounded UTF-8 preview or revealing the file in Finder/Explorer.
+  bounded UTF-8 preview, revealing the file in Finder/Explorer, or exporting it
+  through a native Save dialog. The WebView cannot choose an arbitrary export
+  path directly.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.

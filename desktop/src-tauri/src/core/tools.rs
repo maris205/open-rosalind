@@ -18,6 +18,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager as _, State};
+use tauri_plugin_dialog::DialogExt;
 
 use super::storage::{Artifact, DesktopStore, NewArtifact, ToolRun};
 
@@ -130,6 +131,13 @@ pub struct ArtifactPreview {
     previewable: bool,
     content: Option<String>,
     truncated: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtifactExport {
+    file_name: String,
+    size_bytes: u64,
 }
 
 #[derive(Debug)]
@@ -1012,6 +1020,72 @@ fn reveal_artifact(path: &Path) -> Result<(), String> {
         .map_err(|error| format!("Unable to reveal Artifact in the file manager: {error}"))
 }
 
+#[tauri::command]
+pub async fn desktop_export_tool_artifact(
+    app: AppHandle,
+    artifact_id: String,
+) -> Result<Option<ArtifactExport>, String> {
+    let manager = app.state::<ToolManager>().inner().clone();
+    let store = app.state::<DesktopStore>().inner().clone();
+    let artifact_id = artifact_id.trim().to_string();
+    let artifact = store.get_artifact(&artifact_id)?;
+    manager.verified_artifact_path(&artifact)?;
+    let file_name = Path::new(&artifact.path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .unwrap_or("artifact")
+        .to_string();
+
+    let Some(destination) = app
+        .dialog()
+        .file()
+        .set_title("导出 OpenRosalind 产物")
+        .set_file_name(&file_name)
+        .blocking_save_file()
+    else {
+        return Ok(None);
+    };
+    let destination = destination
+        .into_path()
+        .map_err(|_| "Artifact export requires a local filesystem path".to_string())?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let artifact = store.get_artifact(&artifact_id)?;
+        export_artifact_to(&manager, &artifact, &destination).map(Some)
+    })
+    .await
+    .map_err(|error| format!("Artifact export task failed: {error}"))?
+}
+
+fn export_artifact_to(
+    manager: &ToolManager,
+    artifact: &Artifact,
+    destination: &Path,
+) -> Result<ArtifactExport, String> {
+    let source = manager.verified_artifact_path(artifact)?;
+    if destination == source {
+        return Err("Artifact is already stored at the selected location".into());
+    }
+    if destination.is_dir() {
+        return Err("Artifact export destination must be a file".into());
+    }
+    let copied = fs::copy(&source, destination)
+        .map_err(|error| format!("Unable to export Artifact: {error}"))?;
+    if copied != artifact.size_bytes.max(0) as u64 || sha256_file(destination)? != artifact.sha256 {
+        return Err("Exported Artifact did not pass its integrity check".into());
+    }
+    let file_name = destination
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("artifact")
+        .to_string();
+    Ok(ArtifactExport {
+        file_name,
+        size_bytes: copied,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1121,8 +1195,14 @@ mod tests {
             created_at: 0,
         };
         assert!(manager.verified_artifact_path(&artifact).is_ok());
+        let export_path = root.join("exported-result.txt");
+        let exported = export_artifact_to(&manager, &artifact, &export_path).unwrap();
+        assert_eq!(exported.file_name, "exported-result.txt");
+        assert_eq!(exported.size_bytes, 4);
+        assert_eq!(fs::read_to_string(&export_path).unwrap(), "done");
         fs::write(root.join("successful-run/output/result.txt"), "changed").unwrap();
         assert!(manager.verified_artifact_path(&artifact).is_err());
+        assert!(export_artifact_to(&manager, &artifact, &root.join("blocked.txt")).is_err());
         fs::remove_dir_all(root).unwrap();
     }
 

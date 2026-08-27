@@ -32,6 +32,9 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
             };
           }
           if (command === "desktop_reveal_tool_artifact") return null;
+          if (command === "desktop_export_tool_artifact") {
+            return { fileName: "result.txt", sizeBytes: 36 };
+          }
           throw new Error(`Unexpected desktop command: ${command}`);
         }
       }
@@ -107,6 +110,10 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   await page.locator(".tool-artifact-card").getByRole("button", { name: "显示文件" }).click();
   await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
     .filter((item) => item.command === "desktop_reveal_tool_artifact").length)).toBe(1);
+  await page.locator(".tool-artifact-card").getByRole("button", { name: "另存为" }).click();
+  await expect(page.locator(".tool-artifact-card").getByRole("button", { name: "已保存" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_export_tool_artifact").length)).toBe(1);
 
   await context.close();
 });

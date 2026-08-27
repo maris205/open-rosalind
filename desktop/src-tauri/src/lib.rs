@@ -266,6 +266,7 @@ fn stop_backend(app_handle: &tauri::AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             core::desktop_core_status,
             storage::desktop_create_conversation,
@@ -292,6 +293,7 @@ pub fn run() {
             core::tools::desktop_list_tool_artifacts,
             core::tools::desktop_read_tool_artifact,
             core::tools::desktop_reveal_tool_artifact,
+            core::tools::desktop_export_tool_artifact,
         ])
         .setup(|app| {
             let mut launch = start_backend(app)?;
