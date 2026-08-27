@@ -315,7 +315,8 @@ const state = {
   providerProfileId: "",
   desktopConversationIds: {},
   desktopChatStorageAvailable: false,
-  desktopChatPersistenceError: ""
+  desktopChatPersistenceError: "",
+  desktopBackups: []
 };
 
 const agentPlanPolls = new Map();
@@ -392,6 +393,7 @@ const els = {
   desktopDataBackupSection: document.getElementById("desktopDataBackupSection"),
   desktopDataBackupStatus: document.getElementById("desktopDataBackupStatus"),
   createDesktopDataBackup: document.getElementById("createDesktopDataBackup"),
+  restoreDesktopDataBackup: document.getElementById("restoreDesktopDataBackup"),
   revealDesktopDataBackups: document.getElementById("revealDesktopDataBackups"),
   temperature: document.getElementById("temperature"),
   temperatureValue: document.getElementById("temperatureValue"),
@@ -2375,8 +2377,10 @@ async function loadDesktopDataBackupStatus() {
   try {
     const status = await desktopInvoke("desktop_data_backup_status");
     const backups = Array.isArray(status.backups) ? status.backups : [];
+    state.desktopBackups = backups;
     els.createDesktopDataBackup.disabled = !status.available;
     els.revealDesktopDataBackups.disabled = !status.available;
+    els.restoreDesktopDataBackup.disabled = !status.available || !backups.length;
     if (!status.available) {
       els.desktopDataBackupStatus.textContent = "当前运行环境不支持文件备份。";
       return;
@@ -2387,8 +2391,32 @@ async function loadDesktopDataBackupStatus() {
       : "尚无备份；客户端会自动创建并验证备份。";
   } catch (error) {
     els.desktopDataBackupStatus.textContent = `无法读取备份状态：${String(error.message || error)}`;
+    state.desktopBackups = [];
     els.createDesktopDataBackup.disabled = true;
+    els.restoreDesktopDataBackup.disabled = true;
     els.revealDesktopDataBackups.disabled = true;
+  }
+}
+
+async function restoreLatestDesktopDataBackup() {
+  const backup = state.desktopBackups[0];
+  if (!backup) return;
+  const createdAt = new Date(backup.createdAt).toLocaleString();
+  const approved = await confirmDesktopAction(
+    `确定恢复 ${createdAt} 的最近备份吗？\n\n当前数据会先另存为一份安全备份，然后 OpenRosalind 自动重启。`,
+    { title: "恢复 OpenRosalind 本地数据", kind: "warning" }
+  );
+  if (!approved) return;
+  els.createDesktopDataBackup.disabled = true;
+  els.restoreDesktopDataBackup.disabled = true;
+  els.revealDesktopDataBackups.disabled = true;
+  els.desktopDataBackupStatus.textContent = "正在验证并恢复备份，请勿关闭客户端…";
+  try {
+    await desktopInvoke("desktop_restore_data_backup", { fileName: backup.fileName });
+    els.desktopDataBackupStatus.textContent = "备份已恢复，客户端正在重启…";
+  } catch (error) {
+    els.desktopDataBackupStatus.textContent = `恢复失败，当前数据未被替换：${String(error.message || error)}`;
+    await loadDesktopDataBackupStatus();
   }
 }
 
@@ -3332,6 +3360,7 @@ function bindEvents() {
     }
   });
   els.createDesktopDataBackup.addEventListener("click", createDesktopDataBackup);
+  els.restoreDesktopDataBackup.addEventListener("click", restoreLatestDesktopDataBackup);
   els.revealDesktopDataBackups.addEventListener("click", revealDesktopDataBackups);
   els.temperature.addEventListener("input", () => {
     els.temperatureValue.textContent = els.temperature.value;

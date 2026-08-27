@@ -30,7 +30,10 @@ message presentation, and biomedical tools remain shared with the web build.
   Settings. Every snapshot is opened read-only and fully verified before it is
   finalized; only the five newest app-managed snapshots are rotated. A failed
   integrity check preserves the original database and reports the backup
-  directory instead of silently overwriting user data.
+  directory instead of silently overwriting user data. Settings can restore
+  the newest verified snapshot; Desktop Core first snapshots the current state,
+  restores through SQLite's online backup API, verifies the result, and asks
+  the application to restart.
 - Schema v5 migrates legacy macOS WebKit `localStorage` chat databases on first
   launch. It merges duplicate chat IDs using the newest copy, then makes Desktop
   Core SQLite the authoritative store. The current-origin browser copy remains

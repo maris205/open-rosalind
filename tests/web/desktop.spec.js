@@ -42,6 +42,12 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
             return backup;
           }
           if (command === "desktop_reveal_data_backups") return null;
+          if (command === "desktop_restore_data_backup") {
+            return {
+              restoredBackup: args.fileName,
+              safetyBackup: window.__desktopBackups[0]
+            };
+          }
           if (command === "desktop_container_capability") {
             return {
               installed: true,
@@ -218,6 +224,10 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   await page.locator("#revealDesktopDataBackups").click();
   await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
     .filter((item) => item.command === "desktop_reveal_data_backups").length)).toBe(1);
+  await page.locator("#restoreDesktopDataBackup").click();
+  await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_restore_data_backup").length)).toBe(1);
+  await expect(page.locator("#desktopDataBackupStatus")).toContainText("客户端正在重启");
   await page.locator('#settingsDialog button[value="cancel"]').click();
 
   await page.locator("#sidebarAccount").click();

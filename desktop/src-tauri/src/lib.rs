@@ -373,6 +373,7 @@ pub fn run() {
             storage::desktop_data_backup_status,
             storage::desktop_create_data_backup,
             storage::desktop_reveal_data_backups,
+            storage::desktop_restore_data_backup,
             jobs::desktop_get_agent_job,
             jobs::desktop_start_agent_job,
             jobs::desktop_refresh_agent_job,

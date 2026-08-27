@@ -199,6 +199,13 @@ pub struct DesktopBackupStatus {
     backups: Vec<DesktopBackupInfo>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopRestoreResult {
+    restored_backup: String,
+    safety_backup: DesktopBackupInfo,
+}
+
 impl DesktopStore {
     pub fn open(path: &Path) -> Result<Self, String> {
         if let Some(parent) = path.parent() {
@@ -1595,6 +1602,72 @@ impl DesktopStore {
         self.create_backup().map(Some)
     }
 
+    pub fn restore_backup(&self, file_name: &str) -> Result<DesktopRestoreResult, String> {
+        if parse_database_backup_name(file_name).is_none()
+            || Path::new(file_name).components().count() != 1
+        {
+            return Err("The selected database backup name is invalid".into());
+        }
+        let directory = self
+            .backup_directory
+            .as_ref()
+            .ok_or_else(|| "Database backup directory is unavailable".to_string())?;
+        let source_path = directory.join(file_name);
+        let source_metadata = fs::symlink_metadata(&source_path)
+            .map_err(|error| format!("Unable to inspect the selected database backup: {error}"))?;
+        if !source_metadata.file_type().is_file() || source_metadata.file_type().is_symlink() {
+            return Err("The selected database backup is not a regular app-managed file".into());
+        }
+
+        let staging_path =
+            directory.join(format!(".restore-source-{}.db", Uuid::new_v4().simple()));
+        fs::copy(&source_path, &staging_path)
+            .map_err(|error| format!("Unable to stage the selected database backup: {error}"))?;
+        let restore_result: Result<DesktopRestoreResult, String> = (|| {
+            secure_file_permissions(&staging_path)?;
+            let source = Connection::open_with_flags(
+                &staging_path,
+                OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+            )
+            .map_err(|error| format!("Unable to open the selected database backup: {error}"))?;
+            verify_database_integrity(&source, "integrity_check")?;
+            let source_version = source
+                .pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
+                .map_err(|error| format!("Unable to inspect backup schema version: {error}"))?;
+            if source_version > SCHEMA_VERSION {
+                return Err(format!(
+                    "Database backup schema {source_version} is newer than supported version {SCHEMA_VERSION}"
+                ));
+            }
+            drop(source);
+
+            let safety_backup = self.create_backup()?;
+            let mut connection = self.lock_connection()?;
+            connection
+                .restore(
+                    MAIN_DB,
+                    &staging_path,
+                    None::<fn(rusqlite::backup::Progress)>,
+                )
+                .map_err(|error| {
+                    format!("Unable to restore the selected database backup: {error}")
+                })?;
+            verify_database_integrity(&connection, "integrity_check")?;
+            let changes = connection.total_changes();
+            drop(connection);
+            *self
+                .backup_baseline_changes
+                .lock()
+                .map_err(|_| "Database backup state lock was poisoned".to_string())? = changes;
+            Ok(DesktopRestoreResult {
+                restored_backup: file_name.to_string(),
+                safety_backup,
+            })
+        })();
+        let _ = fs::remove_file(&staging_path);
+        restore_result
+    }
+
     fn create_backup_if_due(&self) -> Result<Option<DesktopBackupInfo>, String> {
         let Some(directory) = self.backup_directory.as_ref() else {
             return Ok(None);
@@ -2329,6 +2402,17 @@ pub fn desktop_reveal_data_backups(state: State<'_, DesktopStore>) -> Result<(),
     reveal_directory(directory)
 }
 
+#[tauri::command]
+pub fn desktop_restore_data_backup(
+    app: AppHandle,
+    state: State<'_, DesktopStore>,
+    file_name: String,
+) -> Result<DesktopRestoreResult, String> {
+    let result = state.restore_backup(file_name.trim())?;
+    app.request_restart();
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2488,6 +2572,59 @@ mod tests {
         store.create_conversation("Changed".into(), None).unwrap();
         assert!(store.create_backup_if_changed().unwrap().is_some());
         assert!(store.create_backup_if_changed().unwrap().is_none());
+
+        drop(store);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn restore_uses_verified_snapshot_and_preserves_a_safety_backup() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-restore-backup-test-{}",
+            Uuid::new_v4().simple()
+        ));
+        let store = DesktopStore::open(&root.join("desktop-core.db")).unwrap();
+        store
+            .create_conversation("Before snapshot".into(), None)
+            .unwrap();
+        let selected = store.create_backup().unwrap();
+        store
+            .create_conversation("After snapshot".into(), None)
+            .unwrap();
+
+        let restored = store.restore_backup(&selected.file_name).unwrap();
+
+        assert_eq!(restored.restored_backup, selected.file_name);
+        assert_ne!(restored.safety_backup.file_name, selected.file_name);
+        assert_eq!(store.list_conversations().unwrap().len(), 1);
+        let safety_path = root.join("backups").join(restored.safety_backup.file_name);
+        let safety = Connection::open_with_flags(
+            safety_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .unwrap();
+        let safety_count: i64 = safety
+            .query_row("SELECT COUNT(*) FROM conversations", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(safety_count, 2);
+
+        drop(safety);
+        drop(store);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn restore_rejects_paths_and_unknown_backup_files() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-restore-validation-test-{}",
+            Uuid::new_v4().simple()
+        ));
+        let store = DesktopStore::open(&root.join("desktop-core.db")).unwrap();
+
+        assert!(store.restore_backup("../desktop-core.db").is_err());
+        assert!(store
+            .restore_backup("desktop-core-1000-deadbeef.db")
+            .is_err());
 
         drop(store);
         fs::remove_dir_all(root).unwrap();
