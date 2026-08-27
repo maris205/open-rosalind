@@ -634,6 +634,13 @@ function normalizeMessage(message) {
       modifiedAt: String(artifact?.modifiedAt || ""),
       url: String(artifact?.url || "")
     })).filter((artifact) => artifact.path && artifact.url) : [];
+    normalized.toolArtifacts = Array.isArray(normalized.toolArtifacts) ? normalized.toolArtifacts.map((artifact) => ({
+      artifactId: String(artifact?.artifactId || artifact?.id || ""),
+      name: String(artifact?.name || artifact?.path || "ToolRun 产物"),
+      size: Number(artifact?.size ?? artifact?.sizeBytes ?? 0),
+      sha256: String(artifact?.sha256 || ""),
+      kind: String(artifact?.kind || "file")
+    })).filter((artifact) => artifact.artifactId && artifact.name) : [];
     normalized.feedback = ["like", "dislike"].includes(normalized.feedback) ? normalized.feedback : "none";
     normalized.agentJobId = String(normalized.agentJobId || "");
     if (!normalized.agentPlan && normalized.content.includes("任务已提交后台执行")) {
@@ -1068,7 +1075,8 @@ function presentationForMessage(message) {
     sources,
     trace,
     agentProcess: message.agentProcess || [],
-    artifacts: message.artifacts || []
+    artifacts: message.artifacts || [],
+    toolArtifacts: message.toolArtifacts || []
   };
 }
 
@@ -1259,6 +1267,72 @@ function renderArtifactsPanel(artifacts) {
   return list;
 }
 
+function renderToolArtifactsPanel(artifacts) {
+  const list = document.createElement("div");
+  list.className = "artifact-list";
+  for (const artifact of artifacts) {
+    const card = document.createElement("div");
+    card.className = "artifact-card tool-artifact-card";
+    const icon = actionIcon("files");
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = artifact.name;
+    const meta = document.createElement("small");
+    const digest = artifact.sha256 ? ` · SHA-256 ${artifact.sha256.slice(0, 12)}…` : "";
+    meta.textContent = `${formatFileSize(artifact.size)} · ${artifact.kind === "text" ? "文本" : "文件"}${digest}`;
+    copy.append(title, meta);
+    const controls = document.createElement("div");
+    controls.className = "tool-artifact-actions";
+    if (artifact.kind === "text") {
+      const preview = document.createElement("button");
+      preview.type = "button";
+      preview.textContent = "预览";
+      preview.addEventListener("click", async () => {
+        preview.disabled = true;
+        preview.textContent = "读取中";
+        try {
+          const result = await desktopInvoke("desktop_read_tool_artifact", { artifactId: artifact.artifactId });
+          let output = card.querySelector(".tool-artifact-preview");
+          if (!output) {
+            output = document.createElement("pre");
+            output.className = "tool-artifact-preview";
+            card.appendChild(output);
+          }
+          output.textContent = result.previewable
+            ? `${result.content || ""}${result.truncated ? "\n\n[预览已截断]" : ""}`
+            : "该文件不是可预览的 UTF-8 文本。";
+          preview.textContent = "刷新预览";
+        } catch (error) {
+          preview.textContent = "预览失败";
+          preview.title = String(error.message || error);
+        } finally {
+          preview.disabled = false;
+        }
+      });
+      controls.appendChild(preview);
+    }
+    const reveal = document.createElement("button");
+    reveal.type = "button";
+    reveal.textContent = "显示文件";
+    reveal.addEventListener("click", async () => {
+      reveal.disabled = true;
+      try {
+        await desktopInvoke("desktop_reveal_tool_artifact", { artifactId: artifact.artifactId });
+        reveal.textContent = "已显示";
+      } catch (error) {
+        reveal.textContent = "显示失败";
+        reveal.title = String(error.message || error);
+      } finally {
+        reveal.disabled = false;
+      }
+    });
+    controls.appendChild(reveal);
+    card.append(icon, copy, controls);
+    list.appendChild(card);
+  }
+  return list;
+}
+
 function openDetailPanel(type, message, presentation) {
   els.detailPanelContent.innerHTML = "";
   els.detailPanel.hidden = false;
@@ -1277,6 +1351,13 @@ function openDetailPanel(type, message, presentation) {
     els.detailPanelContent.appendChild(presentation.artifacts.length
       ? renderArtifactsPanel(presentation.artifacts)
       : Object.assign(document.createElement("p"), { className: "detail-empty", textContent: "这项任务没有可下载的产物。" }));
+  } else if (type === "tool-artifacts") {
+    els.detailPanelEyebrow.textContent = "本地 ToolRun";
+    els.detailPanelTitle.textContent = `本地产物 (${presentation.toolArtifacts.length})`;
+    els.detailPanelNote.textContent = "预览和显示文件都由 Desktop Core 按 Artifact ID 校验路径、大小和 SHA-256；WebView 不能提交任意本地路径。";
+    els.detailPanelContent.appendChild(presentation.toolArtifacts.length
+      ? renderToolArtifactsPanel(presentation.toolArtifacts)
+      : Object.assign(document.createElement("p"), { className: "detail-empty", textContent: "这次 ToolRun 没有保存产物。" }));
   } else if (type === "agent-process") {
     els.detailPanelEyebrow.textContent = "Agent 执行记录";
     els.detailPanelTitle.textContent = `执行过程 (${presentation.agentProcess.length})`;
@@ -1402,6 +1483,12 @@ function appendMessage(role, content, sourceMessage = null) {
         download.append(actionIcon("download"), Object.assign(document.createElement("span"), { textContent: "下载报告" }));
         actions.appendChild(download);
       }
+    }
+    if (presentation.toolArtifacts.length) {
+      const toolArtifacts = makeActionButton("files", "查看本地 ToolRun 产物", `本地产物 · ${presentation.toolArtifacts.length}`);
+      toolArtifacts.classList.add("detail-trigger");
+      toolArtifacts.addEventListener("click", () => openDetailPanel("tool-artifacts", message, presentation));
+      actions.appendChild(toolArtifacts);
     }
     if (state.desktopMode && message.agentJobId) {
       const textStatistics = makeActionButton("trace", "使用低风险本地工具统计这条回答", "文本统计");
@@ -1554,7 +1641,10 @@ async function runPythonCode(code, agentJobId = "", triggerButton = null) {
         }
       }
     }
-    currentSession().push({ role: "assistant", content: lines.join("\n") });
+    addSessionMessage("assistant", lines.join("\n"), {
+      toolArtifacts: Array.isArray(data.files) ? data.files : []
+    });
+    persistChats();
     renderConversation();
     setBadge(data.ok ? "python done" : "error", data.ok ? "" : "error");
   } catch (error) {

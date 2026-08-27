@@ -1,5 +1,5 @@
 use std::{
-    path::Path,
+    path::{Component, Path},
     sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -96,6 +96,28 @@ impl ToolRun {
     pub(crate) fn input(&self) -> &Value {
         &self.input
     }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Artifact {
+    pub(crate) id: String,
+    pub(crate) agent_job_id: String,
+    pub(crate) tool_run_id: String,
+    pub(crate) kind: String,
+    pub(crate) path: String,
+    pub(crate) sha256: String,
+    pub(crate) size_bytes: i64,
+    pub(crate) created_at: i64,
+}
+
+#[derive(Debug)]
+pub(crate) struct NewArtifact {
+    pub(crate) id: String,
+    pub(crate) kind: String,
+    pub(crate) path: String,
+    pub(crate) sha256: String,
+    pub(crate) size_bytes: i64,
 }
 
 #[derive(Clone)]
@@ -729,6 +751,96 @@ impl DesktopStore {
             .map_err(|error| format!("Unable to find ToolRun {tool_run_id}: {error}"))
     }
 
+    pub(crate) fn replace_tool_run_artifacts(
+        &self,
+        tool_run_id: &str,
+        artifacts: &[NewArtifact],
+    ) -> Result<Vec<Artifact>, String> {
+        if artifacts.len() > 100 {
+            return Err("A ToolRun can index at most 100 artifacts".into());
+        }
+        let tool_run = self.get_tool_run(tool_run_id)?;
+        for artifact in artifacts {
+            let path = Path::new(&artifact.path);
+            if artifact.id.trim().is_empty()
+                || !matches!(artifact.kind.as_str(), "text" | "file")
+                || artifact.path.is_empty()
+                || path.is_absolute()
+                || !path
+                    .components()
+                    .all(|component| matches!(component, Component::Normal(_)))
+                || artifact.sha256.len() != 64
+                || !artifact
+                    .sha256
+                    .chars()
+                    .all(|character| character.is_ascii_hexdigit())
+            {
+                return Err("Artifact metadata is invalid".into());
+            }
+        }
+        let mut connection = self.lock_connection()?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("Unable to begin Artifact transaction: {error}"))?;
+        transaction
+            .execute(
+                "DELETE FROM artifacts WHERE tool_run_id = ?1",
+                [tool_run_id],
+            )
+            .map_err(|error| format!("Unable to replace ToolRun artifacts: {error}"))?;
+        let created_at = unix_millis();
+        for artifact in artifacts {
+            transaction
+                .execute(
+                    "INSERT INTO artifacts (id, agent_job_id, tool_run_id, kind, path, sha256, size_bytes, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    params![
+                        artifact.id,
+                        tool_run.agent_job_id,
+                        tool_run_id,
+                        artifact.kind,
+                        artifact.path,
+                        artifact.sha256,
+                        artifact.size_bytes,
+                        created_at,
+                    ],
+                )
+                .map_err(|error| format!("Unable to index ToolRun artifact: {error}"))?;
+        }
+        transaction
+            .commit()
+            .map_err(|error| format!("Unable to commit Artifact transaction: {error}"))?;
+        drop(connection);
+        self.list_tool_run_artifacts(tool_run_id)
+    }
+
+    pub(crate) fn list_tool_run_artifacts(
+        &self,
+        tool_run_id: &str,
+    ) -> Result<Vec<Artifact>, String> {
+        let connection = self.lock_connection()?;
+        let mut statement = connection
+            .prepare(
+                "SELECT id, agent_job_id, tool_run_id, kind, path, sha256, size_bytes, created_at FROM artifacts WHERE tool_run_id = ?1 ORDER BY path, id",
+            )
+            .map_err(|error| format!("Unable to list ToolRun artifacts: {error}"))?;
+        let rows = statement
+            .query_map([tool_run_id], decode_artifact)
+            .map_err(|error| format!("Unable to read ToolRun artifacts: {error}"))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("Unable to decode ToolRun artifact: {error}"))
+    }
+
+    pub(crate) fn get_artifact(&self, artifact_id: &str) -> Result<Artifact, String> {
+        let connection = self.lock_connection()?;
+        connection
+            .query_row(
+                "SELECT id, agent_job_id, tool_run_id, kind, path, sha256, size_bytes, created_at FROM artifacts WHERE id = ?1",
+                [artifact_id],
+                decode_artifact,
+            )
+            .map_err(|error| format!("Unable to find Artifact {artifact_id}: {error}"))
+    }
+
     pub(crate) fn list_provider_profiles(&self) -> Result<Vec<ProviderProfile>, String> {
         let connection = self.lock_connection()?;
         let mut statement = connection
@@ -877,6 +989,19 @@ fn decode_tool_run(row: &Row<'_>) -> rusqlite::Result<ToolRun> {
         created_at: row.get(8)?,
         started_at: row.get(9)?,
         ended_at: row.get(10)?,
+    })
+}
+
+fn decode_artifact(row: &Row<'_>) -> rusqlite::Result<Artifact> {
+    Ok(Artifact {
+        id: row.get(0)?,
+        agent_job_id: row.get(1)?,
+        tool_run_id: row.get(2)?,
+        kind: row.get(3)?,
+        path: row.get(4)?,
+        sha256: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+        size_bytes: row.get::<_, Option<i64>>(6)?.unwrap_or_default(),
+        created_at: row.get(7)?,
     })
 }
 
@@ -1189,6 +1314,55 @@ mod tests {
         assert_eq!(completed.permission_snapshot["network"], "none");
         assert_eq!(listed.len(), 1);
         assert!(listed[0].ended_at.is_some());
+    }
+
+    #[test]
+    fn tool_run_artifacts_are_indexed_by_relative_path_and_digest() {
+        let store = store();
+        let (_, job) = conversation_and_job(&store);
+        let tool_run = store
+            .create_tool_run(
+                &job.id,
+                "python.run",
+                "native",
+                json!({"code": "print(1)"}),
+                json!({"risk": "critical", "approval": "per-run"}),
+                "running",
+            )
+            .unwrap();
+        let artifacts = store
+            .replace_tool_run_artifacts(
+                &tool_run.id,
+                &[NewArtifact {
+                    id: "artifact-1".into(),
+                    kind: "text".into(),
+                    path: "reports/result.txt".into(),
+                    sha256: "a".repeat(64),
+                    size_bytes: 12,
+                }],
+            )
+            .unwrap();
+
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(artifacts[0].tool_run_id, tool_run.id);
+        assert_eq!(artifacts[0].agent_job_id, job.id);
+        assert_eq!(artifacts[0].path, "reports/result.txt");
+        assert_eq!(
+            store.get_artifact("artifact-1").unwrap().sha256,
+            "a".repeat(64)
+        );
+        assert!(store
+            .replace_tool_run_artifacts(
+                &tool_run.id,
+                &[NewArtifact {
+                    id: "artifact-2".into(),
+                    kind: "text".into(),
+                    path: "../outside.txt".into(),
+                    sha256: "b".repeat(64),
+                    size_bytes: 1,
+                }],
+            )
+            .is_err());
     }
 
     #[test]

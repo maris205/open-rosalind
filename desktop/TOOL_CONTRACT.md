@@ -14,6 +14,9 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 - `desktop_run_low_risk_tool`：只运行 `risk=low` 且 `approval=automatic` 的工具；
 - `desktop_execute_approved_python_tool`：在 Rust Tool Manager 内运行已逐次批准的 Python；
 - `desktop_cancel_tool_run`：请求取消正在运行的原生进程组；
+- `desktop_list_tool_artifacts`：读取一个 ToolRun 的持久化产物索引；
+- `desktop_read_tool_artifact`：按 Artifact ID 校验后读取最多 512 KiB 文本预览；
+- `desktop_reveal_tool_artifact`：校验后在 Finder 或 Windows 文件资源管理器中显示文件；
 - `desktop_list_tool_runs`：读取一个 AgentJob 的持久化 ToolRun 记录。
 
 首个工具是 `text.statistics@1.0.0`。它在 Rust Desktop Core 内执行，没有文件系统、
@@ -28,6 +31,11 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 输出文件总量和文件数。Contract 仍按最坏情况声明为 `critical`：主机文件读写、主机
 网络、无托管 Secret 注入。该入口只能由用户点击模型回答中的“运行 Python”触发，
 Agent Worker 无权自行批准或启动。Web 模式继续使用原有 Docker/本地执行接口。
+
+原生 Python 输出会在执行结束后计算 SHA-256，并以相对 ToolRun 路径写入 Artifact 表。
+UI 只持有 Artifact ID；预览或显示文件时，Desktop Core 会重新解析受控目录并核对文件
+大小与 SHA-256，发生路径逃逸、符号链接替换或执行后篡改时拒绝访问。二进制文件不进入
+WebView，文本预览上限为 512 KiB。
 
 ## 权限规则
 
@@ -49,5 +57,5 @@ Token 或密码不得出现在 Tool input、命令行、日志或 Agent Worker �
 - Compose Executor：独立项目名、网络和 Volume，由 Tool Manager 管理健康状态；
 - Remote Executor：必须声明 HTTPS 目标、上传数据范围、费用和数据处理政策。
 
-下一步是为 ToolRun 输出增加可控的本地预览/导出能力，随后实现 Container Executor。
-即使这些 Executor 完成，Agent 也不能自动批准本机 Python 或 Shell。
+下一步是实现 Container Executor 和镜像策略，再为 Artifact 增加用户选择目标位置的
+显式导出。即使这些 Executor 完成，Agent 也不能自动批准本机 Python 或 Shell。

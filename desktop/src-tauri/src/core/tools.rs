@@ -16,15 +16,17 @@ use std::{
 use command_group::{CommandGroup, GroupChild};
 use serde::Serialize;
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager as _, State};
 
-use super::storage::{DesktopStore, ToolRun};
+use super::storage::{Artifact, DesktopStore, NewArtifact, ToolRun};
 
 const MAX_TEXT_CHARACTERS: usize = 500_000;
 const MAX_PYTHON_INPUT_BYTES: usize = 64 * 1024;
 const MAX_CAPTURE_BYTES: u64 = 128 * 1024;
 const MAX_OUTPUT_BYTES: u64 = 20 * 1024 * 1024;
 const MAX_OUTPUT_FILES: usize = 100;
+const MAX_ARTIFACT_PREVIEW_BYTES: usize = 512 * 1024;
 const PYTHON_TIMEOUT: Duration = Duration::from_secs(60);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const OUTPUT_SCAN_INTERVAL: Duration = Duration::from_millis(250);
@@ -101,6 +103,7 @@ impl Default for ExecutionLimits {
 struct ToolExecution {
     terminal_status: &'static str,
     output: Value,
+    artifacts: Vec<NewArtifact>,
 }
 
 #[derive(Debug, Serialize)]
@@ -108,6 +111,25 @@ struct ToolExecution {
 struct OutputFile {
     name: String,
     size: u64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct IndexedOutputFile {
+    artifact_id: String,
+    name: String,
+    size: u64,
+    sha256: String,
+    kind: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtifactPreview {
+    artifact: Artifact,
+    previewable: bool,
+    content: Option<String>,
+    truncated: bool,
 }
 
 #[derive(Debug)]
@@ -153,6 +175,38 @@ impl ToolManager {
             .ok_or_else(|| "ToolRun does not have an active native process".to_string())?;
         cancellation.store(true, Ordering::Release);
         Ok(())
+    }
+
+    fn verified_artifact_path(&self, artifact: &Artifact) -> Result<PathBuf, String> {
+        let relative = Path::new(&artifact.path);
+        if relative.is_absolute()
+            || !relative
+                .components()
+                .all(|component| matches!(component, std::path::Component::Normal(_)))
+        {
+            return Err("Artifact path is outside its ToolRun output directory".into());
+        }
+        let output_root = self
+            .inner
+            .runs_root
+            .join(&artifact.tool_run_id)
+            .join("output")
+            .canonicalize()
+            .map_err(|error| format!("Unable to locate Artifact output directory: {error}"))?;
+        let path = output_root
+            .join(relative)
+            .canonicalize()
+            .map_err(|error| format!("Unable to locate Artifact file: {error}"))?;
+        if !path.starts_with(&output_root) || !path.is_file() {
+            return Err("Artifact resolved outside its ToolRun output directory".into());
+        }
+        let size = file_size(&path);
+        if size != artifact.size_bytes.max(0) as u64 || sha256_file(&path)? != artifact.sha256 {
+            return Err(
+                "Artifact changed after it was indexed; preview and reveal are blocked".into(),
+            );
+        }
+        Ok(path)
     }
 
     fn register(&self, tool_run_id: &str) -> Result<ActiveRun, String> {
@@ -316,6 +370,11 @@ impl ToolManager {
             _ if output_limit_exceeded => "output_limit_exceeded",
             _ => "failed",
         };
+        let (indexed_files, artifacts) = if output_scan.exceeded {
+            (Vec::new(), Vec::new())
+        } else {
+            index_output_files(&output_root, &output_scan.files)?
+        };
         Ok(ToolExecution {
             terminal_status,
             output: json!({
@@ -327,7 +386,7 @@ impl ToolManager {
                 "stderr": stderr,
                 "stdoutTruncated": stdout_truncated,
                 "stderrTruncated": stderr_truncated,
-                "files": output_scan.files,
+                "files": indexed_files,
                 "outputBytes": output_scan.total_bytes,
                 "audit": {
                     "executor": "desktop-core:native-python",
@@ -340,6 +399,7 @@ impl ToolManager {
                     "maxOutputFiles": limits.max_output_files,
                 }
             }),
+            artifacts,
         })
     }
 }
@@ -373,6 +433,68 @@ fn read_bounded(path: &Path, max_bytes: usize) -> Result<(String, bool), String>
     let truncated = bytes.len() > max_bytes;
     bytes.truncate(max_bytes);
     Ok((String::from_utf8_lossy(&bytes).into_owned(), truncated))
+}
+
+fn index_output_files(
+    output_root: &Path,
+    files: &[OutputFile],
+) -> Result<(Vec<IndexedOutputFile>, Vec<NewArtifact>), String> {
+    let mut indexed = Vec::with_capacity(files.len());
+    let mut artifacts = Vec::with_capacity(files.len());
+    for file in files {
+        let path = output_root.join(&file.name);
+        let sha256 = sha256_file(&path)?;
+        let artifact_id = uuid::Uuid::new_v4().to_string();
+        let kind = artifact_kind(&file.name).to_string();
+        indexed.push(IndexedOutputFile {
+            artifact_id: artifact_id.clone(),
+            name: file.name.clone(),
+            size: file.size,
+            sha256: sha256.clone(),
+            kind: kind.clone(),
+        });
+        artifacts.push(NewArtifact {
+            id: artifact_id,
+            kind,
+            path: file.name.clone(),
+            sha256,
+            size_bytes: file.size as i64,
+        });
+    }
+    Ok((indexed, artifacts))
+}
+
+fn artifact_kind(name: &str) -> &'static str {
+    match Path::new(name)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
+        Some(
+            "txt" | "md" | "markdown" | "csv" | "tsv" | "json" | "jsonl" | "yaml" | "yml" | "xml"
+            | "html" | "css" | "js" | "ts" | "py" | "r" | "sql" | "log" | "fasta" | "fa" | "fastq"
+            | "fq",
+        ) => "text",
+        _ => "file",
+    }
+}
+
+fn sha256_file(path: &Path) -> Result<String, String> {
+    let mut file = File::open(path)
+        .map_err(|error| format!("Unable to hash Artifact {}: {error}", path.display()))?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| format!("Unable to hash Artifact {}: {error}", path.display()))?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", digest.finalize()))
 }
 
 fn scan_output(root: &Path, max_bytes: u64, max_files: usize) -> Result<OutputScan, String> {
@@ -710,7 +832,24 @@ fn execute_approved_python_tool(
     );
     let finished = match execution {
         Ok(execution) => {
-            store.finish_tool_run(tool_run_id, execution.terminal_status, execution.output)
+            match store.replace_tool_run_artifacts(tool_run_id, &execution.artifacts) {
+                Ok(_) => {
+                    store.finish_tool_run(tool_run_id, execution.terminal_status, execution.output)
+                }
+                Err(error) => {
+                    let mut output = execution.output;
+                    if let Some(object) = output.as_object_mut() {
+                        object.insert("ok".into(), Value::Bool(false));
+                        object.insert(
+                            "status".into(),
+                            Value::String("artifact_index_error".into()),
+                        );
+                        object.insert("error".into(), Value::String(error));
+                        object.insert("files".into(), Value::Array(Vec::new()));
+                    }
+                    store.finish_tool_run(tool_run_id, "failed", output)
+                }
+            }
         }
         Err(error) => store.finish_tool_run(
             tool_run_id,
@@ -758,6 +897,119 @@ pub fn desktop_list_tool_runs(
     agent_job_id: String,
 ) -> Result<Vec<ToolRun>, String> {
     store.list_tool_runs(agent_job_id.trim())
+}
+
+#[tauri::command]
+pub fn desktop_list_tool_artifacts(
+    store: State<'_, DesktopStore>,
+    tool_run_id: String,
+) -> Result<Vec<Artifact>, String> {
+    store.list_tool_run_artifacts(tool_run_id.trim())
+}
+
+#[tauri::command]
+pub async fn desktop_read_tool_artifact(
+    app: AppHandle,
+    artifact_id: String,
+) -> Result<ArtifactPreview, String> {
+    let manager = app.state::<ToolManager>().inner().clone();
+    let store = app.state::<DesktopStore>().inner().clone();
+    let artifact_id = artifact_id.trim().to_string();
+    tauri::async_runtime::spawn_blocking(move || read_tool_artifact(&manager, &store, &artifact_id))
+        .await
+        .map_err(|error| format!("Artifact preview task failed: {error}"))?
+}
+
+fn read_tool_artifact(
+    manager: &ToolManager,
+    store: &DesktopStore,
+    artifact_id: &str,
+) -> Result<ArtifactPreview, String> {
+    let artifact = store.get_artifact(artifact_id)?;
+    let path = manager.verified_artifact_path(&artifact)?;
+    if artifact.kind != "text" {
+        return Ok(ArtifactPreview {
+            artifact,
+            previewable: false,
+            content: None,
+            truncated: false,
+        });
+    }
+    let file =
+        File::open(&path).map_err(|error| format!("Unable to read Artifact preview: {error}"))?;
+    let mut bytes = Vec::new();
+    file.take(MAX_ARTIFACT_PREVIEW_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("Unable to read Artifact preview: {error}"))?;
+    let truncated = bytes.len() > MAX_ARTIFACT_PREVIEW_BYTES;
+    bytes.truncate(MAX_ARTIFACT_PREVIEW_BYTES);
+    match String::from_utf8(bytes) {
+        Ok(content) => Ok(ArtifactPreview {
+            artifact,
+            previewable: true,
+            content: Some(content),
+            truncated,
+        }),
+        Err(_) => Ok(ArtifactPreview {
+            artifact,
+            previewable: false,
+            content: None,
+            truncated: false,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn desktop_reveal_tool_artifact(
+    app: AppHandle,
+    artifact_id: String,
+) -> Result<(), String> {
+    let manager = app.state::<ToolManager>().inner().clone();
+    let store = app.state::<DesktopStore>().inner().clone();
+    let artifact_id = artifact_id.trim().to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        reveal_tool_artifact(&manager, &store, &artifact_id)
+    })
+    .await
+    .map_err(|error| format!("Artifact reveal task failed: {error}"))?
+}
+
+fn reveal_tool_artifact(
+    manager: &ToolManager,
+    store: &DesktopStore,
+    artifact_id: &str,
+) -> Result<(), String> {
+    let artifact = store.get_artifact(artifact_id)?;
+    let path = manager.verified_artifact_path(&artifact)?;
+    reveal_artifact(&path)
+}
+
+fn reveal_artifact(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = Command::new("open");
+        command.arg("-R").arg(path);
+        command
+    };
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = Command::new("explorer.exe");
+        command.arg("/select,").arg(path);
+        command
+    };
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let mut command = {
+        let mut command = Command::new("xdg-open");
+        command.arg(path.parent().unwrap_or(path));
+        command
+    };
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| format!("Unable to reveal Artifact in the file manager: {error}"))
 }
 
 #[cfg(test)]
@@ -849,6 +1101,28 @@ mod tests {
             .unwrap()
             .contains("hello from tool manager"));
         assert_eq!(execution.output["files"][0]["name"], "result.txt");
+        assert_eq!(
+            execution.output["files"][0]["sha256"],
+            sha256_file(&root.join("successful-run/output/result.txt")).unwrap()
+        );
+        assert!(!execution.output["files"][0]["artifactId"]
+            .as_str()
+            .unwrap()
+            .is_empty());
+        let indexed = &execution.artifacts[0];
+        let artifact = Artifact {
+            id: indexed.id.clone(),
+            agent_job_id: "test-job".into(),
+            tool_run_id: "successful-run".into(),
+            kind: indexed.kind.clone(),
+            path: indexed.path.clone(),
+            sha256: indexed.sha256.clone(),
+            size_bytes: indexed.size_bytes,
+            created_at: 0,
+        };
+        assert!(manager.verified_artifact_path(&artifact).is_ok());
+        fs::write(root.join("successful-run/output/result.txt"), "changed").unwrap();
+        assert!(manager.verified_artifact_path(&artifact).is_err());
         fs::remove_dir_all(root).unwrap();
     }
 

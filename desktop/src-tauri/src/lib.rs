@@ -289,6 +289,9 @@ pub fn run() {
             core::tools::desktop_decide_tool_run,
             core::tools::desktop_execute_approved_python_tool,
             core::tools::desktop_cancel_tool_run,
+            core::tools::desktop_list_tool_artifacts,
+            core::tools::desktop_read_tool_artifact,
+            core::tools::desktop_reveal_tool_artifact,
         ])
         .setup(|app| {
             let mut launch = start_backend(app)?;

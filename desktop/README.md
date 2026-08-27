@@ -38,6 +38,10 @@ message presentation, and biomedical tools remain shared with the web build.
   interpreter, isolated run directories, an environment allowlist, a
   cross-platform process group, timeout/cancellation, and bounded logs/output;
   the Agent Worker cannot approve or start it.
+- Native Python output files are indexed in SQLite as immutable Artifacts with
+  relative paths, sizes, and SHA-256 digests. The shared WebView receives only
+  Artifact IDs. Desktop Core revalidates the path, size, and digest before a
+  bounded UTF-8 preview or revealing the file in Finder/Explorer.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.
