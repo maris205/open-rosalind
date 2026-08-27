@@ -12,6 +12,8 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 
 - `desktop_list_tool_contracts`：返回已安装工具及其权限和资源声明；
 - `desktop_run_low_risk_tool`：只运行 `risk=low` 且 `approval=automatic` 的工具；
+- `desktop_execute_approved_python_tool`：在 Rust Tool Manager 内运行已逐次批准的 Python；
+- `desktop_cancel_tool_run`：请求取消正在运行的原生进程组；
 - `desktop_list_tool_runs`：读取一个 AgentJob 的持久化 ToolRun 记录。
 
 首个工具是 `text.statistics@1.0.0`。它在 Rust Desktop Core 内执行，没有文件系统、
@@ -20,10 +22,12 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 
 `python.run@1.0.0-alpha.1` 已接入逐次批准状态机。Desktop Core 先创建
 `awaiting_approval` ToolRun 并冻结权限快照，UI 展示权限后记录批准或拒绝；只有
-`approved` 才能进入 `running`，最终写入 `succeeded` 或 `failed`。当前桌面 Python
-仍由现有本地 Sidecar 执行，因此 Contract 按最坏情况声明为 `critical`：主机文件
-读写、主机网络、无 Secret。该入口只能由用户点击模型回答中的“运行 Python”触发，
-Agent Worker 无权自行批准或启动。
+`approved` 才能进入 `running`，最终写入 `succeeded`、`failed`、`cancelled` 或
+`timed_out`。Python 由 Rust Tool Manager 以固定解释器和 `-I -B` 启动；每次运行使用
+独立 input/output 目录、环境变量白名单和跨平台进程组，并限制 60 秒运行时间、日志、
+输出文件总量和文件数。Contract 仍按最坏情况声明为 `critical`：主机文件读写、主机
+网络、无托管 Secret 注入。该入口只能由用户点击模型回答中的“运行 Python”触发，
+Agent Worker 无权自行批准或启动。Web 模式继续使用原有 Docker/本地执行接口。
 
 ## 权限规则
 
@@ -45,6 +49,5 @@ Token 或密码不得出现在 Tool input、命令行、日志或 Agent Worker �
 - Compose Executor：独立项目名、网络和 Volume，由 Tool Manager 管理健康状态；
 - Remote Executor：必须声明 HTTPS 目标、上传数据范围、费用和数据处理政策。
 
-下一步是把 Python Executor 从 Sidecar 迁入 Rust Tool Manager，增加独立进程组、
-取消和资源限制；随后实现 Container Executor。即使这些 Executor 完成，Agent 也不能
-自动批准本机 Python 或 Shell。
+下一步是为 ToolRun 输出增加可控的本地预览/导出能力，随后实现 Container Executor。
+即使这些 Executor 完成，Agent 也不能自动批准本机 Python 或 Shell。

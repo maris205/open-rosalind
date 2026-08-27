@@ -1,10 +1,431 @@
+use std::{
+    collections::HashMap,
+    env, fs,
+    fs::File,
+    io::Read,
+    path::{Path, PathBuf},
+    process::{Command, ExitStatus, Stdio},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+    thread,
+    time::{Duration, Instant},
+};
+
+use command_group::{CommandGroup, GroupChild};
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::State;
+use tauri::{AppHandle, Manager as _, State};
 
 use super::storage::{DesktopStore, ToolRun};
 
 const MAX_TEXT_CHARACTERS: usize = 500_000;
+const MAX_PYTHON_INPUT_BYTES: usize = 64 * 1024;
+const MAX_CAPTURE_BYTES: u64 = 128 * 1024;
+const MAX_OUTPUT_BYTES: u64 = 20 * 1024 * 1024;
+const MAX_OUTPUT_FILES: usize = 100;
+const PYTHON_TIMEOUT: Duration = Duration::from_secs(60);
+const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
+const OUTPUT_SCAN_INTERVAL: Duration = Duration::from_millis(250);
+
+const INHERITED_ENVIRONMENT: &[&str] = &[
+    "PATH",
+    "SystemRoot",
+    "WINDIR",
+    "COMSPEC",
+    "PATHEXT",
+    "TMP",
+    "TEMP",
+    "TMPDIR",
+    "LANG",
+    "LC_ALL",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "REQUESTS_CA_BUNDLE",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
+];
+
+#[derive(Clone)]
+pub struct ToolManager {
+    inner: Arc<ToolManagerInner>,
+}
+
+struct ToolManagerInner {
+    python: PathBuf,
+    runs_root: PathBuf,
+    active: Mutex<HashMap<String, Arc<AtomicBool>>>,
+}
+
+struct ActiveRun {
+    id: String,
+    manager: Arc<ToolManagerInner>,
+    cancelled: Arc<AtomicBool>,
+}
+
+impl Drop for ActiveRun {
+    fn drop(&mut self) {
+        if let Ok(mut active) = self.manager.active.lock() {
+            active.remove(&self.id);
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ExecutionLimits {
+    timeout: Duration,
+    max_capture_bytes: u64,
+    max_output_bytes: u64,
+    max_output_files: usize,
+}
+
+impl Default for ExecutionLimits {
+    fn default() -> Self {
+        Self {
+            timeout: PYTHON_TIMEOUT,
+            max_capture_bytes: MAX_CAPTURE_BYTES,
+            max_output_bytes: MAX_OUTPUT_BYTES,
+            max_output_files: MAX_OUTPUT_FILES,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ToolExecution {
+    terminal_status: &'static str,
+    output: Value,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OutputFile {
+    name: String,
+    size: u64,
+}
+
+#[derive(Debug)]
+struct OutputScan {
+    files: Vec<OutputFile>,
+    total_bytes: u64,
+    exceeded: bool,
+}
+
+impl ToolManager {
+    pub fn new(python: PathBuf, runs_root: PathBuf) -> Result<Self, String> {
+        fs::create_dir_all(&runs_root).map_err(|error| {
+            format!(
+                "Unable to create Tool Manager run directory {}: {error}",
+                runs_root.display()
+            )
+        })?;
+        Ok(Self {
+            inner: Arc::new(ToolManagerInner {
+                python,
+                runs_root,
+                active: Mutex::new(HashMap::new()),
+            }),
+        })
+    }
+
+    pub fn cancel_all(&self) {
+        if let Ok(active) = self.inner.active.lock() {
+            for cancellation in active.values() {
+                cancellation.store(true, Ordering::Release);
+            }
+        }
+    }
+
+    fn cancel(&self, tool_run_id: &str) -> Result<(), String> {
+        let cancellation = self
+            .inner
+            .active
+            .lock()
+            .map_err(|_| "Tool Manager active-run lock was poisoned".to_string())?
+            .get(tool_run_id)
+            .cloned()
+            .ok_or_else(|| "ToolRun does not have an active native process".to_string())?;
+        cancellation.store(true, Ordering::Release);
+        Ok(())
+    }
+
+    fn register(&self, tool_run_id: &str) -> Result<ActiveRun, String> {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let mut active = self
+            .inner
+            .active
+            .lock()
+            .map_err(|_| "Tool Manager active-run lock was poisoned".to_string())?;
+        if active.contains_key(tool_run_id) {
+            return Err("ToolRun is already executing".into());
+        }
+        active.insert(tool_run_id.to_string(), Arc::clone(&cancelled));
+        Ok(ActiveRun {
+            id: tool_run_id.to_string(),
+            manager: Arc::clone(&self.inner),
+            cancelled,
+        })
+    }
+
+    #[cfg(test)]
+    fn execute_python(&self, tool_run_id: &str, code: &str) -> Result<ToolExecution, String> {
+        self.execute_python_with_limits(tool_run_id, code, &ExecutionLimits::default())
+    }
+
+    #[cfg(test)]
+    fn execute_python_with_limits(
+        &self,
+        tool_run_id: &str,
+        code: &str,
+        limits: &ExecutionLimits,
+    ) -> Result<ToolExecution, String> {
+        let active_run = self.register(tool_run_id)?;
+        self.execute_registered_python(tool_run_id, code, limits, &active_run)
+    }
+
+    fn execute_registered_python(
+        &self,
+        tool_run_id: &str,
+        code: &str,
+        limits: &ExecutionLimits,
+        active_run: &ActiveRun,
+    ) -> Result<ToolExecution, String> {
+        if code.as_bytes().len() > MAX_PYTHON_INPUT_BYTES {
+            return Err("python.run code exceeds the 64 KiB input limit".into());
+        }
+        let run_root = self.inner.runs_root.join(tool_run_id);
+        let input_root = run_root.join("input");
+        let output_root = run_root.join("output");
+        fs::create_dir_all(&input_root)
+            .and_then(|_| fs::create_dir_all(&output_root))
+            .map_err(|error| format!("Unable to create isolated ToolRun directories: {error}"))?;
+        let script_path = input_root.join("main.py");
+        fs::write(&script_path, code)
+            .map_err(|error| format!("Unable to write the approved Python input: {error}"))?;
+        let stdout_path = run_root.join("stdout.log");
+        let stderr_path = run_root.join("stderr.log");
+        let stdout = File::create(&stdout_path)
+            .map_err(|error| format!("Unable to create Python stdout log: {error}"))?;
+        let stderr = File::create(&stderr_path)
+            .map_err(|error| format!("Unable to create Python stderr log: {error}"))?;
+
+        let mut command = Command::new(&self.inner.python);
+        command
+            .arg("-I")
+            .arg("-B")
+            .arg(&script_path)
+            .current_dir(&output_root)
+            .env_clear()
+            .env("PYTHONIOENCODING", "utf-8")
+            .env("PYTHONUNBUFFERED", "1")
+            .env("OPENROSALIND_TOOL_RUN_ID", tool_run_id)
+            .env("OPENROSALIND_OUTPUT_DIR", &output_root)
+            .stdin(Stdio::null())
+            .stdout(Stdio::from(stdout))
+            .stderr(Stdio::from(stderr));
+        for key in INHERITED_ENVIRONMENT {
+            if let Some(value) = env::var_os(key) {
+                command.env(key, value);
+            }
+        }
+
+        let mut child = command.group_spawn().map_err(|error| {
+            format!(
+                "Unable to start native Python executor {}: {error}",
+                self.inner.python.display()
+            )
+        })?;
+        let started = Instant::now();
+        let mut last_output_scan = started;
+        let execution_result = (|| -> Result<(ExitStatus, Option<&'static str>), String> {
+            let mut forced_status = None;
+            let exit_status: ExitStatus = loop {
+                if active_run.cancelled.load(Ordering::Acquire) {
+                    forced_status = Some("cancelled");
+                    break stop_process_group(&mut child, "cancelled")?;
+                }
+                if started.elapsed() >= limits.timeout {
+                    forced_status = Some("timed_out");
+                    break stop_process_group(&mut child, "timed-out")?;
+                }
+                let capture_size = file_size(&stdout_path).saturating_add(file_size(&stderr_path));
+                if capture_size > limits.max_capture_bytes {
+                    forced_status = Some("failed");
+                    break stop_process_group(&mut child, "log-limited")?;
+                }
+                if last_output_scan.elapsed() >= OUTPUT_SCAN_INTERVAL {
+                    let scan = scan_output(
+                        &output_root,
+                        limits.max_output_bytes,
+                        limits.max_output_files,
+                    )?;
+                    if scan.exceeded {
+                        forced_status = Some("failed");
+                        break stop_process_group(&mut child, "output-limited")?;
+                    }
+                    last_output_scan = Instant::now();
+                }
+                match child
+                    .try_wait()
+                    .map_err(|error| format!("Unable to inspect Python process group: {error}"))?
+                {
+                    Some(status) => break status,
+                    None => thread::sleep(PROCESS_POLL_INTERVAL),
+                }
+            };
+            Ok((exit_status, forced_status))
+        })();
+        let (exit_status, forced_status) = match execution_result {
+            Ok(result) => result,
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(error);
+            }
+        };
+
+        let (stdout, stdout_truncated) =
+            read_bounded(&stdout_path, limits.max_capture_bytes as usize)?;
+        let (stderr, stderr_truncated) =
+            read_bounded(&stderr_path, limits.max_capture_bytes as usize)?;
+        let output_scan = scan_output(
+            &output_root,
+            limits.max_output_bytes,
+            limits.max_output_files,
+        )?;
+        let output_limit_exceeded = output_scan.exceeded
+            || file_size(&stdout_path).saturating_add(file_size(&stderr_path))
+                > limits.max_capture_bytes;
+        let terminal_status = forced_status.unwrap_or_else(|| {
+            if exit_status.success() && !output_limit_exceeded {
+                "succeeded"
+            } else {
+                "failed"
+            }
+        });
+        let status = match terminal_status {
+            "succeeded" => "completed",
+            "timed_out" => "timed_out",
+            "cancelled" => "cancelled",
+            _ if output_limit_exceeded => "output_limit_exceeded",
+            _ => "failed",
+        };
+        Ok(ToolExecution {
+            terminal_status,
+            output: json!({
+                "ok": terminal_status == "succeeded",
+                "status": status,
+                "jobId": tool_run_id,
+                "exitCode": exit_status.code(),
+                "stdout": stdout,
+                "stderr": stderr,
+                "stdoutTruncated": stdout_truncated,
+                "stderrTruncated": stderr_truncated,
+                "files": output_scan.files,
+                "outputBytes": output_scan.total_bytes,
+                "audit": {
+                    "executor": "desktop-core:native-python",
+                    "processGroup": true,
+                    "environment": "allowlist",
+                    "workingDirectory": "tool-run-output",
+                    "timeoutSeconds": limits.timeout.as_secs(),
+                    "maxCaptureBytes": limits.max_capture_bytes,
+                    "maxOutputBytes": limits.max_output_bytes,
+                    "maxOutputFiles": limits.max_output_files,
+                }
+            }),
+        })
+    }
+}
+
+fn stop_process_group(child: &mut GroupChild, reason: &str) -> Result<ExitStatus, String> {
+    if let Err(error) = child.kill() {
+        if error.kind() != std::io::ErrorKind::InvalidInput {
+            return Err(format!(
+                "Unable to stop {reason} Python process group: {error}"
+            ));
+        }
+    }
+    child
+        .wait()
+        .map_err(|error| format!("Unable to reap {reason} Python process group: {error}"))
+}
+
+fn file_size(path: &Path) -> u64 {
+    fs::metadata(path)
+        .map(|metadata| metadata.len())
+        .unwrap_or(0)
+}
+
+fn read_bounded(path: &Path, max_bytes: usize) -> Result<(String, bool), String> {
+    let file = File::open(path)
+        .map_err(|error| format!("Unable to read ToolRun log {}: {error}", path.display()))?;
+    let mut bytes = Vec::new();
+    file.take(max_bytes as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("Unable to read ToolRun log {}: {error}", path.display()))?;
+    let truncated = bytes.len() > max_bytes;
+    bytes.truncate(max_bytes);
+    Ok((String::from_utf8_lossy(&bytes).into_owned(), truncated))
+}
+
+fn scan_output(root: &Path, max_bytes: u64, max_files: usize) -> Result<OutputScan, String> {
+    let mut scan = OutputScan {
+        files: Vec::new(),
+        total_bytes: 0,
+        exceeded: false,
+    };
+    let mut directories = vec![root.to_path_buf()];
+    while let Some(directory) = directories.pop() {
+        for entry in fs::read_dir(directory)
+            .map_err(|error| format!("Unable to inspect ToolRun output: {error}"))?
+        {
+            let entry =
+                entry.map_err(|error| format!("Unable to inspect ToolRun output: {error}"))?;
+            let metadata = entry
+                .path()
+                .symlink_metadata()
+                .map_err(|error| format!("Unable to inspect ToolRun output entry: {error}"))?;
+            if metadata.file_type().is_symlink() {
+                continue;
+            }
+            if metadata.is_dir() {
+                directories.push(entry.path());
+            } else if metadata.is_file() {
+                scan.total_bytes = scan.total_bytes.saturating_add(metadata.len());
+                if scan.files.len() >= max_files {
+                    scan.exceeded = true;
+                    break;
+                }
+                let path = entry.path();
+                let name = path
+                    .strip_prefix(root)
+                    .unwrap_or(&path)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                scan.files.push(OutputFile {
+                    name,
+                    size: metadata.len(),
+                });
+                if scan.total_bytes > max_bytes {
+                    scan.exceeded = true;
+                    break;
+                }
+            }
+        }
+        if scan.exceeded {
+            break;
+        }
+    }
+    scan.files.sort_by(|left, right| left.name.cmp(&right.name));
+    Ok(scan)
+}
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,7 +511,7 @@ fn python_run_contract() -> ToolContract {
         description: "在桌面 Python 执行器中运行用户逐次确认的代码。",
         executor: ToolExecutor {
             kind: "native",
-            entrypoint: "python-sidecar:execute",
+            entrypoint: "desktop-core:native-python",
         },
         permissions: ToolPermissions {
             risk: "critical",
@@ -164,9 +585,13 @@ fn validate_proposed_input(name: &str, input: &Value) -> Result<(), String> {
                 .get("code")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "python.run requires a code string".to_string())?;
-            if code.is_empty() || code.chars().count() > 50_000 || code.contains('\0') {
+            if code.is_empty()
+                || code.chars().count() > 50_000
+                || code.len() > MAX_PYTHON_INPUT_BYTES
+                || code.contains('\0')
+            {
                 return Err(
-                    "python.run code must contain 1 to 50000 characters without NUL bytes".into(),
+                    "python.run code must contain 1 to 50000 characters, fit within 64 KiB, and contain no NUL bytes".into(),
                 );
             }
             Ok(())
@@ -246,29 +671,85 @@ pub fn desktop_decide_tool_run(
 }
 
 #[tauri::command]
-pub fn desktop_start_approved_tool_run(
-    store: State<'_, DesktopStore>,
+pub async fn desktop_execute_approved_python_tool(
+    app: AppHandle,
     tool_run_id: String,
 ) -> Result<ToolRun, String> {
-    store.start_approved_tool_run(tool_run_id.trim())
+    let manager = app.state::<ToolManager>().inner().clone();
+    let store = app.state::<DesktopStore>().inner().clone();
+    let tool_run_id = tool_run_id.trim().to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        execute_approved_python_tool(&manager, &store, &tool_run_id)
+    })
+    .await
+    .map_err(|error| format!("Native Python executor task failed: {error}"))?
+}
+
+fn execute_approved_python_tool(
+    manager: &ToolManager,
+    store: &DesktopStore,
+    tool_run_id: &str,
+) -> Result<ToolRun, String> {
+    let tool_run = store.get_tool_run(tool_run_id)?;
+    if tool_run.tool_name != "python.run" || tool_run.status != "approved" {
+        return Err("Only an approved python.run ToolRun can enter the native executor".into());
+    }
+    let code = tool_run
+        .input()
+        .get("code")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "Approved python.run input is missing its code field".to_string())?
+        .to_string();
+    let active_run = manager.register(tool_run_id)?;
+    store.start_approved_tool_run(tool_run_id)?;
+    let execution = manager.execute_registered_python(
+        tool_run_id,
+        &code,
+        &ExecutionLimits::default(),
+        &active_run,
+    );
+    let finished = match execution {
+        Ok(execution) => {
+            store.finish_tool_run(tool_run_id, execution.terminal_status, execution.output)
+        }
+        Err(error) => store.finish_tool_run(
+            tool_run_id,
+            "failed",
+            json!({
+                "ok": false,
+                "status": "executor_error",
+                "jobId": tool_run_id,
+                "error": error,
+                "files": [],
+            }),
+        ),
+    };
+    drop(active_run);
+    finished
 }
 
 #[tauri::command]
-pub fn desktop_finish_external_tool_run(
+pub fn desktop_cancel_tool_run(
+    manager: State<'_, ToolManager>,
     store: State<'_, DesktopStore>,
     tool_run_id: String,
-    succeeded: bool,
-    output: Value,
 ) -> Result<ToolRun, String> {
-    let tool_run = store.get_tool_run(tool_run_id.trim())?;
-    if tool_run.tool_name != "python.run" || tool_run.status != "running" {
-        return Err("Only a running python.run ToolRun can accept an external result".into());
+    let tool_run_id = tool_run_id.trim();
+    manager.cancel(tool_run_id)?;
+    match store.request_tool_run_cancellation(tool_run_id) {
+        Ok(tool_run) => Ok(tool_run),
+        Err(error) => {
+            let current = store.get_tool_run(tool_run_id)?;
+            if matches!(
+                current.status.as_str(),
+                "succeeded" | "failed" | "cancelled" | "timed_out"
+            ) {
+                Ok(current)
+            } else {
+                Err(error)
+            }
+        }
     }
-    store.finish_tool_run(
-        tool_run_id.trim(),
-        if succeeded { "succeeded" } else { "failed" },
-        output,
-    )
 }
 
 #[tauri::command]
@@ -282,6 +763,18 @@ pub fn desktop_list_tool_runs(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_tool_manager() -> (ToolManager, PathBuf) {
+        let root = env::temp_dir().join(format!(
+            "open-rosalind-tool-manager-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let python = env::var_os("OPENROSALIND_PYTHON")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(if cfg!(windows) { "python" } else { "python3" }));
+        let manager = ToolManager::new(python, root.clone()).unwrap();
+        (manager, root)
+    }
 
     #[test]
     fn text_statistics_is_deterministic_and_unicode_aware() {
@@ -332,5 +825,76 @@ mod tests {
         assert!(
             validate_proposed_input("python.run", &json!({"code": "x".repeat(50_001)})).is_err()
         );
+        assert!(validate_proposed_input(
+            "python.run",
+            &json!({"code": "界".repeat(MAX_PYTHON_INPUT_BYTES / 3 + 1)})
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn native_python_executor_captures_logs_and_output_files() {
+        let (manager, root) = test_tool_manager();
+        let execution = manager
+            .execute_python(
+                "successful-run",
+                "from pathlib import Path\nprint('hello from tool manager')\nPath('result.txt').write_text('done', encoding='utf-8')",
+            )
+            .unwrap();
+
+        assert_eq!(execution.terminal_status, "succeeded");
+        assert_eq!(execution.output["status"], "completed");
+        assert!(execution.output["stdout"]
+            .as_str()
+            .unwrap()
+            .contains("hello from tool manager"));
+        assert_eq!(execution.output["files"][0]["name"], "result.txt");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn native_python_executor_times_out_the_process_group() {
+        let (manager, root) = test_tool_manager();
+        let execution = manager
+            .execute_python_with_limits(
+                "timed-out-run",
+                "import time\ntime.sleep(5)",
+                &ExecutionLimits {
+                    timeout: Duration::from_millis(150),
+                    ..ExecutionLimits::default()
+                },
+            )
+            .unwrap();
+
+        assert_eq!(execution.terminal_status, "timed_out");
+        assert_eq!(execution.output["status"], "timed_out");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn native_python_executor_accepts_cross_thread_cancellation() {
+        let (manager, root) = test_tool_manager();
+        let executor = manager.clone();
+        let handle = thread::spawn(move || {
+            executor.execute_python("cancelled-run", "import time\ntime.sleep(5)")
+        });
+        for _ in 0..100 {
+            if manager
+                .inner
+                .active
+                .lock()
+                .unwrap()
+                .contains_key("cancelled-run")
+            {
+                break;
+            }
+            thread::sleep(Duration::from_millis(5));
+        }
+        manager.cancel("cancelled-run").unwrap();
+        let execution = handle.join().unwrap().unwrap();
+
+        assert_eq!(execution.terminal_status, "cancelled");
+        assert_eq!(execution.output["status"], "cancelled");
+        fs::remove_dir_all(root).unwrap();
     }
 }

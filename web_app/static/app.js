@@ -1414,7 +1414,23 @@ function appendMessage(role, content, sourceMessage = null) {
       runPython.type = "button";
       runPython.textContent = "运行 Python";
       runPython.title = "查看权限并逐次确认后执行最后一个 Python 代码块";
-      runPython.addEventListener("click", () => runPythonCode(pythonBlocks.at(-1)[1].trim(), message.agentJobId));
+      runPython.addEventListener("click", async () => {
+        const activeToolRunId = runPython.dataset.toolRunId;
+        if (activeToolRunId) {
+          runPython.disabled = true;
+          setBadge("python cancelling");
+          try {
+            await desktopInvoke("desktop_cancel_tool_run", { toolRunId: activeToolRunId });
+          } catch (error) {
+            runPython.disabled = false;
+            setBadge("error", "error");
+            addSessionMessage("assistant", `## 无法停止 Python\n\n${String(error.message || error)}`);
+            renderConversation();
+          }
+          return;
+        }
+        await runPythonCode(pythonBlocks.at(-1)[1].trim(), message.agentJobId, runPython);
+      });
       actions.appendChild(runPython);
     }
     article.appendChild(actions);
@@ -1455,14 +1471,17 @@ async function desktopToolHostJob(agentJobId) {
   return job.id;
 }
 
-async function runPythonCode(code, agentJobId = "") {
-  let execution = { runtime: "Docker / Python", network: "disabled", readOnlyRoot: true };
+async function runPythonCode(code, agentJobId = "", triggerButton = null) {
+  let execution = state.desktopMode
+    ? { runtime: "Local Python", network: "host", readOnlyRoot: false }
+    : { runtime: "Docker / Python", network: "disabled", readOnlyRoot: true };
   let contractRun = null;
-  let contractRunStarted = false;
-  try {
-    execution = await authenticatedFetch("/api/execution/config").then((response) => response.json());
-  } catch {
-    // The execution endpoint will return the authoritative error if unavailable.
+  if (!state.desktopMode) {
+    try {
+      execution = await authenticatedFetch("/api/execution/config").then((response) => response.json());
+    } catch {
+      // The execution endpoint will return the authoritative error if unavailable.
+    }
   }
   if (state.desktopMode) {
     try {
@@ -1502,49 +1521,53 @@ async function runPythonCode(code, agentJobId = "") {
   }
   setBadge("python running");
   try {
+    let data;
     if (contractRun) {
-      await desktopInvoke("desktop_start_approved_tool_run", { toolRunId: contractRun.id });
-      contractRunStarted = true;
-    }
-    const data = await agentRequest("/api/execute/python", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, confirmed: true })
-    });
-    if (contractRun) {
-      await desktopInvoke("desktop_finish_external_tool_run", {
-        toolRunId: contractRun.id,
-        succeeded: Boolean(data.ok),
-        output: data
+      if (triggerButton) {
+        triggerButton.dataset.toolRunId = contractRun.id;
+        triggerButton.textContent = "停止 Python";
+        triggerButton.title = "停止本次 Python ToolRun 及其子进程";
+      }
+      const completedRun = await desktopInvoke("desktop_execute_approved_python_tool", {
+        toolRunId: contractRun.id
       });
-      contractRunStarted = false;
+      data = completedRun.output || { ok: false, status: completedRun.status, files: [] };
+    } else {
+      data = await agentRequest("/api/execute/python", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, confirmed: true })
+      });
     }
-    const lines = ["# Python 沙箱结果", "", `**状态：** ${data.status}`, `**Job ID：** \`${data.jobId}\``, ""];
+    const lines = [state.desktopMode ? "# Python 本地执行结果" : "# Python 沙箱结果", "", `**状态：** ${data.status}`, `**Job ID：** \`${data.jobId}\``, ""];
     if (contractRun) lines.splice(4, 0, `**ToolRun ID：** \`${contractRun.id}\``, "");
     if (data.stdout) lines.push("## stdout", "", "```text", data.stdout, "```", "");
     if (data.stderr) lines.push("## stderr", "", "```text", data.stderr, "```", "");
+    if (data.error) lines.push("## 执行器错误", "", String(data.error), "");
     if (data.files?.length) {
       lines.push("## 输出文件", "");
-      for (const file of data.files) lines.push(`- [${file.name}](${file.url}) · ${file.size} bytes · SHA-256 \`${file.sha256}\``);
+      for (const file of data.files) {
+        if (file.url) {
+          lines.push(`- [${file.name}](${file.url}) · ${file.size} bytes${file.sha256 ? ` · SHA-256 \`${file.sha256}\`` : ""}`);
+        } else {
+          lines.push(`- \`${file.name}\` · ${file.size} bytes · 已保存在本地 ToolRun 输出目录`);
+        }
+      }
     }
     currentSession().push({ role: "assistant", content: lines.join("\n") });
     renderConversation();
     setBadge(data.ok ? "python done" : "error", data.ok ? "" : "error");
   } catch (error) {
-    if (contractRun && contractRunStarted) {
-      try {
-        await desktopInvoke("desktop_finish_external_tool_run", {
-          toolRunId: contractRun.id,
-          succeeded: false,
-          output: { error: String(error.message || error).slice(0, 2000) }
-        });
-      } catch {
-        // Preserve the original execution error in the conversation.
-      }
-    }
     currentSession().push({ role: "assistant", content: `## Python 执行失败\n\n${String(error.message || error)}` });
     renderConversation();
     setBadge("error", "error");
+  } finally {
+    if (triggerButton) {
+      delete triggerButton.dataset.toolRunId;
+      triggerButton.disabled = false;
+      triggerButton.textContent = "运行 Python";
+      triggerButton.title = "查看权限并逐次确认后执行最后一个 Python 代码块";
+    }
   }
 }
 

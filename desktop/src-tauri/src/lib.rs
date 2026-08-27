@@ -17,6 +17,7 @@ use core::{
     jobs,
     provider::{self, ProviderManager},
     storage::{self, DesktopStore},
+    tools::ToolManager,
     AgentWorkerProcess, DesktopCore, DesktopRuntimeStatus,
 };
 
@@ -254,6 +255,9 @@ fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
 }
 
 fn stop_backend(app_handle: &tauri::AppHandle) {
+    if let Some(tool_manager) = app_handle.try_state::<ToolManager>() {
+        tool_manager.cancel_all();
+    }
     if let Some(core) = app_handle.try_state::<DesktopCore>() {
         core.stop();
     }
@@ -283,8 +287,8 @@ pub fn run() {
             core::tools::desktop_list_tool_runs,
             core::tools::desktop_propose_tool_run,
             core::tools::desktop_decide_tool_run,
-            core::tools::desktop_start_approved_tool_run,
-            core::tools::desktop_finish_external_tool_run,
+            core::tools::desktop_execute_approved_python_tool,
+            core::tools::desktop_cancel_tool_run,
         ])
         .setup(|app| {
             let mut launch = start_backend(app)?;
@@ -294,6 +298,12 @@ pub fn run() {
                     let _ = launch.child.wait();
                 },
             )?;
+            let tool_manager =
+                ToolManager::new(launch.python.clone(), launch.data_root.join("tool-runs"))
+                    .inspect_err(|_| {
+                        let _ = launch.child.kill();
+                        let _ = launch.child.wait();
+                    })?;
             let (agent_worker, agent_worker_info) = AgentWorkerProcess::spawn(
                 &launch.python,
                 &launch.repository_root,
@@ -319,6 +329,7 @@ pub fn run() {
             .map_err(|error| format!("Invalid local application URL: {error}"))?;
             let allowed_port = launch.port;
             app.manage(store);
+            app.manage(tool_manager);
             app.manage(ProviderManager::system());
             app.manage(DesktopCore::new(launch.child, agent_worker, status));
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))

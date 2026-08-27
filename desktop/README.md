@@ -34,15 +34,18 @@ message presentation, and biomedical tools remain shared with the web build.
   records. The first `text.statistics` Native Tool is low risk and has no
   filesystem, network, or Secret permissions. `python.run` uses a per-run
   approval state machine and records its critical host filesystem/network
-  snapshot before execution; the Agent Worker cannot approve or start it.
+  snapshot before execution. Rust Tool Manager launches it with a fixed Python
+  interpreter, isolated run directories, an environment allowlist, a
+  cross-platform process group, timeout/cancellation, and bounded logs/output;
+  the Agent Worker cannot approve or start it.
 - The alpha defaults to the model-backed `legacy` runtime. A local OpenHands
   Agent Server can be selected with
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.
 - Docker is optional and is reported as a capability, not a startup
   requirement.
-- Confirmed Python snippets run through the local Python interpreter when
-  Docker is not used. This mode is audited but is not a filesystem or network
-  sandbox.
+- Confirmed desktop Python snippets run directly through Rust Tool Manager and
+  no longer round-trip through the local Web API. This mode is audited and
+  bounded, but it is intentionally not a filesystem or network sandbox.
 
 ## Development
 

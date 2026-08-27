@@ -1,6 +1,6 @@
 use std::{
     path::Path,
-    sync::Mutex,
+    sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -92,8 +92,15 @@ pub struct ToolRun {
     ended_at: Option<i64>,
 }
 
+impl ToolRun {
+    pub(crate) fn input(&self) -> &Value {
+        &self.input
+    }
+}
+
+#[derive(Clone)]
 pub struct DesktopStore {
-    connection: Mutex<Connection>,
+    connection: Arc<Mutex<Connection>>,
 }
 
 impl DesktopStore {
@@ -250,7 +257,7 @@ impl DesktopStore {
             .pragma_update(None, "user_version", SCHEMA_VERSION)
             .map_err(|error| format!("Unable to record Desktop Core schema version: {error}"))?;
         Ok(Self {
-            connection: Mutex::new(connection),
+            connection: Arc::new(Mutex::new(connection)),
         })
     }
 
@@ -655,8 +662,10 @@ impl DesktopStore {
         status: &str,
         output: Value,
     ) -> Result<ToolRun, String> {
-        if !matches!(status, "succeeded" | "failed") {
-            return Err("ToolRun can finish only as succeeded or failed".into());
+        if !matches!(status, "succeeded" | "failed" | "cancelled" | "timed_out") {
+            return Err(
+                "ToolRun can finish only as succeeded, failed, cancelled, or timed_out".into(),
+            );
         }
         let output_json = serde_json::to_string(&output)
             .map_err(|error| format!("Unable to encode Tool output: {error}"))?;
@@ -666,12 +675,30 @@ impl DesktopStore {
         let connection = self.lock_connection()?;
         let updated = connection
             .execute(
-                "UPDATE tool_runs SET status = ?2, output_json = ?3, ended_at = ?4 WHERE id = ?1 AND status = 'running'",
+                "UPDATE tool_runs SET status = ?2, output_json = ?3, ended_at = ?4 WHERE id = ?1 AND status IN ('running', 'cancelling')",
                 params![tool_run_id, status, output_json, unix_millis()],
             )
             .map_err(|error| format!("Unable to finish ToolRun: {error}"))?;
         if updated != 1 {
             return Err("ToolRun was not found or is already terminal".into());
+        }
+        drop(connection);
+        self.get_tool_run(tool_run_id)
+    }
+
+    pub(crate) fn request_tool_run_cancellation(
+        &self,
+        tool_run_id: &str,
+    ) -> Result<ToolRun, String> {
+        let connection = self.lock_connection()?;
+        let updated = connection
+            .execute(
+                "UPDATE tool_runs SET status = 'cancelling' WHERE id = ?1 AND status = 'running'",
+                [tool_run_id],
+            )
+            .map_err(|error| format!("Unable to request ToolRun cancellation: {error}"))?;
+        if updated != 1 {
+            return Err("Only a running ToolRun can be cancelled".into());
         }
         drop(connection);
         self.get_tool_run(tool_run_id)
@@ -1268,7 +1295,12 @@ mod tests {
                 .unwrap();
         }
         let DesktopStore { connection } = store;
-        let reopened = DesktopStore::from_connection(connection.into_inner().unwrap()).unwrap();
+        let connection = Arc::try_unwrap(connection)
+            .map_err(|_| "unexpected shared test connection")
+            .unwrap()
+            .into_inner()
+            .unwrap();
+        let reopened = DesktopStore::from_connection(connection).unwrap();
 
         let detail = reopened.get_agent_job_detail(&job.id).unwrap();
         assert_eq!(detail.job.status, "interrupted");

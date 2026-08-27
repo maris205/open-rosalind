@@ -13,6 +13,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+command-group = "5.0.1"
 keyring = "4.1.6"
 reqwest = { version = "0.13.4", features = ["blocking", "json"] }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
