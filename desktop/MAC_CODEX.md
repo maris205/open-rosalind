@@ -203,15 +203,27 @@ identity 对完整 `.app` 签名，使 `.app` 以及 `.dmg` 内副本都能通�
 
 签名与公证使用 Tauri/CI 环境变量注入，不写入仓库：
 
-- 签名证书：`APPLE_CERTIFICATE`、`APPLE_CERTIFICATE_PASSWORD`，或本机
-  Keychain 中证书对应的 `APPLE_SIGNING_IDENTITY`；
-- App Store Connect API：`APPLE_API_ISSUER` 和 `APPLE_API_KEY` 或
+- 签名证书：先将 Developer ID Application 证书导入构建 Keychain，再通过
+  `APPLE_SIGNING_IDENTITY` 指向该 identity；内嵌 Python 原生扩展必须在 Tauri
+  组装 App 前逐个签名，因此正式发行命令不接受尚未导入的证书字符串；
+- App Store Connect API：`APPLE_API_ISSUER`、`APPLE_API_KEY` 和
   `APPLE_API_KEY_PATH`；
 - Apple ID 方式：`APPLE_ID`、`APPLE_PASSWORD`、`APPLE_TEAM_ID`。
 
 正式发布流水线必须对 `.app` 和 `.dmg` 执行 `codesign --verify`，提交 Apple
 notary service，等待成功后 staple，并在未配置凭据时失败关闭。不要在命令输出、
 GitHub Actions 日志或构建产物中暴露凭据。
+
+正式发行命令使用独立门禁，不会在缺少签名或公证凭据时退回 ad-hoc 包：
+
+```bash
+npm --prefix desktop run build:macos:release:arm64
+npm --prefix desktop run build:macos:release:x64
+```
+
+构建完成后，脚本会逐个验证内嵌 Python 的 Mach-O 签名，确认 `.app` 和 `.dmg`
+使用 Developer ID Application，验证 stapled ticket，并让 Gatekeeper 评估 `.app`。
+普通 `build:macos:*` 命令仍只生成供本机测试的 ad-hoc 包。
 
 ## 7. 给 Codex 的 macOS 任务模板
 

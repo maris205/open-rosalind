@@ -1595,6 +1595,30 @@ p {
   margin-top: 18px;
 }
 
+.desktop-data-backup {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7faf8;
+}
+
+.desktop-data-backup[hidden] {
+  display: none;
+}
+
+.desktop-data-backup .hint {
+  margin: 5px 0 0;
+}
+
+.desktop-data-backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .agent-dialog {
   width: min(640px, calc(100% - 32px));
 }

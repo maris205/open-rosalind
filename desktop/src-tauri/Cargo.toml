@@ -1,6 +1,6 @@
 [package]
 name = "open-rosalind-desktop"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 description = "Local biomedical research agent"
 authors = ["OpenRosalind"]
 edition = "2021"
@@ -16,7 +16,7 @@ tauri-build = { version = "2", features = [] }
 command-group = "5.0.1"
 keyring = "4.1.6"
 reqwest = { version = "0.13.4", features = ["blocking", "json"] }
-rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite = { version = "0.40.2", features = ["backup", "bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10.9"

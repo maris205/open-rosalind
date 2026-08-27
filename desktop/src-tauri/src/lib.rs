@@ -347,6 +347,11 @@ fn stop_backend(app_handle: &tauri::AppHandle) {
     if let Some(core) = app_handle.try_state::<DesktopCore>() {
         core.stop();
     }
+    if let Some(store) = app_handle.try_state::<DesktopStore>() {
+        if let Err(error) = store.create_backup_if_changed() {
+            eprintln!("OpenRosalind shutdown backup was skipped: {error}");
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -365,6 +370,9 @@ pub fn run() {
             storage::desktop_authorize_project_directory,
             storage::desktop_reveal_project_directory,
             storage::desktop_revoke_project_directory,
+            storage::desktop_data_backup_status,
+            storage::desktop_create_data_backup,
+            storage::desktop_reveal_data_backups,
             jobs::desktop_get_agent_job,
             jobs::desktop_start_agent_job,
             jobs::desktop_refresh_agent_job,

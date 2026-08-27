@@ -1,18 +1,18 @@
 use std::{
     collections::HashSet,
-    env,
+    env, fs,
     path::{Component, Path, PathBuf},
     process::{Command, Stdio},
     sync::{Arc, Mutex},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 #[cfg(target_os = "macos")]
 use std::collections::HashMap;
 
-#[cfg(target_os = "macos")]
-use rusqlite::OpenFlags;
-use rusqlite::{params, Connection, OptionalExtension, Row};
+use rusqlite::{
+    params, Connection, OpenFlags, OptionalExtension, Row, TransactionBehavior, MAIN_DB,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, State};
@@ -22,6 +22,8 @@ use uuid::Uuid;
 use super::agent::WorkerJobStatus;
 
 const SCHEMA_VERSION: i64 = 5;
+const MAX_DATABASE_BACKUPS: usize = 5;
+const DATABASE_BACKUP_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 const MAX_AGENT_JOB_REQUEST_BYTES: usize = 512 * 1024;
 const MAX_UI_CHATS: usize = 100;
 const MAX_UI_MESSAGES: usize = 10_000;
@@ -176,21 +178,79 @@ pub(crate) struct NewArtifact {
 #[derive(Clone)]
 pub struct DesktopStore {
     connection: Arc<Mutex<Connection>>,
+    database_path: Option<PathBuf>,
+    backup_directory: Option<PathBuf>,
+    backup_baseline_changes: Arc<Mutex<u64>>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopBackupInfo {
+    file_name: String,
+    created_at: i64,
+    size_bytes: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopBackupStatus {
+    available: bool,
+    backup_directory: Option<String>,
+    backups: Vec<DesktopBackupInfo>,
 }
 
 impl DesktopStore {
     pub fn open(path: &Path) -> Result<Self, String> {
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).map_err(|error| {
+            fs::create_dir_all(parent).map_err(|error| {
                 format!("Unable to create Desktop Core data directory: {error}")
             })?;
+            secure_directory_permissions(parent)?;
         }
+        let backup_directory = path
+            .parent()
+            .map(|parent| parent.join("backups"))
+            .ok_or_else(|| {
+                "Desktop Core database path does not have a parent directory".to_string()
+            })?;
+        let database_existed = path
+            .metadata()
+            .map(|metadata| metadata.len() > 0)
+            .unwrap_or(false);
         let connection = Connection::open(path)
             .map_err(|error| format!("Unable to open Desktop Core database: {error}"))?;
-        Self::from_connection(connection)
+        if database_existed {
+            verify_database_integrity(&connection, "quick_check").map_err(|error| {
+                format!(
+                    "Desktop Core database failed its startup integrity check: {error}. The original database was preserved. Verified backups, when available, are in {}",
+                    backup_directory.display()
+                )
+            })?;
+        }
+        let mut store = Self::from_connection(connection)?;
+        store.database_path = Some(path.to_path_buf());
+        store.backup_directory = Some(backup_directory);
+        secure_file_permissions(path)?;
+        {
+            let connection = store.lock_connection()?;
+            verify_database_integrity(&connection, "integrity_check")?;
+        }
+        if let Err(error) = store.create_backup_if_due() {
+            eprintln!("OpenRosalind startup backup was skipped: {error}");
+        }
+        Ok(store)
     }
 
-    fn from_connection(connection: Connection) -> Result<Self, String> {
+    fn from_connection(mut connection: Connection) -> Result<Self, String> {
+        connection
+            .execute_batch(
+                r#"
+                PRAGMA foreign_keys = ON;
+                PRAGMA journal_mode = WAL;
+                PRAGMA busy_timeout = 5000;
+                "#,
+            )
+            .map_err(|error| format!("Unable to configure Desktop Core database: {error}"))?;
         let current_version = connection
             .pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
             .map_err(|error| format!("Unable to inspect Desktop Core schema version: {error}"))?;
@@ -199,13 +259,12 @@ impl DesktopStore {
                 "Desktop Core database schema {current_version} is newer than supported version {SCHEMA_VERSION}"
             ));
         }
-        connection
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|error| format!("Unable to begin Desktop Core migration: {error}"))?;
+        transaction
             .execute_batch(
                 r#"
-                PRAGMA foreign_keys = ON;
-                PRAGMA journal_mode = WAL;
-                PRAGMA busy_timeout = 5000;
-
                 CREATE TABLE IF NOT EXISTS conversations (
                     id TEXT PRIMARY KEY,
                     project_id TEXT,
@@ -332,7 +391,7 @@ impl DesktopStore {
             .map_err(|error| format!("Unable to migrate Desktop Core database: {error}"))?;
 
         let provider_created_at = unix_millis();
-        connection
+        transaction
             .execute(
                 r#"
                 INSERT OR IGNORE INTO provider_profiles
@@ -349,7 +408,7 @@ impl DesktopStore {
             .map_err(|error| format!("Unable to create default Provider profile: {error}"))?;
 
         let recovered_at = unix_millis();
-        connection
+        transaction
             .execute(
                 r#"
                 INSERT INTO agent_job_events (agent_job_id, sequence, kind, payload_json, created_at)
@@ -364,17 +423,24 @@ impl DesktopStore {
                 [recovered_at],
             )
             .map_err(|error| format!("Unable to record interrupted Agent jobs: {error}"))?;
-        connection
+        transaction
             .execute(
                 "UPDATE agent_jobs SET status = 'interrupted', ended_at = ?1 WHERE status IN ('queued', 'running', 'cancelling')",
                 [recovered_at],
             )
             .map_err(|error| format!("Unable to recover interrupted Agent jobs: {error}"))?;
-        connection
+        transaction
             .pragma_update(None, "user_version", SCHEMA_VERSION)
             .map_err(|error| format!("Unable to record Desktop Core schema version: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("Unable to commit Desktop Core migration: {error}"))?;
+        let baseline_changes = connection.total_changes();
         Ok(Self {
             connection: Arc::new(Mutex::new(connection)),
+            database_path: None,
+            backup_directory: None,
+            backup_baseline_changes: Arc::new(Mutex::new(baseline_changes)),
         })
     }
 
@@ -1440,6 +1506,219 @@ impl DesktopStore {
             .lock()
             .map_err(|_| "Desktop Core database lock was poisoned".to_string())
     }
+
+    pub fn backup_status(&self) -> Result<DesktopBackupStatus, String> {
+        let Some(directory) = self.backup_directory.as_ref() else {
+            return Ok(DesktopBackupStatus {
+                available: false,
+                backup_directory: None,
+                backups: Vec::new(),
+            });
+        };
+        Ok(DesktopBackupStatus {
+            available: true,
+            backup_directory: Some(directory.to_string_lossy().into_owned()),
+            backups: list_database_backups(directory)?,
+        })
+    }
+
+    pub fn create_backup(&self) -> Result<DesktopBackupInfo, String> {
+        if self.database_path.is_none() {
+            return Err("Database backups are unavailable for an in-memory store".into());
+        }
+        let directory = self
+            .backup_directory
+            .as_ref()
+            .ok_or_else(|| "Database backup directory is unavailable".to_string())?;
+        fs::create_dir_all(directory)
+            .map_err(|error| format!("Unable to create database backup directory: {error}"))?;
+        secure_directory_permissions(directory)?;
+
+        let created_at = unix_millis();
+        let suffix = &Uuid::new_v4().simple().to_string()[..8];
+        let file_name = format!("desktop-core-{created_at}-{suffix}.db");
+        let final_path = directory.join(&file_name);
+        let temporary_path = directory.join(format!(".{file_name}.partial"));
+        let backup_result: Result<DesktopBackupInfo, String> = (|| {
+            let connection = self.lock_connection()?;
+            verify_database_integrity(&connection, "quick_check")?;
+            connection
+                .backup(MAIN_DB, &temporary_path, None)
+                .map_err(|error| format!("Unable to create an online database backup: {error}"))?;
+            drop(connection);
+            secure_file_permissions(&temporary_path)?;
+            let backup_connection = Connection::open_with_flags(
+                &temporary_path,
+                OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+            )
+            .map_err(|error| format!("Unable to open the new database backup: {error}"))?;
+            verify_database_integrity(&backup_connection, "integrity_check")?;
+            drop(backup_connection);
+            fs::rename(&temporary_path, &final_path)
+                .map_err(|error| format!("Unable to finalize database backup: {error}"))?;
+            secure_file_permissions(&final_path)?;
+            let size_bytes = final_path
+                .metadata()
+                .map_err(|error| format!("Unable to inspect database backup: {error}"))?
+                .len();
+            Ok(DesktopBackupInfo {
+                file_name,
+                created_at,
+                size_bytes,
+            })
+        })();
+        if backup_result.is_err() {
+            let _ = fs::remove_file(&temporary_path);
+        }
+        let info = backup_result?;
+        self.rotate_database_backups()?;
+        let changes = self.lock_connection()?.total_changes();
+        *self
+            .backup_baseline_changes
+            .lock()
+            .map_err(|_| "Database backup state lock was poisoned".to_string())? = changes;
+        Ok(info)
+    }
+
+    pub fn create_backup_if_changed(&self) -> Result<Option<DesktopBackupInfo>, String> {
+        if self.database_path.is_none() {
+            return Ok(None);
+        }
+        let changes = self.lock_connection()?.total_changes();
+        let baseline = *self
+            .backup_baseline_changes
+            .lock()
+            .map_err(|_| "Database backup state lock was poisoned".to_string())?;
+        if changes == baseline {
+            return Ok(None);
+        }
+        self.create_backup().map(Some)
+    }
+
+    fn create_backup_if_due(&self) -> Result<Option<DesktopBackupInfo>, String> {
+        let Some(directory) = self.backup_directory.as_ref() else {
+            return Ok(None);
+        };
+        let latest = list_database_backups(directory)?
+            .into_iter()
+            .map(|backup| backup.created_at)
+            .max();
+        let due_before = unix_millis().saturating_sub(DATABASE_BACKUP_INTERVAL.as_millis() as i64);
+        if latest.is_some_and(|created_at| created_at > due_before) {
+            let changes = self.lock_connection()?.total_changes();
+            *self
+                .backup_baseline_changes
+                .lock()
+                .map_err(|_| "Database backup state lock was poisoned".to_string())? = changes;
+            return Ok(None);
+        }
+        self.create_backup().map(Some)
+    }
+
+    fn rotate_database_backups(&self) -> Result<(), String> {
+        let Some(directory) = self.backup_directory.as_ref() else {
+            return Ok(());
+        };
+        let backups = list_database_backups(directory)?;
+        for backup in backups.into_iter().skip(MAX_DATABASE_BACKUPS) {
+            let path = directory.join(backup.file_name);
+            let metadata = fs::symlink_metadata(&path)
+                .map_err(|error| format!("Unable to inspect old database backup: {error}"))?;
+            if metadata.file_type().is_file() && !metadata.file_type().is_symlink() {
+                fs::remove_file(&path)
+                    .map_err(|error| format!("Unable to rotate old database backup: {error}"))?;
+            }
+        }
+        Ok(())
+    }
+}
+
+fn verify_database_integrity(connection: &Connection, pragma: &str) -> Result<(), String> {
+    let statement = match pragma {
+        "quick_check" => "PRAGMA quick_check",
+        "integrity_check" => "PRAGMA integrity_check",
+        _ => return Err("Unsupported database integrity check".into()),
+    };
+    let result = connection
+        .query_row(statement, [], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Unable to run SQLite {pragma}: {error}"))?;
+    if result.eq_ignore_ascii_case("ok") {
+        Ok(())
+    } else {
+        Err(format!("SQLite {pragma} reported: {result}"))
+    }
+}
+
+fn parse_database_backup_name(file_name: &str) -> Option<i64> {
+    let value = file_name
+        .strip_prefix("desktop-core-")?
+        .strip_suffix(".db")?;
+    let (timestamp, suffix) = value.split_once('-')?;
+    if suffix.len() != 8
+        || !suffix
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
+    {
+        return None;
+    }
+    timestamp.parse::<i64>().ok().filter(|value| *value > 0)
+}
+
+fn list_database_backups(directory: &Path) -> Result<Vec<DesktopBackupInfo>, String> {
+    if !directory.exists() {
+        return Ok(Vec::new());
+    }
+    let mut backups = Vec::new();
+    let entries = fs::read_dir(directory)
+        .map_err(|error| format!("Unable to list database backups: {error}"))?;
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("Unable to inspect database backup: {error}"))?;
+        let metadata = entry
+            .file_type()
+            .map_err(|error| format!("Unable to inspect database backup type: {error}"))?;
+        if !metadata.is_file() || metadata.is_symlink() {
+            continue;
+        }
+        let file_name = entry.file_name().to_string_lossy().into_owned();
+        let Some(created_at) = parse_database_backup_name(&file_name) else {
+            continue;
+        };
+        let size_bytes = entry
+            .metadata()
+            .map_err(|error| format!("Unable to inspect database backup size: {error}"))?
+            .len();
+        backups.push(DesktopBackupInfo {
+            file_name,
+            created_at,
+            size_bytes,
+        });
+    }
+    backups.sort_by(|left, right| right.created_at.cmp(&left.created_at));
+    Ok(backups)
+}
+
+#[cfg(unix)]
+fn secure_directory_permissions(path: &Path) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .map_err(|error| format!("Unable to secure data directory permissions: {error}"))
+}
+
+#[cfg(not(unix))]
+fn secure_directory_permissions(_path: &Path) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(unix)]
+fn secure_file_permissions(path: &Path) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+        .map_err(|error| format!("Unable to secure database file permissions: {error}"))
+}
+
+#[cfg(not(unix))]
+fn secure_file_permissions(_path: &Path) -> Result<(), String> {
+    Ok(())
 }
 
 fn decode_agent_job(row: &Row<'_>) -> rusqlite::Result<AgentJob> {
@@ -2024,6 +2303,32 @@ pub fn desktop_revoke_project_directory(
     state.revoke_project_directory(project_id.trim())
 }
 
+#[tauri::command]
+pub fn desktop_data_backup_status(
+    state: State<'_, DesktopStore>,
+) -> Result<DesktopBackupStatus, String> {
+    state.backup_status()
+}
+
+#[tauri::command]
+pub fn desktop_create_data_backup(
+    state: State<'_, DesktopStore>,
+) -> Result<DesktopBackupInfo, String> {
+    state.create_backup()
+}
+
+#[tauri::command]
+pub fn desktop_reveal_data_backups(state: State<'_, DesktopStore>) -> Result<(), String> {
+    let directory = state
+        .backup_directory
+        .as_ref()
+        .ok_or_else(|| "Database backup directory is unavailable".to_string())?;
+    fs::create_dir_all(directory)
+        .map_err(|error| format!("Unable to create database backup directory: {error}"))?;
+    secure_directory_permissions(directory)?;
+    reveal_directory(directory)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2096,6 +2401,96 @@ mod tests {
         };
 
         assert!(error.contains("newer than supported"));
+    }
+
+    #[test]
+    fn file_store_creates_verified_online_backups() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-backup-test-{}",
+            Uuid::new_v4().simple()
+        ));
+        let database_path = root.join("desktop-core.db");
+        let store = DesktopStore::open(&database_path).unwrap();
+        store
+            .create_conversation("Backup test".into(), Some("project-backup".into()))
+            .unwrap();
+        let backup = store.create_backup().unwrap();
+        let backup_path = root.join("backups").join(&backup.file_name);
+
+        let backup_connection = Connection::open_with_flags(
+            &backup_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .unwrap();
+        verify_database_integrity(&backup_connection, "integrity_check").unwrap();
+        let conversation_count: i64 = backup_connection
+            .query_row("SELECT COUNT(*) FROM conversations", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(conversation_count, 1);
+        assert_eq!(store.backup_status().unwrap().backups.len(), 2);
+
+        drop(backup_connection);
+        drop(store);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn backup_rotation_only_removes_managed_database_snapshots() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-backup-rotation-test-{}",
+            Uuid::new_v4().simple()
+        ));
+        let store = DesktopStore::open(&root.join("desktop-core.db")).unwrap();
+        let backup_directory = root.join("backups");
+        fs::write(backup_directory.join("keep-me.db"), b"not managed").unwrap();
+        for _ in 0..(MAX_DATABASE_BACKUPS + 2) {
+            store.create_backup().unwrap();
+        }
+
+        let status = store.backup_status().unwrap();
+        assert_eq!(status.backups.len(), MAX_DATABASE_BACKUPS);
+        assert!(backup_directory.join("keep-me.db").is_file());
+
+        drop(store);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn corrupted_database_is_rejected_without_overwriting_the_original() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-corrupt-database-test-{}",
+            Uuid::new_v4().simple()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let database_path = root.join("desktop-core.db");
+        let original = b"this is not a sqlite database";
+        fs::write(&database_path, original).unwrap();
+
+        let error = match DesktopStore::open(&database_path) {
+            Ok(_) => panic!("corrupted databases must be rejected"),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("integrity check"));
+        assert!(error.contains("original database was preserved"));
+        assert_eq!(fs::read(&database_path).unwrap(), original);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn shutdown_backup_is_only_created_after_database_changes() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-changed-backup-test-{}",
+            Uuid::new_v4().simple()
+        ));
+        let store = DesktopStore::open(&root.join("desktop-core.db")).unwrap();
+        assert!(store.create_backup_if_changed().unwrap().is_none());
+        store.create_conversation("Changed".into(), None).unwrap();
+        assert!(store.create_backup_if_changed().unwrap().is_some());
+        assert!(store.create_backup_if_changed().unwrap().is_none());
+
+        drop(store);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -2507,7 +2902,7 @@ mod tests {
                 )
                 .unwrap();
         }
-        let DesktopStore { connection } = store;
+        let DesktopStore { connection, .. } = store;
         let connection = Arc::try_unwrap(connection)
             .map_err(|_| "unexpected shared test connection")
             .unwrap()

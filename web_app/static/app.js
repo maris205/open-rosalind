@@ -389,6 +389,10 @@ const els = {
   apiKey: document.getElementById("apiKey"),
   keyStatus: document.getElementById("keyStatus"),
   clearProviderKey: document.getElementById("clearProviderKey"),
+  desktopDataBackupSection: document.getElementById("desktopDataBackupSection"),
+  desktopDataBackupStatus: document.getElementById("desktopDataBackupStatus"),
+  createDesktopDataBackup: document.getElementById("createDesktopDataBackup"),
+  revealDesktopDataBackups: document.getElementById("revealDesktopDataBackups"),
   temperature: document.getElementById("temperature"),
   temperatureValue: document.getElementById("temperatureValue"),
   documentFile: document.getElementById("documentFile"),
@@ -2305,6 +2309,7 @@ async function loadConfig() {
     : "未检测到环境变量，可在此临时填写 API Key。";
   if (config.desktopMode) {
     await loadDesktopProviderProfile();
+    await loadDesktopDataBackupStatus();
     try {
       const status = await fetch("/api/desktop/status").then((response) => response.json());
       els.desktopRuntime.hidden = false;
@@ -2361,6 +2366,49 @@ async function loadDesktopProviderProfile() {
   } catch (error) {
     els.keyStatus.textContent = `系统凭据库不可用：${String(error.message || error)}`;
     els.clearProviderKey.hidden = true;
+  }
+}
+
+async function loadDesktopDataBackupStatus() {
+  if (!state.desktopMode) return;
+  els.desktopDataBackupSection.hidden = false;
+  try {
+    const status = await desktopInvoke("desktop_data_backup_status");
+    const backups = Array.isArray(status.backups) ? status.backups : [];
+    els.createDesktopDataBackup.disabled = !status.available;
+    els.revealDesktopDataBackups.disabled = !status.available;
+    if (!status.available) {
+      els.desktopDataBackupStatus.textContent = "当前运行环境不支持文件备份。";
+      return;
+    }
+    const latest = backups[0];
+    els.desktopDataBackupStatus.textContent = latest
+      ? `已有 ${backups.length} 份已验证备份；最近一次：${new Date(latest.createdAt).toLocaleString()}（${formatFileSize(latest.sizeBytes)}）。最多保留 5 份。`
+      : "尚无备份；客户端会自动创建并验证备份。";
+  } catch (error) {
+    els.desktopDataBackupStatus.textContent = `无法读取备份状态：${String(error.message || error)}`;
+    els.createDesktopDataBackup.disabled = true;
+    els.revealDesktopDataBackups.disabled = true;
+  }
+}
+
+async function createDesktopDataBackup() {
+  els.createDesktopDataBackup.disabled = true;
+  els.desktopDataBackupStatus.textContent = "正在创建并验证本地数据备份…";
+  try {
+    await desktopInvoke("desktop_create_data_backup");
+    await loadDesktopDataBackupStatus();
+  } catch (error) {
+    els.desktopDataBackupStatus.textContent = `备份失败：${String(error.message || error)}`;
+    els.createDesktopDataBackup.disabled = false;
+  }
+}
+
+async function revealDesktopDataBackups() {
+  try {
+    await desktopInvoke("desktop_reveal_data_backups");
+  } catch (error) {
+    els.desktopDataBackupStatus.textContent = `无法打开备份目录：${String(error.message || error)}`;
   }
 }
 
@@ -3253,6 +3301,7 @@ function bindEvents() {
     els.apiKey.value = "";
     els.apiKey.readOnly = true;
     els.settingsDialog.showModal();
+    if (state.desktopMode) loadDesktopDataBackupStatus();
   });
   els.apiKey.addEventListener("focus", () => {
     els.apiKey.readOnly = false;
@@ -3282,6 +3331,8 @@ function bindEvents() {
       els.keyStatus.textContent = String(error.message || error);
     }
   });
+  els.createDesktopDataBackup.addEventListener("click", createDesktopDataBackup);
+  els.revealDesktopDataBackups.addEventListener("click", revealDesktopDataBackups);
   els.temperature.addEventListener("input", () => {
     els.temperatureValue.textContent = els.temperature.value;
   });

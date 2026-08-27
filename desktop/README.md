@@ -24,6 +24,13 @@ message presentation, and biomedical tools remain shared with the web build.
   Conversation does not own a process or container. Chat snapshots are replaced
   atomically and isolated by the signed-in local user. Unfinished jobs recover
   as `interrupted` after an application restart.
+- Desktop Core verifies SQLite integrity before and after transactional schema
+  migration. It creates WAL-safe online snapshots at startup (at most once per
+  six hours), after changed data on a clean shutdown, and on demand from
+  Settings. Every snapshot is opened read-only and fully verified before it is
+  finalized; only the five newest app-managed snapshots are rotated. A failed
+  integrity check preserves the original database and reports the backup
+  directory instead of silently overwriting user data.
 - Schema v5 migrates legacy macOS WebKit `localStorage` chat databases on first
   launch. It merges duplicate chat IDs using the newest copy, then makes Desktop
   Core SQLite the authoritative store. The current-origin browser copy remains

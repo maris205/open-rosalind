@@ -172,6 +172,16 @@
           <output id="temperatureValue">0.3</output>
         </label>
         <p id="keyStatus" class="hint"></p>
+        <section id="desktopDataBackupSection" class="desktop-data-backup" hidden>
+          <div>
+            <strong>本地数据备份</strong>
+            <p id="desktopDataBackupStatus" class="hint">正在读取备份状态…</p>
+          </div>
+          <div class="desktop-data-backup-actions">
+            <button id="createDesktopDataBackup" type="button">立即备份</button>
+            <button id="revealDesktopDataBackups" type="button">在 Finder 中显示</button>
+          </div>
+        </section>
         <div class="settings-actions">
           <button id="clearProviderKey" value="keep-open" type="button" hidden>清除 Key</button>
           <button value="done" type="submit" class="primary-button">完成</button>

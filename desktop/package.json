@@ -1,7 +1,7 @@
 {
   "name": "open-rosalind-desktop",
   "private": true,
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "scripts": {
     "tauri": "tauri",
     "runtime:prepare": "node scripts/prepare-python-runtime.mjs",
@@ -12,7 +12,10 @@
     "build:macos": "node scripts/prepare-macos-python-runtime.mjs && node scripts/build-macos.mjs --bundles app,dmg",
     "build:macos:arm64": "node scripts/prepare-macos-python-runtime.mjs --arch arm64 && node scripts/build-macos.mjs --target aarch64-apple-darwin --bundles app,dmg",
     "build:macos:x64": "node scripts/prepare-macos-python-runtime.mjs --arch x64 && node scripts/build-macos.mjs --target x86_64-apple-darwin --bundles app,dmg",
-    "build:macos:universal": "node scripts/prepare-macos-python-runtime.mjs --arch universal && node scripts/build-macos.mjs --target universal-apple-darwin --bundles app,dmg"
+    "build:macos:universal": "node scripts/prepare-macos-python-runtime.mjs --arch universal && node scripts/build-macos.mjs --target universal-apple-darwin --bundles app,dmg",
+    "build:macos:release:arm64": "node scripts/prepare-macos-python-runtime.mjs --arch arm64 && node scripts/build-macos.mjs --formal-release --target aarch64-apple-darwin --bundles app,dmg",
+    "build:macos:release:x64": "node scripts/prepare-macos-python-runtime.mjs --arch x64 && node scripts/build-macos.mjs --formal-release --target x86_64-apple-darwin --bundles app,dmg",
+    "test:release-policy": "node --test scripts/macos-release-policy.test.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.8.5",

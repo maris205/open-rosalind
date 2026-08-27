@@ -12,6 +12,11 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
     window.__desktopArtifactInvocations = [];
     window.__desktopContainerReady = false;
     window.__desktopProjectAuthorization = null;
+    window.__desktopBackups = [{
+      fileName: "desktop-core-initial.db",
+      createdAt: Date.now() - 1000,
+      sizeBytes: 4096
+    }];
     window.__TAURI__ = {
       dialog: {
         confirm: async () => true
@@ -20,6 +25,23 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
         invoke: async (command, args = {}) => {
           window.__desktopArtifactInvocations.push({ command, args });
           if (command === "desktop_credential_vault_status") return { backend: "Test Vault" };
+          if (command === "desktop_data_backup_status") {
+            return {
+              available: true,
+              backupDirectory: "/Users/tester/Library/Application Support/OpenRosalind/backups",
+              backups: window.__desktopBackups
+            };
+          }
+          if (command === "desktop_create_data_backup") {
+            const backup = {
+              fileName: `desktop-core-${Date.now()}.db`,
+              createdAt: Date.now(),
+              sizeBytes: 8192
+            };
+            window.__desktopBackups.unshift(backup);
+            return backup;
+          }
+          if (command === "desktop_reveal_data_backups") return null;
           if (command === "desktop_container_capability") {
             return {
               installed: true,
@@ -186,6 +208,17 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   await expect(page.locator("#appShell")).toBeVisible();
   await expect(page.locator("#desktopRuntime")).toBeVisible();
   await expect(page.locator("#desktopRuntime")).toHaveText("本地执行");
+
+  await page.locator("#sidebarAccount").click();
+  await page.locator("#openSettings").click();
+  await expect(page.locator("#desktopDataBackupSection")).toBeVisible();
+  await expect(page.locator("#desktopDataBackupStatus")).toContainText("已有 1 份已验证备份");
+  await page.locator("#createDesktopDataBackup").click();
+  await expect(page.locator("#desktopDataBackupStatus")).toContainText("已有 2 份已验证备份");
+  await page.locator("#revealDesktopDataBackups").click();
+  await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_reveal_data_backups").length)).toBe(1);
+  await page.locator('#settingsDialog button[value="cancel"]').click();
 
   await page.locator("#sidebarAccount").click();
   await page.locator("#openProject").click();
