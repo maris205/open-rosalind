@@ -15,6 +15,15 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
         invoke: async (command, args = {}) => {
           window.__desktopArtifactInvocations.push({ command, args });
           if (command === "desktop_credential_vault_status") return { backend: "Test Vault" };
+          if (command === "desktop_container_capability") {
+            return {
+              installed: true,
+              available: true,
+              image: "docker.io/library/python@sha256:test",
+              imageAvailable: true,
+              reason: null
+            };
+          }
           if (command === "desktop_list_provider_profiles") {
             return [{
               id: "test-provider",
@@ -90,7 +99,7 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
     chat.messages.push({
       id: "desktop-tool-artifact",
       role: "assistant",
-      content: "Python 生成了一个本地产物。",
+      content: "Python 生成了一个本地产物。\n\n```python\nprint('sandbox')\n```",
       toolArtifacts: [{
         artifactId: "artifact-123",
         name: "result.txt",
@@ -103,6 +112,8 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   });
   await page.reload();
   const artifactMessage = page.locator(".message.assistant").last();
+  await expect(artifactMessage.getByRole("button", { name: "运行 Python" })).toBeVisible();
+  await expect(artifactMessage.getByRole("button", { name: "Docker 沙箱" })).toBeEnabled();
   await artifactMessage.getByRole("button", { name: "查看本地 ToolRun 产物" }).click();
   await expect(page.locator("#detailPanelTitle")).toHaveText("本地产物 (1)");
   await page.locator(".tool-artifact-card").getByRole("button", { name: "预览" }).click();

@@ -259,6 +259,12 @@ GPU、许可证、镜像签名、升级和回滚策略。
 - 镜像固定 digest；
 - 任务完成后删除容器。
 
+当前 alpha 已实现首个 `python.container`：Desktop Core 只接受注册表内固定 digest，
+容器启动参数由 Rust 生成而不是由 WebView 或 Agent 拼接；镜像缺失时必须先经过 Rust
+触发的原生系统确认对话框，实际运行使用 `--pull=never`。输入目录只读、输出目录可写，不挂载项目目录、
+Home、Docker Socket 或系统凭据。macOS 与 Windows 共用该策略，Docker Desktop 仅是
+可选能力。
+
 ### 11.3 Compose Executor
 
 适合 analysis-worker、数据库、向量服务等多服务工具包。每个 Compose 项目使用

@@ -49,6 +49,12 @@ message presentation, and biomedical tools remain shared with the web build.
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.
 - Docker is optional and is reported as a capability, not a startup
   requirement.
+- The first optional Container Executor runs approved Python in a pinned,
+  multi-architecture Docker Official Image. It uses no network, a read-only
+  root filesystem, a numeric non-root user, no Linux capabilities, no-new-
+  privileges, bounded CPU/memory/PIDs/time/output, and only per-run input/output
+  mounts. Image preparation is explicit and a missing Docker daemon never
+  blocks the main Agent or native tools.
 - Confirmed desktop Python snippets run directly through Rust Tool Manager and
   no longer round-trip through the local Web API. This mode is audited and
   bounded, but it is intentionally not a filesystem or network sandbox.

@@ -307,6 +307,7 @@ const state = {
   projectId: "",
   projects: [],
   desktopMode: false,
+  containerCapability: null,
   providerProfileId: "",
   desktopConversationIds: {}
 };
@@ -1534,9 +1535,37 @@ function appendMessage(role, content, sourceMessage = null) {
           }
           return;
         }
-        await runPythonCode(pythonBlocks.at(-1)[1].trim(), message.agentJobId, runPython);
+        await runPythonCode(pythonBlocks.at(-1)[1].trim(), message.agentJobId, runPython, "native");
       });
       actions.appendChild(runPython);
+      if (state.desktopMode) {
+        const capability = state.containerCapability;
+        const runSandbox = document.createElement("button");
+        runSandbox.type = "button";
+        runSandbox.textContent = capability?.available ? "Docker 沙箱" : "Docker 未就绪";
+        runSandbox.title = capability?.available
+          ? "在固定镜像、无网络、只读根文件系统的容器中运行"
+          : capability?.reason || "安装并启动 Docker Desktop 后可用";
+        runSandbox.disabled = !capability?.available;
+        runSandbox.addEventListener("click", async () => {
+          const activeToolRunId = runSandbox.dataset.toolRunId;
+          if (activeToolRunId) {
+            runSandbox.disabled = true;
+            setBadge("container cancelling");
+            try {
+              await desktopInvoke("desktop_cancel_tool_run", { toolRunId: activeToolRunId });
+            } catch (error) {
+              runSandbox.disabled = false;
+              setBadge("error", "error");
+              addSessionMessage("assistant", `## 无法停止 Docker 沙箱\n\n${String(error.message || error)}`);
+              renderConversation();
+            }
+            return;
+          }
+          await runPythonCode(pythonBlocks.at(-1)[1].trim(), message.agentJobId, runSandbox, "container");
+        });
+        actions.appendChild(runSandbox);
+      }
     }
     article.appendChild(actions);
   }
@@ -1576,9 +1605,33 @@ async function desktopToolHostJob(agentJobId) {
   return job.id;
 }
 
-async function runPythonCode(code, agentJobId = "", triggerButton = null) {
+async function ensureDesktopContainerImage() {
+  let capability = state.containerCapability || await desktopInvoke("desktop_container_capability");
+  state.containerCapability = capability;
+  if (!capability.available) throw new Error(capability.reason || "Docker Desktop 不可用。");
+  if (capability.imageAvailable) return true;
+  setBadge("preparing container");
+  capability = await desktopInvoke("desktop_prepare_container_image");
+  state.containerCapability = capability;
+  return capability.imageAvailable;
+}
+
+async function runPythonCode(code, agentJobId = "", triggerButton = null, executorMode = "native") {
+  const containerMode = state.desktopMode && executorMode === "container";
+  if (containerMode) {
+    try {
+      if (!await ensureDesktopContainerImage()) return;
+    } catch (error) {
+      addSessionMessage("assistant", `## Docker 沙箱尚未就绪\n\n${String(error.message || error)}`);
+      renderConversation();
+      setBadge("error", "error");
+      return;
+    }
+  }
   let execution = state.desktopMode
-    ? { runtime: "Local Python", network: "host", readOnlyRoot: false }
+    ? containerMode
+      ? { runtime: "Docker / Python", network: "none", readOnlyRoot: true }
+      : { runtime: "Local Python", network: "host", readOnlyRoot: false }
     : { runtime: "Docker / Python", network: "disabled", readOnlyRoot: true };
   let contractRun = null;
   if (!state.desktopMode) {
@@ -1593,7 +1646,7 @@ async function runPythonCode(code, agentJobId = "", triggerButton = null) {
       agentJobId = await desktopToolHostJob(agentJobId);
       contractRun = await desktopInvoke("desktop_propose_tool_run", {
         agentJobId,
-        toolName: "python.run",
+        toolName: containerMode ? "python.container" : "python.run",
         input: { code }
       });
     } catch (error) {
@@ -1606,7 +1659,7 @@ async function runPythonCode(code, agentJobId = "", triggerButton = null) {
   const permissions = contractRun?.permissionSnapshot;
   const warning = execution.runtime === "Local Python"
     ? `极高风险工具 python.run 请求逐次授权。\n\n将在本机 Python 中直接执行此代码。它不是 Docker 沙箱，拥有当前用户级文件和网络能力。\n\n权限快照：文件 ${permissions?.filesystem?.map((item) => `${item.scope}:${item.mode}`).join(", ") || "未声明"}；网络 ${permissions?.network || "host"}；Secret ${permissions?.secrets?.length || 0} 项。\n\n请确认你已经逐行检查代码，是否继续？`
-    : "将在无网络、只读根文件系统的 Docker 沙箱中执行此代码。请确认你已经逐行检查代码，是否继续？";
+    : `高风险工具 python.container 请求逐次授权。\n\n将在固定镜像、无网络、只读根文件系统、非 root 的 Docker 沙箱中执行代码，只挂载本次任务的只读输入目录和可写输出目录。\n\n镜像：${state.containerCapability?.image || "固定摘要镜像"}\n权限快照：文件 ${permissions?.filesystem?.map((item) => `${item.scope}:${item.mode}`).join(", ") || "未声明"}；网络 ${permissions?.network || "none"}；Secret ${permissions?.secrets?.length || 0} 项。\n\n是否继续？`;
   const approved = window.confirm(warning);
   if (contractRun) {
     try {
@@ -1630,10 +1683,14 @@ async function runPythonCode(code, agentJobId = "", triggerButton = null) {
     if (contractRun) {
       if (triggerButton) {
         triggerButton.dataset.toolRunId = contractRun.id;
-        triggerButton.textContent = "停止 Python";
-        triggerButton.title = "停止本次 Python ToolRun 及其子进程";
+        triggerButton.textContent = containerMode ? "停止沙箱" : "停止 Python";
+        triggerButton.title = containerMode
+          ? "停止本次容器 ToolRun 并删除临时容器"
+          : "停止本次 Python ToolRun 及其子进程";
       }
-      const completedRun = await desktopInvoke("desktop_execute_approved_python_tool", {
+      const completedRun = await desktopInvoke(containerMode
+        ? "desktop_execute_approved_container_tool"
+        : "desktop_execute_approved_python_tool", {
         toolRunId: contractRun.id
       });
       data = completedRun.output || { ok: false, status: completedRun.status, files: [] };
@@ -1644,7 +1701,7 @@ async function runPythonCode(code, agentJobId = "", triggerButton = null) {
         body: JSON.stringify({ code, confirmed: true })
       });
     }
-    const lines = [state.desktopMode ? "# Python 本地执行结果" : "# Python 沙箱结果", "", `**状态：** ${data.status}`, `**Job ID：** \`${data.jobId}\``, ""];
+    const lines = [containerMode || !state.desktopMode ? "# Python 沙箱结果" : "# Python 本地执行结果", "", `**状态：** ${data.status}`, `**Job ID：** \`${data.jobId}\``, ""];
     if (contractRun) lines.splice(4, 0, `**ToolRun ID：** \`${contractRun.id}\``, "");
     if (data.stdout) lines.push("## stdout", "", "```text", data.stdout, "```", "");
     if (data.stderr) lines.push("## stderr", "", "```text", data.stderr, "```", "");
@@ -1673,8 +1730,10 @@ async function runPythonCode(code, agentJobId = "", triggerButton = null) {
     if (triggerButton) {
       delete triggerButton.dataset.toolRunId;
       triggerButton.disabled = false;
-      triggerButton.textContent = "运行 Python";
-      triggerButton.title = "查看权限并逐次确认后执行最后一个 Python 代码块";
+      triggerButton.textContent = containerMode ? "Docker 沙箱" : "运行 Python";
+      triggerButton.title = containerMode
+        ? "在固定镜像、无网络、只读根文件系统的容器中运行"
+        : "查看权限并逐次确认后执行最后一个 Python 代码块";
     }
   }
 }
@@ -1933,12 +1992,28 @@ async function loadConfig() {
       const status = await fetch("/api/desktop/status").then((response) => response.json());
       els.desktopRuntime.hidden = false;
       els.desktopRuntime.textContent = "本地执行";
-      els.desktopRuntime.title = `Python ${status.python} · ${status.agentRuntime} · ${status.dockerAvailable ? "Docker 可用" : "无 Docker"}`;
+      els.desktopRuntime.title = `Python ${status.python} · ${status.agentRuntime}`;
       document.documentElement.dataset.runtime = "desktop";
     } catch {
       els.desktopRuntime.hidden = false;
       els.desktopRuntime.textContent = "本地模式";
     }
+    try {
+      state.containerCapability = await desktopInvoke("desktop_container_capability");
+      const capability = state.containerCapability;
+      const dockerStatus = capability.available
+        ? capability.imageAvailable ? "Docker 沙箱就绪" : "Docker 待准备镜像"
+        : capability.installed ? "Docker 未启动" : "无 Docker";
+      els.desktopRuntime.title = `${els.desktopRuntime.title} · ${dockerStatus}`;
+    } catch {
+      state.containerCapability = {
+        installed: false,
+        available: false,
+        imageAvailable: false,
+        reason: "无法读取 Docker 能力。"
+      };
+    }
+    renderConversation();
   }
 }
 

@@ -1,6 +1,8 @@
 use std::{
     collections::HashMap,
-    env, fs,
+    env,
+    ffi::OsString,
+    fs,
     fs::File,
     io::Read,
     path::{Path, PathBuf},
@@ -18,7 +20,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager as _, State};
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 use super::storage::{Artifact, DesktopStore, NewArtifact, ToolRun};
 
@@ -31,6 +33,11 @@ const MAX_ARTIFACT_PREVIEW_BYTES: usize = 512 * 1024;
 const PYTHON_TIMEOUT: Duration = Duration::from_secs(60);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const OUTPUT_SCAN_INTERVAL: Duration = Duration::from_millis(250);
+const CONTAINER_IMAGE: &str = "docker.io/library/python@sha256:a116514e19457bcb7af7efe9c3dd0b9b71e85b317694e7882a1c52aa15a78134";
+const CONTAINER_MEMORY_MB: u32 = 512;
+const CONTAINER_CPUS: f32 = 1.0;
+const CONTAINER_PIDS: u32 = 64;
+const CONTAINER_PULL_TIMEOUT: Duration = Duration::from_secs(300);
 
 const INHERITED_ENVIRONMENT: &[&str] = &[
     "PATH",
@@ -140,6 +147,17 @@ pub struct ArtifactExport {
     size_bytes: u64,
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContainerCapability {
+    installed: bool,
+    available: bool,
+    daemon_version: Option<String>,
+    image: &'static str,
+    image_available: bool,
+    reason: Option<String>,
+}
+
 #[derive(Debug)]
 struct OutputScan {
     files: Vec<OutputFile>,
@@ -180,7 +198,7 @@ impl ToolManager {
             .map_err(|_| "Tool Manager active-run lock was poisoned".to_string())?
             .get(tool_run_id)
             .cloned()
-            .ok_or_else(|| "ToolRun does not have an active native process".to_string())?;
+            .ok_or_else(|| "ToolRun does not have an active executor process".to_string())?;
         cancellation.store(true, Ordering::Release);
         Ok(())
     }
@@ -211,7 +229,8 @@ impl ToolManager {
         let size = file_size(&path);
         if size != artifact.size_bytes.max(0) as u64 || sha256_file(&path)? != artifact.sha256 {
             return Err(
-                "Artifact changed after it was indexed; preview and reveal are blocked".into(),
+                "Artifact changed after it was indexed; preview, reveal, and export are blocked"
+                    .into(),
             );
         }
         Ok(path)
@@ -410,19 +429,438 @@ impl ToolManager {
             artifacts,
         })
     }
+
+    fn execute_registered_container_python(
+        &self,
+        tool_run_id: &str,
+        code: &str,
+        limits: &ExecutionLimits,
+        active_run: &ActiveRun,
+    ) -> Result<ToolExecution, String> {
+        if code.as_bytes().len() > MAX_PYTHON_INPUT_BYTES {
+            return Err("python.container code exceeds the 64 KiB input limit".into());
+        }
+        let docker = docker_executable().ok_or_else(|| {
+            "Docker CLI was not found. Install and start Docker Desktop, then restart OpenRosalind."
+                .to_string()
+        })?;
+        let capability = inspect_container_capability_with(&docker);
+        if !capability.available {
+            return Err(capability
+                .reason
+                .unwrap_or_else(|| "Docker Desktop is not available".into()));
+        }
+        if !capability.image_available {
+            return Err("The pinned OpenRosalind container image is not installed. Prepare the Docker sandbox first.".into());
+        }
+
+        let run_root = self.inner.runs_root.join(tool_run_id);
+        let input_root = run_root.join("input");
+        let output_root = run_root.join("output");
+        fs::create_dir_all(&input_root)
+            .and_then(|_| fs::create_dir_all(&output_root))
+            .map_err(|error| format!("Unable to create isolated ToolRun directories: {error}"))?;
+        let script_path = input_root.join("main.py");
+        fs::write(&script_path, code)
+            .map_err(|error| format!("Unable to write the approved container input: {error}"))?;
+        let stdout_path = run_root.join("stdout.log");
+        let stderr_path = run_root.join("stderr.log");
+        let stdout = File::create(&stdout_path)
+            .map_err(|error| format!("Unable to create container stdout log: {error}"))?;
+        let stderr = File::create(&stderr_path)
+            .map_err(|error| format!("Unable to create container stderr log: {error}"))?;
+        let container_name = container_name(tool_run_id)?;
+        let arguments =
+            container_run_arguments(tool_run_id, &container_name, &input_root, &output_root)?;
+
+        let mut command = Command::new(&docker);
+        command
+            .args(arguments)
+            .stdin(Stdio::null())
+            .stdout(Stdio::from(stdout))
+            .stderr(Stdio::from(stderr));
+        let mut child = command
+            .group_spawn()
+            .map_err(|error| format!("Unable to start Docker Container Executor: {error}"))?;
+        let started = Instant::now();
+        let mut last_output_scan = started;
+        let execution_result = (|| -> Result<(ExitStatus, Option<&'static str>), String> {
+            let mut forced_status = None;
+            let exit_status = loop {
+                if active_run.cancelled.load(Ordering::Acquire) {
+                    forced_status = Some("cancelled");
+                    let status = stop_process_group(&mut child, "cancelled container")?;
+                    remove_container(&docker, &container_name);
+                    break status;
+                }
+                if started.elapsed() >= limits.timeout {
+                    forced_status = Some("timed_out");
+                    let status = stop_process_group(&mut child, "timed-out container")?;
+                    remove_container(&docker, &container_name);
+                    break status;
+                }
+                let capture_size = file_size(&stdout_path).saturating_add(file_size(&stderr_path));
+                if capture_size > limits.max_capture_bytes {
+                    forced_status = Some("failed");
+                    let status = stop_process_group(&mut child, "log-limited container")?;
+                    remove_container(&docker, &container_name);
+                    break status;
+                }
+                if last_output_scan.elapsed() >= OUTPUT_SCAN_INTERVAL {
+                    let scan = scan_output(
+                        &output_root,
+                        limits.max_output_bytes,
+                        limits.max_output_files,
+                    )?;
+                    if scan.exceeded {
+                        forced_status = Some("failed");
+                        let status = stop_process_group(&mut child, "output-limited container")?;
+                        remove_container(&docker, &container_name);
+                        break status;
+                    }
+                    last_output_scan = Instant::now();
+                }
+                match child
+                    .try_wait()
+                    .map_err(|error| format!("Unable to inspect Docker process group: {error}"))?
+                {
+                    Some(status) => break status,
+                    None => thread::sleep(PROCESS_POLL_INTERVAL),
+                }
+            };
+            Ok((exit_status, forced_status))
+        })();
+        let (exit_status, forced_status) = match execution_result {
+            Ok(result) => result,
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                remove_container(&docker, &container_name);
+                return Err(error);
+            }
+        };
+
+        let (stdout, stdout_truncated) =
+            read_bounded(&stdout_path, limits.max_capture_bytes as usize)?;
+        let (stderr, stderr_truncated) =
+            read_bounded(&stderr_path, limits.max_capture_bytes as usize)?;
+        let output_scan = scan_output(
+            &output_root,
+            limits.max_output_bytes,
+            limits.max_output_files,
+        )?;
+        let output_limit_exceeded = output_scan.exceeded
+            || file_size(&stdout_path).saturating_add(file_size(&stderr_path))
+                > limits.max_capture_bytes;
+        let terminal_status = forced_status.unwrap_or_else(|| {
+            if exit_status.success() && !output_limit_exceeded {
+                "succeeded"
+            } else {
+                "failed"
+            }
+        });
+        let status = match terminal_status {
+            "succeeded" => "completed",
+            "timed_out" => "timed_out",
+            "cancelled" => "cancelled",
+            _ if output_limit_exceeded => "output_limit_exceeded",
+            _ => "failed",
+        };
+        let (indexed_files, artifacts) = if output_scan.exceeded {
+            (Vec::new(), Vec::new())
+        } else {
+            index_output_files(&output_root, &output_scan.files)?
+        };
+        Ok(ToolExecution {
+            terminal_status,
+            output: json!({
+                "ok": terminal_status == "succeeded",
+                "status": status,
+                "jobId": tool_run_id,
+                "exitCode": exit_status.code(),
+                "stdout": stdout,
+                "stderr": stderr,
+                "stdoutTruncated": stdout_truncated,
+                "stderrTruncated": stderr_truncated,
+                "files": indexed_files,
+                "outputBytes": output_scan.total_bytes,
+                "audit": {
+                    "executor": "desktop-core:docker-container",
+                    "image": CONTAINER_IMAGE,
+                    "network": "none",
+                    "readOnlyRoot": true,
+                    "privileged": false,
+                    "capabilities": "none",
+                    "noNewPrivileges": true,
+                    "user": container_user(&output_root),
+                    "timeoutSeconds": limits.timeout.as_secs(),
+                    "memoryMb": CONTAINER_MEMORY_MB,
+                    "cpus": CONTAINER_CPUS,
+                    "pids": CONTAINER_PIDS,
+                    "maxCaptureBytes": limits.max_capture_bytes,
+                    "maxOutputBytes": limits.max_output_bytes,
+                    "maxOutputFiles": limits.max_output_files,
+                }
+            }),
+            artifacts,
+        })
+    }
+}
+
+fn docker_executable() -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(configured) = env::var_os("OPENROSALIND_DOCKER") {
+        candidates.push(PathBuf::from(configured));
+    }
+    candidates.push(PathBuf::from(if cfg!(windows) {
+        "docker.exe"
+    } else {
+        "docker"
+    }));
+    #[cfg(target_os = "macos")]
+    candidates.extend([
+        PathBuf::from("/usr/local/bin/docker"),
+        PathBuf::from("/opt/homebrew/bin/docker"),
+        PathBuf::from("/Applications/Docker.app/Contents/Resources/bin/docker"),
+    ]);
+    #[cfg(target_os = "windows")]
+    if let Some(program_files) = env::var_os("ProgramFiles") {
+        candidates
+            .push(PathBuf::from(program_files).join("Docker/Docker/resources/bin/docker.exe"));
+    }
+    candidates.into_iter().find(|candidate| {
+        Command::new(candidate)
+            .arg("--version")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+    })
+}
+
+fn inspect_container_capability() -> ContainerCapability {
+    match docker_executable() {
+        Some(docker) => inspect_container_capability_with(&docker),
+        None => ContainerCapability {
+            installed: false,
+            available: false,
+            daemon_version: None,
+            image: CONTAINER_IMAGE,
+            image_available: false,
+            reason: Some(
+                "Docker CLI was not found. Install Docker Desktop and restart OpenRosalind.".into(),
+            ),
+        },
+    }
+}
+
+fn inspect_container_capability_with(docker: &Path) -> ContainerCapability {
+    let version = Command::new(docker)
+        .args(["version", "--format", "{{.Server.Version}}"])
+        .stdin(Stdio::null())
+        .output();
+    let Ok(version) = version else {
+        return ContainerCapability {
+            installed: true,
+            available: false,
+            daemon_version: None,
+            image: CONTAINER_IMAGE,
+            image_available: false,
+            reason: Some("Docker Desktop could not be started or contacted.".into()),
+        };
+    };
+    if !version.status.success() {
+        return ContainerCapability {
+            installed: true,
+            available: false,
+            daemon_version: None,
+            image: CONTAINER_IMAGE,
+            image_available: false,
+            reason: Some("Docker Desktop is installed but its daemon is not running.".into()),
+        };
+    }
+    let daemon_version = String::from_utf8_lossy(&version.stdout).trim().to_string();
+    let image_available = Command::new(docker)
+        .args(["image", "inspect", CONTAINER_IMAGE])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false);
+    ContainerCapability {
+        installed: true,
+        available: true,
+        daemon_version: (!daemon_version.is_empty()).then_some(daemon_version),
+        image: CONTAINER_IMAGE,
+        image_available,
+        reason: (!image_available).then(|| {
+            "The pinned Python image must be downloaded before the first sandbox run.".into()
+        }),
+    }
+}
+
+fn container_name(tool_run_id: &str) -> Result<String, String> {
+    if tool_run_id.is_empty()
+        || tool_run_id.len() > 64
+        || !tool_run_id
+            .chars()
+            .all(|character| character.is_ascii_hexdigit() || character == '-')
+    {
+        return Err("ToolRun ID is not safe for a Docker container name".into());
+    }
+    Ok(format!(
+        "openrosalind-{}",
+        tool_run_id.replace('-', "").to_ascii_lowercase()
+    ))
+}
+
+#[cfg(unix)]
+fn container_user(output_root: &Path) -> String {
+    use std::os::unix::fs::MetadataExt;
+
+    fs::metadata(output_root)
+        .ok()
+        .filter(|metadata| metadata.uid() != 0)
+        .map(|metadata| format!("{}:{}", metadata.uid(), metadata.gid()))
+        .unwrap_or_else(|| "65532:65532".into())
+}
+
+#[cfg(not(unix))]
+fn container_user(_output_root: &Path) -> String {
+    "65532:65532".into()
+}
+
+fn container_run_arguments(
+    tool_run_id: &str,
+    container_name: &str,
+    input_root: &Path,
+    output_root: &Path,
+) -> Result<Vec<OsString>, String> {
+    if container_name != self::container_name(tool_run_id)? {
+        return Err("Container name does not match its ToolRun ID".into());
+    }
+    let input_source = input_root
+        .to_str()
+        .ok_or_else(|| "Container input path is not valid Unicode".to_string())?;
+    let output_source = output_root
+        .to_str()
+        .ok_or_else(|| "Container output path is not valid Unicode".to_string())?;
+    if [input_source, output_source].iter().any(|path| {
+        path.chars()
+            .any(|character| matches!(character, ',' | '\n' | '\r'))
+    }) {
+        return Err("Container mount paths cannot contain commas or newlines".into());
+    }
+    let input_mount = format!("type=bind,source={input_source},target=/workspace/input,readonly");
+    let output_mount = format!("type=bind,source={output_source},target=/workspace/output");
+    Ok([
+        "run".into(),
+        "--rm".into(),
+        "--pull=never".into(),
+        "--name".into(),
+        container_name.into(),
+        "--network=none".into(),
+        "--read-only".into(),
+        "--cap-drop=ALL".into(),
+        "--security-opt=no-new-privileges=true".into(),
+        "--pids-limit=64".into(),
+        "--memory=512m".into(),
+        "--cpus=1".into(),
+        "--ipc=none".into(),
+        "--ulimit=nofile=256:256".into(),
+        "--stop-timeout=2".into(),
+        "--user".into(),
+        container_user(output_root).into(),
+        "--workdir=/workspace/output".into(),
+        "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=64m".into(),
+        "--mount".into(),
+        input_mount.into(),
+        "--mount".into(),
+        output_mount.into(),
+        "--env=HOME=/tmp".into(),
+        "--env=PYTHONDONTWRITEBYTECODE=1".into(),
+        "--env=PYTHONUNBUFFERED=1".into(),
+        "--env=OPENROSALIND_OUTPUT_DIR=/workspace/output".into(),
+        "--label".into(),
+        format!("com.openrosalind.tool-run={tool_run_id}").into(),
+        CONTAINER_IMAGE.into(),
+        "python".into(),
+        "-I".into(),
+        "-B".into(),
+        "/workspace/input/main.py".into(),
+    ]
+    .into_iter()
+    .collect())
+}
+
+fn remove_container(docker: &Path, container_name: &str) {
+    let _ = Command::new(docker)
+        .args(["container", "rm", "--force", container_name])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
+fn prepare_container_image() -> Result<ContainerCapability, String> {
+    let docker = docker_executable().ok_or_else(|| {
+        "Docker CLI was not found. Install and start Docker Desktop, then restart OpenRosalind."
+            .to_string()
+    })?;
+    let capability = inspect_container_capability_with(&docker);
+    if !capability.available {
+        return Err(capability
+            .reason
+            .unwrap_or_else(|| "Docker Desktop is not available".into()));
+    }
+    if capability.image_available {
+        return Ok(capability);
+    }
+    let mut command = Command::new(&docker);
+    command
+        .args(["image", "pull", "--quiet", CONTAINER_IMAGE])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    let mut child = command
+        .group_spawn()
+        .map_err(|error| format!("Unable to download the pinned container image: {error}"))?;
+    let started = Instant::now();
+    let status = loop {
+        if started.elapsed() >= CONTAINER_PULL_TIMEOUT {
+            let _ = stop_process_group(&mut child, "timed-out image download");
+            return Err("Downloading the pinned container image timed out after 5 minutes".into());
+        }
+        match child
+            .try_wait()
+            .map_err(|error| format!("Unable to inspect Docker image download: {error}"))?
+        {
+            Some(status) => break status,
+            None => thread::sleep(Duration::from_millis(100)),
+        }
+    };
+    if !status.success() {
+        return Err("Docker could not download the pinned OpenRosalind container image".into());
+    }
+    let capability = inspect_container_capability_with(&docker);
+    if !capability.image_available {
+        return Err("Docker reported success but the pinned image is still unavailable".into());
+    }
+    Ok(capability)
 }
 
 fn stop_process_group(child: &mut GroupChild, reason: &str) -> Result<ExitStatus, String> {
     if let Err(error) = child.kill() {
         if error.kind() != std::io::ErrorKind::InvalidInput {
-            return Err(format!(
-                "Unable to stop {reason} Python process group: {error}"
-            ));
+            return Err(format!("Unable to stop {reason} process group: {error}"));
         }
     }
     child
         .wait()
-        .map_err(|error| format!("Unable to reap {reason} Python process group: {error}"))
+        .map_err(|error| format!("Unable to reap {reason} process group: {error}"))
 }
 
 fn file_size(path: &Path) -> u64 {
@@ -562,6 +1000,8 @@ fn scan_output(root: &Path, max_bytes: u64, max_files: usize) -> Result<OutputSc
 pub struct ToolExecutor {
     kind: &'static str,
     entrypoint: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image: Option<&'static str>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -587,6 +1027,12 @@ pub struct ToolResources {
     timeout_seconds: u32,
     max_input_bytes: usize,
     max_output_bytes: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    memory_mb: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cpu: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pids: Option<u32>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -612,6 +1058,7 @@ fn text_statistics_contract() -> ToolContract {
         executor: ToolExecutor {
             kind: "native",
             entrypoint: "desktop-core:text-statistics",
+            image: None,
         },
         permissions: ToolPermissions {
             risk: "low",
@@ -624,12 +1071,19 @@ fn text_statistics_contract() -> ToolContract {
             timeout_seconds: 1,
             max_input_bytes: 512 * 1024,
             max_output_bytes: 16 * 1024,
+            memory_mb: None,
+            cpu: None,
+            pids: None,
         },
     }
 }
 
 fn contracts() -> Vec<ToolContract> {
-    vec![text_statistics_contract(), python_run_contract()]
+    vec![
+        text_statistics_contract(),
+        python_run_contract(),
+        python_container_contract(),
+    ]
 }
 
 fn python_run_contract() -> ToolContract {
@@ -642,6 +1096,7 @@ fn python_run_contract() -> ToolContract {
         executor: ToolExecutor {
             kind: "native",
             entrypoint: "desktop-core:native-python",
+            image: None,
         },
         permissions: ToolPermissions {
             risk: "critical",
@@ -663,6 +1118,48 @@ fn python_run_contract() -> ToolContract {
             timeout_seconds: 60,
             max_input_bytes: 64 * 1024,
             max_output_bytes: 20 * 1024 * 1024,
+            memory_mb: None,
+            cpu: None,
+            pids: None,
+        },
+    }
+}
+
+fn python_container_contract() -> ToolContract {
+    ToolContract {
+        schema_version: 1,
+        name: "python.container",
+        version: "1.0.0-alpha.1",
+        title: "在 Docker 沙箱运行 Python",
+        description: "在固定镜像、默认断网和最小权限的临时容器中运行用户逐次确认的代码。",
+        executor: ToolExecutor {
+            kind: "container",
+            entrypoint: "python -I -B /workspace/input/main.py",
+            image: Some(CONTAINER_IMAGE),
+        },
+        permissions: ToolPermissions {
+            risk: "high",
+            approval: "per-run",
+            filesystem: vec![
+                ToolFilesystemPermission {
+                    scope: "job-input",
+                    mode: "read",
+                },
+                ToolFilesystemPermission {
+                    scope: "job-output",
+                    mode: "write",
+                },
+            ],
+            network: "none",
+            secrets: vec![],
+        },
+        resources: ToolResources {
+            timeout_seconds: 60,
+            max_input_bytes: 64 * 1024,
+            max_output_bytes: 20 * 1024 * 1024,
+            memory_mb: Some(CONTAINER_MEMORY_MB),
+            cpu: Some(CONTAINER_CPUS),
+            pids: Some(CONTAINER_PIDS),
         },
     }
 }
@@ -704,24 +1201,24 @@ fn execute_tool(name: &str, input: &Value) -> Result<Value, String> {
 
 fn validate_proposed_input(name: &str, input: &Value) -> Result<(), String> {
     match name {
-        "python.run" => {
+        "python.run" | "python.container" => {
             let object = input
                 .as_object()
-                .ok_or_else(|| "python.run input must be an object".to_string())?;
+                .ok_or_else(|| format!("{name} input must be an object"))?;
             if object.keys().any(|key| key != "code") {
-                return Err("python.run accepts only the code field".into());
+                return Err(format!("{name} accepts only the code field"));
             }
             let code = object
                 .get("code")
                 .and_then(Value::as_str)
-                .ok_or_else(|| "python.run requires a code string".to_string())?;
+                .ok_or_else(|| format!("{name} requires a code string"))?;
             if code.is_empty()
                 || code.chars().count() > 50_000
                 || code.len() > MAX_PYTHON_INPUT_BYTES
                 || code.contains('\0')
             {
                 return Err(
-                    "python.run code must contain 1 to 50000 characters, fit within 64 KiB, and contain no NUL bytes".into(),
+                    format!("{name} code must contain 1 to 50000 characters, fit within 64 KiB, and contain no NUL bytes"),
                 );
             }
             Ok(())
@@ -733,6 +1230,36 @@ fn validate_proposed_input(name: &str, input: &Value) -> Result<(), String> {
 #[tauri::command]
 pub fn desktop_list_tool_contracts() -> Vec<ToolContract> {
     contracts()
+}
+
+#[tauri::command]
+pub async fn desktop_container_capability() -> Result<ContainerCapability, String> {
+    tauri::async_runtime::spawn_blocking(inspect_container_capability)
+        .await
+        .map_err(|error| format!("Container capability task failed: {error}"))
+}
+
+#[tauri::command]
+pub async fn desktop_prepare_container_image(
+    app: AppHandle,
+) -> Result<ContainerCapability, String> {
+    let confirmed = app
+        .dialog()
+        .message(format!(
+            "OpenRosalind 将通过 Docker Desktop 下载固定摘要的官方 Python 镜像。\n\n{CONTAINER_IMAGE}\n\n镜像下载需要网络；工具容器运行时仍保持断网。"
+        ))
+        .title("准备 Docker 沙箱")
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            "下载镜像".into(),
+            "取消".into(),
+        ))
+        .blocking_show();
+    if !confirmed {
+        return Ok(inspect_container_capability());
+    }
+    tauri::async_runtime::spawn_blocking(prepare_container_image)
+        .await
+        .map_err(|error| format!("Container image task failed: {error}"))?
 }
 
 #[tauri::command]
@@ -838,7 +1365,62 @@ fn execute_approved_python_tool(
         &ExecutionLimits::default(),
         &active_run,
     );
-    let finished = match execution {
+    let finished = finish_tool_execution(store, tool_run_id, execution);
+    drop(active_run);
+    finished
+}
+
+#[tauri::command]
+pub async fn desktop_execute_approved_container_tool(
+    app: AppHandle,
+    tool_run_id: String,
+) -> Result<ToolRun, String> {
+    let manager = app.state::<ToolManager>().inner().clone();
+    let store = app.state::<DesktopStore>().inner().clone();
+    let tool_run_id = tool_run_id.trim().to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        execute_approved_container_tool(&manager, &store, &tool_run_id)
+    })
+    .await
+    .map_err(|error| format!("Container executor task failed: {error}"))?
+}
+
+fn execute_approved_container_tool(
+    manager: &ToolManager,
+    store: &DesktopStore,
+    tool_run_id: &str,
+) -> Result<ToolRun, String> {
+    let tool_run = store.get_tool_run(tool_run_id)?;
+    if tool_run.tool_name != "python.container" || tool_run.status != "approved" {
+        return Err(
+            "Only an approved python.container ToolRun can enter the Container Executor".into(),
+        );
+    }
+    let code = tool_run
+        .input()
+        .get("code")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "Approved python.container input is missing its code field".to_string())?
+        .to_string();
+    let active_run = manager.register(tool_run_id)?;
+    store.start_approved_tool_run(tool_run_id)?;
+    let execution = manager.execute_registered_container_python(
+        tool_run_id,
+        &code,
+        &ExecutionLimits::default(),
+        &active_run,
+    );
+    let finished = finish_tool_execution(store, tool_run_id, execution);
+    drop(active_run);
+    finished
+}
+
+fn finish_tool_execution(
+    store: &DesktopStore,
+    tool_run_id: &str,
+    execution: Result<ToolExecution, String>,
+) -> Result<ToolRun, String> {
+    match execution {
         Ok(execution) => {
             match store.replace_tool_run_artifacts(tool_run_id, &execution.artifacts) {
                 Ok(_) => {
@@ -870,9 +1452,7 @@ fn execute_approved_python_tool(
                 "files": [],
             }),
         ),
-    };
-    drop(active_run);
-    finished
+    }
 }
 
 #[tauri::command]
@@ -1143,6 +1723,64 @@ mod tests {
     }
 
     #[test]
+    fn container_contract_pins_the_image_and_freezes_resource_limits() {
+        let encoded = serde_json::to_value(python_container_contract()).unwrap();
+
+        assert_eq!(encoded["executor"]["kind"], "container");
+        assert_eq!(encoded["executor"]["image"], CONTAINER_IMAGE);
+        assert!(CONTAINER_IMAGE.contains("@sha256:"));
+        assert_eq!(encoded["permissions"]["risk"], "high");
+        assert_eq!(encoded["permissions"]["approval"], "per-run");
+        assert_eq!(encoded["permissions"]["network"], "none");
+        assert_eq!(encoded["resources"]["memoryMb"], CONTAINER_MEMORY_MB);
+        assert_eq!(encoded["resources"]["cpu"], CONTAINER_CPUS);
+        assert_eq!(encoded["resources"]["pids"], CONTAINER_PIDS);
+    }
+
+    #[test]
+    fn container_command_applies_fail_closed_sandbox_flags() {
+        let root = env::temp_dir().join(format!(
+            "open-rosalind-container-args-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let input = root.join("input");
+        let output = root.join("output");
+        fs::create_dir_all(&input).unwrap();
+        fs::create_dir_all(&output).unwrap();
+        let tool_run_id = "12345678-1234-4123-8123-123456789abc";
+        let name = container_name(tool_run_id).unwrap();
+        let arguments = container_run_arguments(tool_run_id, &name, &input, &output).unwrap();
+        let arguments = arguments
+            .iter()
+            .map(|value| value.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+
+        for required in [
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges=true",
+            "--pids-limit=64",
+            "--memory=512m",
+            "--cpus=1",
+            "--ipc=none",
+            CONTAINER_IMAGE,
+        ] {
+            assert!(arguments.iter().any(|argument| argument == required));
+        }
+        assert!(!arguments.iter().any(|argument| argument == "--privileged"));
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.contains("target=/workspace/input,readonly")));
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.contains("target=/workspace/output")));
+        assert!(container_name("../../docker-socket").is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn python_contract_rejects_extra_fields_and_oversized_code() {
         assert!(
             validate_proposed_input("python.run", &json!({"code": "print(1)", "cwd": "/"}))
@@ -1154,6 +1792,11 @@ mod tests {
         assert!(validate_proposed_input(
             "python.run",
             &json!({"code": "界".repeat(MAX_PYTHON_INPUT_BYTES / 3 + 1)})
+        )
+        .is_err());
+        assert!(validate_proposed_input(
+            "python.container",
+            &json!({"code": "print(1)", "image": "attacker/image:latest"})
         )
         .is_err());
     }

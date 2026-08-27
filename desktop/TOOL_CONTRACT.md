@@ -13,6 +13,9 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 - `desktop_list_tool_contracts`：返回已安装工具及其权限和资源声明；
 - `desktop_run_low_risk_tool`：只运行 `risk=low` 且 `approval=automatic` 的工具；
 - `desktop_execute_approved_python_tool`：在 Rust Tool Manager 内运行已逐次批准的 Python；
+- `desktop_execute_approved_container_tool`：运行已逐次批准的 Docker Python 沙箱；
+- `desktop_container_capability`：检测 Docker CLI、Daemon 和固定镜像状态；
+- `desktop_prepare_container_image`：经 Desktop Core 原生系统对话框确认后下载固定摘要镜像；
 - `desktop_cancel_tool_run`：请求取消正在运行的原生进程组；
 - `desktop_list_tool_artifacts`：读取一个 ToolRun 的持久化产物索引；
 - `desktop_read_tool_artifact`：按 Artifact ID 校验后读取最多 512 KiB 文本预览；
@@ -39,6 +42,14 @@ UI 只持有 Artifact ID；预览或显示文件时，Desktop Core 会重新解�
 WebView，文本预览上限为 512 KiB。显式导出只能由系统保存对话框选择目标位置；WebView
 不能提交目标路径，复制完成后 Desktop Core 会再次核对大小和摘要。
 
+`python.container@1.0.0-alpha.1` 是首个 Container Executor 工具。它使用固定摘要的
+Docker Official Image `python:3.12.14-slim-bookworm`，运行时强制 `--pull=never`、
+`--network=none`、只读根文件系统、非 root UID、丢弃全部 Linux capabilities、禁止提权，
+并限制为 1 CPU、512 MiB 内存、64 个进程、60 秒和 20 MiB 输出。容器只挂载本次
+ToolRun 的只读 input 与可写 output 目录，不继承主机代理、API Key 或其他环境变量。
+首次使用的镜像下载必须通过 Desktop Core 的原生系统确认对话框；Docker 不存在或 Daemon 未启动时该工具
+显示为不可用，但主 Agent、Native Executor 和应用启动不受影响。
+
 ## 权限规则
 
 | 风险 | 示例 | v1 行为 |
@@ -59,5 +70,5 @@ Token 或密码不得出现在 Tool input、命令行、日志或 Agent Worker �
 - Compose Executor：独立项目名、网络和 Volume，由 Tool Manager 管理健康状态；
 - Remote Executor：必须声明 HTTPS 目标、上传数据范围、费用和数据处理政策。
 
-下一步是实现 Container Executor 和镜像策略。即使这些 Executor 完成，Agent 也不能
-自动批准本机 Python 或 Shell。
+下一步是增加镜像签名/升级清单、Container Executor 的真实 Docker Desktop 集成矩阵，
+以及 Compose Executor。Agent 仍不能自动批准本机 Python、容器或 Shell。
