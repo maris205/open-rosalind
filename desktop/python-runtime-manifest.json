@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "provider": "astral-sh/python-build-standalone",
+  "release": "20260825",
+  "pythonVersion": "3.11.16",
+  "macos": {
+    "arm64": {
+      "asset": "cpython-3.11.16+20260825-aarch64-apple-darwin-install_only.tar.gz",
+      "sha256": "2e50ed6ec49d8714a83c093e9ce74e1b8b21a2c64a49c3b603471d9c4caac76b"
+    },
+    "x64": {
+      "asset": "cpython-3.11.16+20260825-x86_64-apple-darwin-install_only.tar.gz",
+      "sha256": "929d1fee06caeee33c63b07d89ffae93d56ec14c980854d917a9e459ddf50b85"
+    }
+  }
+}

@@ -52,20 +52,54 @@ fn repository_root(app: &tauri::App) -> Result<PathBuf, String> {
     Err("OpenRosalind Python runtime was not found".into())
 }
 
-fn python_executable(root: &Path) -> PathBuf {
-    if let Ok(value) = env::var("OPENROSALIND_PYTHON") {
-        return PathBuf::from(value);
+#[cfg(target_os = "macos")]
+fn bundled_python_executable(root: &Path) -> PathBuf {
+    let architecture = if cfg!(target_arch = "aarch64") {
+        "arm64"
+    } else {
+        "x64"
+    };
+    root.join("python-runtime")
+        .join(architecture)
+        .join("bin/python3")
+}
+
+fn resolve_python_executable(
+    root: &Path,
+    allow_development_overrides: bool,
+    configured_python: Option<OsString>,
+) -> Result<PathBuf, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let bundled = bundled_python_executable(root);
+        if !allow_development_overrides {
+            return if bundled.is_file() {
+                Ok(bundled)
+            } else {
+                Err(format!(
+                    "The signed OpenRosalind application is missing its embedded Python runtime: {}",
+                    bundled.display()
+                ))
+            };
+        }
+    }
+    if let Some(value) = configured_python {
+        return Ok(PathBuf::from(value));
     }
     let unix_venv = root.join(".venv/bin/python");
     if unix_venv.is_file() {
-        return unix_venv;
+        return Ok(unix_venv);
     }
     let windows_venv = root.join(".venv/Scripts/python.exe");
     if windows_venv.is_file() {
-        return windows_venv;
+        return Ok(windows_venv);
     }
     #[cfg(target_os = "macos")]
     {
+        let bundled = bundled_python_executable(root);
+        if bundled.is_file() {
+            return Ok(bundled);
+        }
         let mut candidates = Vec::new();
         if let Ok(home) = env::var("HOME") {
             let home = PathBuf::from(home);
@@ -78,16 +112,34 @@ fn python_executable(root: &Path) -> PathBuf {
             PathBuf::from("/Library/Frameworks/Python.framework/Versions/3.11/bin/python3"),
         ]);
         if let Some(candidate) = candidates.into_iter().find(|path| path.is_file()) {
-            return candidate;
+            return Ok(candidate);
         }
     }
-    PathBuf::from(if cfg!(windows) { "python" } else { "python3" })
+    Ok(PathBuf::from(if cfg!(windows) {
+        "python"
+    } else {
+        "python3"
+    }))
+}
+
+fn python_executable(root: &Path) -> Result<PathBuf, String> {
+    resolve_python_executable(
+        root,
+        cfg!(debug_assertions),
+        env::var_os("OPENROSALIND_PYTHON"),
+    )
 }
 
 fn validate_python(python: &Path) -> Result<(), String> {
     let mut child = Command::new(python)
+        .arg("-I")
+        .arg("-B")
+        .arg("-S")
         .arg("-c")
         .arg("import platform, sys; print(f'{sys.version_info.major}.{sys.version_info.minor}\\t{platform.machine()}')")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("PYTHONNOUSERSITE", "1")
+        .env("PYTHONSAFEPATH", "1")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -213,7 +265,7 @@ struct BackendLaunch {
 
 fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
     let root = repository_root(app)?;
-    let python = python_executable(&root);
+    let python = python_executable(&root)?;
     validate_python(&python)?;
     let port = desktop_port()?;
     let bootstrap_token = desktop_token();
@@ -237,10 +289,15 @@ fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
     } else {
         bundled_packages
     };
-    let python_path = env::join_paths([root.as_path(), python_packages.as_path()])
+    let mut python_paths = vec![root.as_path()];
+    if python_packages.is_dir() {
+        python_paths.push(python_packages.as_path());
+    }
+    let python_path = env::join_paths(python_paths)
         .map_err(|error| format!("Unable to configure the Python module path: {error}"))?;
 
     let mut child = Command::new(&python)
+        .arg("-B")
         .arg("-m")
         .arg("web_app.server")
         .arg("--host")
@@ -250,6 +307,8 @@ fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
         .current_dir(&root)
         .env("PYTHONPATH", &python_path)
         .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("PYTHONNOUSERSITE", "1")
+        .env("PYTHONSAFEPATH", "1")
         .env("ROSALIND_DESKTOP_MODE", "1")
         .env("ROSALIND_DESKTOP_TOKEN", &bootstrap_token)
         .env("ROSALIND_COOKIE_SECURE", "0")
@@ -417,7 +476,9 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::desktop_token;
+    use std::{ffi::OsString, fs};
+
+    use super::{desktop_token, resolve_python_executable};
 
     #[test]
     fn desktop_tokens_are_random_and_not_empty() {
@@ -428,5 +489,49 @@ mod tests {
         assert_eq!(second.len(), 64);
         assert_ne!(first, second);
         assert!(first.chars().all(|character| character.is_ascii_hexdigit()));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn release_runtime_uses_only_the_architecture_matched_embedded_python() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-python-selection-{}",
+            uuid::Uuid::new_v4().simple()
+        ));
+        let architecture = if cfg!(target_arch = "aarch64") {
+            "arm64"
+        } else {
+            "x64"
+        };
+        let bundled = root
+            .join("python-runtime")
+            .join(architecture)
+            .join("bin/python3");
+        fs::create_dir_all(bundled.parent().unwrap()).unwrap();
+        fs::write(&bundled, b"test runtime").unwrap();
+
+        let resolved =
+            resolve_python_executable(&root, false, Some(OsString::from("/tmp/untrusted-python")))
+                .unwrap();
+        assert_eq!(resolved, bundled);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn release_runtime_fails_closed_when_embedded_python_is_missing() {
+        let root = std::env::temp_dir().join(format!(
+            "openrosalind-python-missing-{}",
+            uuid::Uuid::new_v4().simple()
+        ));
+        fs::create_dir_all(&root).unwrap();
+
+        let error =
+            resolve_python_executable(&root, false, Some(OsString::from("/tmp/untrusted-python")))
+                .unwrap_err();
+        assert!(error.contains("missing its embedded Python runtime"));
+
+        fs::remove_dir_all(root).unwrap();
     }
 }

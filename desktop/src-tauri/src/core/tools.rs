@@ -307,6 +307,8 @@ impl ToolManager {
             .current_dir(&output_root)
             .env_clear()
             .env("PYTHONIOENCODING", "utf-8")
+            .env("PYTHONNOUSERSITE", "1")
+            .env("PYTHONSAFEPATH", "1")
             .env("PYTHONUNBUFFERED", "1")
             .env("OPENROSALIND_TOOL_RUN_ID", tool_run_id)
             .env("OPENROSALIND_OUTPUT_DIR", &output_root)

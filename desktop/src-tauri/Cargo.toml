@@ -1,6 +1,6 @@
 [package]
 name = "open-rosalind-desktop"
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.4"
 description = "Local biomedical research agent"
 authors = ["OpenRosalind"]
 edition = "2021"

@@ -55,6 +55,12 @@ message presentation, and biomedical tools remain shared with the web build.
   `OPENROSALIND_DESKTOP_AGENT_RUNTIME=openhands`.
 - Docker is optional and is reported as a capability, not a startup
   requirement.
+- macOS release bundles contain a relocatable, architecture-matched CPython
+  3.11 runtime and hash-locked Python dependencies. Release builds ignore
+  `OPENROSALIND_PYTHON` and fail closed if the signed bundle is incomplete, so
+  an installed app no longer depends on Homebrew, Xcode Python, or a user
+  virtual environment. Development mode may still use an explicitly selected
+  local Python.
 - The first optional Container Executor runs approved Python in a pinned,
   multi-architecture Docker Official Image. It uses no network, a read-only
   root filesystem, a numeric non-root user, no Linux capabilities, no-new-
@@ -99,12 +105,16 @@ Platform-specific `.app` and `.dmg` commands, Intel/Apple Silicon guidance,
 and the signing/notarization contract are documented in
 [`MAC_CODEX.md`](./MAC_CODEX.md).
 
-The build prepares a private, bundled Python package directory from
-`requirements.txt`; the selected interpreter does not need those packages
-installed globally. In desktop mode, save an OpenAI-compatible Base URL, model,
-and API Key in Settings. The Base URL and model are local SQLite metadata; the
-API Key is written directly to the system credential vault. Web mode continues
-to support the existing environment-variable and session settings.
+Development prepares a private Python package directory from `requirements.txt`.
+macOS packaging instead downloads the exact CPython artifact declared in
+`python-runtime-manifest.json`, verifies its SHA-256 digest, and installs only
+hash-locked wheels from `requirements-runtime.lock` into that runtime. The
+generated runtimes are ignored by Git and the downloaded archive is cached in
+the user's Library cache. In desktop mode, save an OpenAI-compatible Base URL,
+model, and API Key in Settings. The Base URL and model are local SQLite
+metadata; the API Key is written directly to the system credential vault. Web
+mode continues to support the existing environment-variable and session
+settings.
 
 The desktop research assistant now runs as a persisted AgentJob. The Worker
 submits bounded model and automatic-tool requests to Desktop Core. Desktop Core

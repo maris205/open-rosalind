@@ -161,9 +161,13 @@ npm run desktop:build:macos:arm64
 npm run desktop:build:macos:x64
 ```
 
-Tauri 壳支持 universal target，但当前 Alpha 打包的 Python 第三方模块仍可能含有
-单架构二进制，因此 universal 命令只用于构建验证，不能替代 arm64 和 x86_64
-真机包及真机测试：
+构建脚本会读取 `desktop/python-runtime-manifest.json`，下载固定版本的独立
+CPython，验证 SHA-256，并根据 `desktop/requirements-runtime.lock` 的哈希安装依赖。
+arm64 和 x86_64 包只包含各自的运行时；universal 包同时包含两套运行时并由应用在
+启动时选择。生成目录不会提交到 Git，下载压缩包缓存在用户 Library 中。
+
+Tauri 壳支持 universal target，但 universal 命令仍不能替代 arm64 和 x86_64
+原生包的真机测试：
 
 ```bash
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
@@ -184,8 +188,9 @@ desktop/src-tauri/target/release/bundle/macos/*.app
 desktop/src-tauri/target/release/bundle/dmg/*.dmg
 ```
 
-当前 Alpha 仍需要系统 Python。正式发布前需要嵌入 macOS Python runtime、
-处理 Apple 签名/公证，并分别验证 arm64 和 x86_64 包。
+安装后的 macOS Alpha 已不再需要系统 Python。构建机仍需要 Node、Rust 和一个用于
+开发测试的 Python；正式发布前还需要处理 Apple Developer ID 签名/公证，并分别
+验证 arm64、x86_64 和 universal 包。
 
 ## 6. Apple 签名与公证
 

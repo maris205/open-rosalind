@@ -39,6 +39,13 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 
 const targetIndex = buildArguments.indexOf("--target");
 const targetName = targetIndex >= 0 ? buildArguments[targetIndex + 1] : "";
+const expectedRuntimeArchitectures = targetName.includes("universal")
+  ? ["arm64", "x64"]
+  : targetName.includes("x86_64")
+    ? ["x64"]
+    : targetName.includes("aarch64")
+      ? ["arm64"]
+      : [process.arch];
 const releaseRoot = targetName
   ? path.join(desktopRoot, "src-tauri", "target", targetName, "release")
   : path.join(desktopRoot, "src-tauri", "target", "release");
@@ -49,9 +56,48 @@ const appBundles = fs.existsSync(appDirectory)
   ? fs.readdirSync(appDirectory).filter((name) => name.endsWith(".app")).map((name) => path.join(appDirectory, name))
   : [];
 
+function findPythonBytecode(directory, matches = []) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "__pycache__") matches.push(entryPath);
+      else findPythonBytecode(entryPath, matches);
+    } else if (entry.isFile() && entry.name.endsWith(".pyc")) {
+      matches.push(entryPath);
+    }
+  }
+  return matches;
+}
+
+function verifyAppBundle(appBundle) {
+  run("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]);
+  const runtimeRoot = path.join(appBundle, "Contents", "Resources", "runtime");
+  const pythonRuntimeRoot = path.join(runtimeRoot, "python-runtime");
+  const packagedArchitectures = fs.readdirSync(pythonRuntimeRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && ["arm64", "x64"].includes(entry.name))
+    .map((entry) => entry.name)
+    .sort();
+  if (packagedArchitectures.join(",") !== [...expectedRuntimeArchitectures].sort().join(",")) {
+    throw new Error(`Unexpected embedded Python architectures in ${appBundle}: ${packagedArchitectures.join(", ")}`);
+  }
+  for (const architecture of expectedRuntimeArchitectures) {
+    const python = path.join(pythonRuntimeRoot, architecture, "bin", "python3");
+    if (!fs.existsSync(python)) throw new Error(`Missing embedded Python executable: ${python}`);
+    run(python, [
+      "-I", "-B", "-c",
+      `import json, platform, pathlib, sys; import docx, lxml, pypdf, redis, rq, sqlalchemy; expected=${JSON.stringify(architecture === "arm64" ? "arm64" : "x86_64")}; assert platform.machine() == expected, (platform.machine(), expected); assert pathlib.Path(sys.executable).resolve().is_relative_to(pathlib.Path(${JSON.stringify(appBundle)}).resolve()); print(json.dumps({'python': platform.python_version(), 'machine': platform.machine()}))`
+    ], { env: { ...environment, PYTHONDONTWRITEBYTECODE: "1", PYTHONNOUSERSITE: "1", PYTHONSAFEPATH: "1" } });
+  }
+  const bytecode = findPythonBytecode(runtimeRoot);
+  if (bytecode.length) {
+    throw new Error(`Python bytecode must not be packaged; found ${bytecode.slice(0, 5).join(", ")}`);
+  }
+  run("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]);
+}
+
 if (!appBundles.length) throw new Error(`No macOS app bundle found in ${appDirectory}`);
 for (const appBundle of appBundles) {
-  run("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]);
+  verifyAppBundle(appBundle);
 }
 
 const bundlesIndex = buildArguments.indexOf("--bundles");
@@ -70,7 +116,7 @@ if (requestedBundles.split(",").includes("dmg")) {
         .map((name) => path.join(mountPoint, name));
       if (!embeddedApps.length) throw new Error(`No app bundle found inside ${diskImage}`);
       for (const appBundle of embeddedApps) {
-        run("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]);
+        verifyAppBundle(appBundle);
       }
     } finally {
       spawnSync("hdiutil", ["detach", mountPoint], { stdio: "inherit" });
