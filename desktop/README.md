@@ -18,10 +18,15 @@ message presentation, and biomedical tools remain shared with the web build.
   status polling, cooperative cancellation, structured progress, and
   credential-free model requests. The Worker still has no direct model,
   credential, Shell, filesystem, network, Docker, or tool access.
-- Desktop Core stores Conversations, AgentJobs, ordered AgentJob events,
-  ToolRuns, and Artifacts in its own `desktop-core.db`; a Conversation does not
-  own a process or container. Unfinished jobs recover as `interrupted` after an
-  application restart.
+- Desktop Core stores UI chats and messages, Conversations, AgentJobs, ordered
+  AgentJob events, ToolRuns, and Artifacts in its own `desktop-core.db`; a
+  Conversation does not own a process or container. Chat snapshots are replaced
+  atomically and isolated by the signed-in local user. Unfinished jobs recover
+  as `interrupted` after an application restart.
+- Schema v5 migrates legacy macOS WebKit `localStorage` chat databases on first
+  launch. It merges duplicate chat IDs using the newest copy, then makes Desktop
+  Core SQLite the authoritative store. The current-origin browser copy remains
+  only as a recovery fallback and is no longer the desktop source of truth.
 - Provider Profiles store only non-sensitive metadata in `desktop-core.db`.
   Model API Keys are saved through the operating system credential vault
   (macOS Keychain or Windows Credential Manager) and are never returned to the
@@ -106,12 +111,24 @@ system credential and performs the HTTPS call, then returns only the model
 result. Protocol v3 currently implements this single model stage; multi-step
 planning and Tool Contract execution remain later milestones.
 
+Desktop chat persistence is separate from execution Conversations so replacing
+or clearing UI history cannot cascade-delete AgentJob audit records. Desktop IPC
+validates chat/message IDs, roles, size limits, active-chat ownership, and writes
+the complete snapshot in one SQLite transaction. Browser automation covers a
+save-and-reload cycle in addition to Rust round-trip, isolation, migration, and
+rollback tests.
+
 ## Security Boundary
 
 This alpha does not grant the Agent general access to the user's home
-directory. Runtime data is confined to the application-data workspace. Native
-project-directory selection and per-command permission prompts are the next
-desktop milestone.
+directory. Runtime data is confined to the application-data workspace. A user
+can now bind one explicitly selected local directory to a research project from
+the native folder picker, reveal it in Finder or File Explorer, and revoke the
+authorization. The WebView cannot submit an arbitrary path, filesystem roots
+and the entire home directory are rejected, and a directory cannot be bound to
+two projects. The first project-aware Tool Contracts can list non-sensitive
+files and preview allowlisted UTF-8 text through relative paths. They do not
+grant Python, the Agent Worker, or write-capable tools access to the directory.
 
 The Rust Desktop Core owns the Python process and exposes a restricted set of
 Tauri commands to the authenticated loopback UI. The bootstrap token is never

@@ -205,6 +205,24 @@
           </div>
           <button value="cancel" type="submit" title="关闭" aria-label="关闭">x</button>
         </div>
+        <section id="projectDirectorySection" class="project-directory-section" hidden>
+          <div>
+            <h3>本地项目目录</h3>
+            <p id="projectDirectoryStatus">尚未授权目录。Agent 和工具无法访问你的其他文件。</p>
+            <code id="projectDirectoryPath" hidden></code>
+          </div>
+          <div class="project-directory-actions">
+            <button id="authorizeProjectDirectory" type="button" class="primary-button">选择文件夹</button>
+            <button id="revealProjectDirectory" type="button" hidden>在文件管理器中显示</button>
+            <button id="scanProjectFiles" type="button" hidden>扫描项目文件</button>
+            <button id="revokeProjectDirectory" type="button" class="danger-button" hidden>撤销授权</button>
+          </div>
+        </section>
+        <section id="projectFilesSection" class="project-files-section" hidden>
+          <h3>本地项目文件</h3>
+          <p id="projectFilesStatus">点击“扫描项目文件”读取安全文件清单。</p>
+          <div id="projectFileList" class="dialog-list project-file-list"></div>
+        </section>
         <section class="project-memory-editor">
           <select id="memoryCategory" aria-label="记忆类型">
             <option value="fact">事实</option>

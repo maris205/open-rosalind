@@ -162,6 +162,12 @@ Executor、请求确认、注入最小目录和临时 Secret、收集结果、�
 Control Plane 第一阶段只提供登录、Token、用户、组织、订阅、设备授权、客户端
 版本和可选同步。访问 Token 短期有效，刷新凭据存入系统凭据存储。
 
+当前 macOS 实现已将 UI 对话和消息从 WebKit `localStorage` 迁入 Desktop Core
+SQLite schema v5。UI Chat 与执行审计使用的 Conversation 分表保存，避免清理聊天
+时级联删除 AgentJob。写入采用按用户隔离的完整快照事务；首次升级会只读扫描本
+应用自己的旧 WebKit LocalStorage，按 Chat ID 合并最新记录，成功导入后不再重复
+覆盖。`localStorage` 仅保留当前来源的容灾副本，不是桌面版权威数据源。
+
 ## 8. 模型配置与凭据
 
 Provider Profile 包含 Provider 类型、Base URL、Model、API Key 引用、模型能力、
@@ -303,6 +309,14 @@ Docker 缺失时，登录、对话和 Native Tools 仍可使用；Container Tool
 | 目录选择 | NSOpenPanel/Tauri Dialog | Windows Picker/Tauri Dialog |
 | 持久授权 | Security-scoped bookmark | 路径授权 + ACL/应用策略 |
 | 文件监控 | FSEvents/notify | ReadDirectoryChangesW/notify |
+
+当前 alpha 已实现项目目录授权的第一阶段：目录只能经 Desktop Core 调起的原生选择器
+授予，授权按 Project ID 写入本地 SQLite，并支持可用性检查、在系统文件管理器中显示和
+撤销。磁盘根目录、整个用户主目录以及已绑定其他项目的目录会被拒绝。当前只有
+`project.files.list` 和 `project.file.read` 两个低风险只读 Tool Contract 可以按
+AgentJob 的项目关系消费授权；写入工具、Python 和 Agent Worker 不会因为目录已授权就
+自动获得访问权。macOS 当前为非 App Sandbox 发行方式，使用持久路径策略；
+进入 App Sandbox 发行渠道前需要升级为 security-scoped bookmark。
 
 模型 Provider 网络权限和工具网络权限必须分开管理。
 

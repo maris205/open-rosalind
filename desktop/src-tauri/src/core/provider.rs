@@ -75,6 +75,7 @@ impl CredentialVault for SystemCredentialVault {
 
 pub struct ProviderManager {
     vault: Arc<dyn CredentialVault>,
+    credential_cache: Mutex<HashMap<String, Zeroizing<String>>>,
     cancellations: Mutex<HashMap<String, Arc<AtomicBool>>>,
 }
 
@@ -82,6 +83,7 @@ impl ProviderManager {
     pub fn system() -> Self {
         Self {
             vault: Arc::new(SystemCredentialVault),
+            credential_cache: Mutex::new(HashMap::new()),
             cancellations: Mutex::new(HashMap::new()),
         }
     }
@@ -90,29 +92,58 @@ impl ProviderManager {
     fn new(vault: Arc<dyn CredentialVault>) -> Self {
         Self {
             vault,
+            credential_cache: Mutex::new(HashMap::new()),
             cancellations: Mutex::new(HashMap::new()),
         }
     }
 
     pub(crate) fn credential(&self, reference: &str) -> Result<String, String> {
-        self.vault
-            .get(reference)?
+        self.cached_credential(reference)?
             .ok_or_else(|| "Provider API Key is not configured".to_string())
     }
 
+    fn cached_credential(&self, reference: &str) -> Result<Option<String>, String> {
+        let mut cache = self
+            .credential_cache
+            .lock()
+            .map_err(|_| "Provider credential cache lock was poisoned".to_string())?;
+        if let Some(secret) = cache.get(reference) {
+            return Ok(Some(secret.as_str().to_owned()));
+        }
+        let secret = self.vault.get(reference)?;
+        if let Some(value) = secret.as_ref() {
+            cache.insert(reference.into(), Zeroizing::new(value.clone()));
+        }
+        Ok(secret)
+    }
+
     fn set_credential(&self, reference: &str, secret: String) -> Result<(), String> {
-        let secret = secret.trim();
+        let secret = Zeroizing::new(secret.trim().to_string());
         if secret.is_empty() || secret.len() > MAX_CREDENTIAL_BYTES || secret.contains(['\r', '\n'])
         {
             return Err(
                 "Provider API Key must contain 1 to 32768 bytes without line breaks".into(),
             );
         }
-        self.vault.set(reference, secret)
+        self.vault.set(reference, secret.as_str())?;
+        self.credential_cache
+            .lock()
+            .map_err(|_| "Provider credential cache lock was poisoned".to_string())?
+            .insert(reference.into(), secret);
+        Ok(())
     }
 
     fn has_credential(&self, reference: &str) -> Result<bool, String> {
-        Ok(self.vault.get(reference)?.is_some())
+        Ok(self.cached_credential(reference)?.is_some())
+    }
+
+    fn delete_credential(&self, reference: &str) -> Result<(), String> {
+        self.vault.delete(reference)?;
+        self.credential_cache
+            .lock()
+            .map_err(|_| "Provider credential cache lock was poisoned".to_string())?
+            .remove(reference);
+        Ok(())
     }
 
     pub(crate) fn begin_request(&self, request_id: &str) -> Result<Arc<AtomicBool>, String> {
@@ -455,7 +486,7 @@ pub fn desktop_clear_provider_credential(
 ) -> Result<ProviderProfileView, String> {
     let profile_id = profile_id.unwrap_or_else(|| DEFAULT_PROVIDER_ID.to_string());
     let profile = store.get_provider_profile(profile_id.trim())?;
-    manager.vault.delete(&profile.credential_ref)?;
+    manager.delete_credential(&profile.credential_ref)?;
     Ok(ProviderProfileView::from_profile(profile, false))
 }
 
@@ -495,13 +526,20 @@ pub fn desktop_cancel_provider_chat(
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, sync::Mutex};
+    use std::{
+        collections::HashMap,
+        sync::{
+            atomic::{AtomicUsize, Ordering as AtomicOrdering},
+            Mutex,
+        },
+    };
 
     use super::*;
 
     #[derive(Default)]
     struct MemoryVault {
         values: Mutex<HashMap<String, String>>,
+        get_calls: AtomicUsize,
     }
 
     impl CredentialVault for MemoryVault {
@@ -518,6 +556,7 @@ mod tests {
         }
 
         fn get(&self, reference: &str) -> Result<Option<String>, String> {
+            self.get_calls.fetch_add(1, AtomicOrdering::Relaxed);
             Ok(self.values.lock().unwrap().get(reference).cloned())
         }
 
@@ -561,6 +600,22 @@ mod tests {
         assert!(manager
             .set_credential("profile", "line-one\nline-two".into())
             .is_err());
+    }
+
+    #[test]
+    fn credential_is_loaded_from_the_vault_once_per_process() {
+        let vault = Arc::new(MemoryVault::default());
+        vault.set("profile", "cached-secret").unwrap();
+        let manager = ProviderManager::new(vault.clone());
+
+        assert_eq!(manager.credential("profile").unwrap(), "cached-secret");
+        assert!(manager.has_credential("profile").unwrap());
+        assert_eq!(manager.credential("profile").unwrap(), "cached-secret");
+        assert_eq!(vault.get_calls.load(AtomicOrdering::Relaxed), 1);
+
+        manager.delete_credential("profile").unwrap();
+        assert!(!manager.has_credential("profile").unwrap());
+        assert_eq!(vault.get_calls.load(AtomicOrdering::Relaxed), 2);
     }
 
     #[test]

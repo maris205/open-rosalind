@@ -1,17 +1,17 @@
 {
   "name": "open-rosalind-desktop",
   "private": true,
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "scripts": {
     "tauri": "tauri",
     "runtime:prepare": "node scripts/prepare-python-runtime.mjs",
     "runtime:force": "cross-env OPENROSALIND_FORCE_RUNTIME=1 node scripts/prepare-python-runtime.mjs",
     "dev": "npm run runtime:prepare && tauri dev",
     "build": "npm run runtime:prepare && tauri build",
-    "build:macos": "npm run runtime:prepare && tauri build --bundles app,dmg",
-    "build:macos:arm64": "npm run runtime:prepare && tauri build --target aarch64-apple-darwin --bundles app,dmg",
-    "build:macos:x64": "npm run runtime:prepare && tauri build --target x86_64-apple-darwin --bundles app,dmg",
-    "build:macos:universal": "npm run runtime:prepare && tauri build --target universal-apple-darwin --bundles app,dmg"
+    "build:macos": "npm run runtime:prepare && node scripts/build-macos.mjs --bundles app,dmg",
+    "build:macos:arm64": "npm run runtime:prepare && node scripts/build-macos.mjs --target aarch64-apple-darwin --bundles app,dmg",
+    "build:macos:x64": "npm run runtime:prepare && node scripts/build-macos.mjs --target x86_64-apple-darwin --bundles app,dmg",
+    "build:macos:universal": "npm run runtime:prepare && node scripts/build-macos.mjs --target universal-apple-darwin --bundles app,dmg"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.8.5",

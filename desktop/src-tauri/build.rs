@@ -1,3 +1,42 @@
 fn main() {
-    tauri_build::build()
+    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
+        tauri_build::AppManifest::new().commands(&[
+            "desktop_core_status",
+            "desktop_create_conversation",
+            "desktop_list_conversations",
+            "desktop_load_ui_chat_state",
+            "desktop_replace_ui_chat_state",
+            "desktop_create_agent_job",
+            "desktop_list_agent_jobs",
+            "desktop_get_project_directory_authorization",
+            "desktop_authorize_project_directory",
+            "desktop_reveal_project_directory",
+            "desktop_revoke_project_directory",
+            "desktop_get_agent_job",
+            "desktop_start_agent_job",
+            "desktop_refresh_agent_job",
+            "desktop_cancel_agent_job",
+            "desktop_credential_vault_status",
+            "desktop_list_provider_profiles",
+            "desktop_save_provider_profile",
+            "desktop_clear_provider_credential",
+            "desktop_stream_provider_chat",
+            "desktop_cancel_provider_chat",
+            "desktop_list_tool_contracts",
+            "desktop_container_capability",
+            "desktop_prepare_container_image",
+            "desktop_run_low_risk_tool",
+            "desktop_list_tool_runs",
+            "desktop_propose_tool_run",
+            "desktop_decide_tool_run",
+            "desktop_execute_approved_python_tool",
+            "desktop_execute_approved_container_tool",
+            "desktop_cancel_tool_run",
+            "desktop_list_tool_artifacts",
+            "desktop_read_tool_artifact",
+            "desktop_reveal_tool_artifact",
+            "desktop_export_tool_artifact",
+        ]),
+    ))
+    .expect("failed to generate OpenRosalind Desktop permissions")
 }

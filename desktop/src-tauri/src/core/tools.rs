@@ -22,7 +22,7 @@ use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager as _, State};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
-use super::storage::{Artifact, DesktopStore, NewArtifact, ToolRun};
+use super::storage::{Artifact, AuthorizedProjectDirectory, DesktopStore, NewArtifact, ToolRun};
 
 const MAX_TEXT_CHARACTERS: usize = 500_000;
 const MAX_PYTHON_INPUT_BYTES: usize = 64 * 1024;
@@ -30,6 +30,9 @@ const MAX_CAPTURE_BYTES: u64 = 128 * 1024;
 const MAX_OUTPUT_BYTES: u64 = 20 * 1024 * 1024;
 const MAX_OUTPUT_FILES: usize = 100;
 const MAX_ARTIFACT_PREVIEW_BYTES: usize = 512 * 1024;
+const MAX_PROJECT_FILE_PREVIEW_BYTES: usize = 64 * 1024;
+const MAX_PROJECT_LIST_FILES: usize = 200;
+const MAX_PROJECT_LIST_DEPTH: usize = 4;
 const PYTHON_TIMEOUT: Duration = Duration::from_secs(60);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const OUTPUT_SCAN_INTERVAL: Duration = Duration::from_millis(250);
@@ -1078,9 +1081,77 @@ fn text_statistics_contract() -> ToolContract {
     }
 }
 
+fn project_files_list_contract() -> ToolContract {
+    ToolContract {
+        schema_version: 1,
+        name: "project.files.list",
+        version: "1.0.0",
+        title: "列出项目文件",
+        description: "列出当前 AgentJob 所属科研项目已授权目录中的非敏感文件。",
+        executor: ToolExecutor {
+            kind: "native",
+            entrypoint: "desktop-core:project-files-list",
+            image: None,
+        },
+        permissions: ToolPermissions {
+            risk: "low",
+            approval: "automatic",
+            filesystem: vec![ToolFilesystemPermission {
+                scope: "project-root",
+                mode: "read",
+            }],
+            network: "none",
+            secrets: vec![],
+        },
+        resources: ToolResources {
+            timeout_seconds: 2,
+            max_input_bytes: 1024,
+            max_output_bytes: 512 * 1024,
+            memory_mb: None,
+            cpu: None,
+            pids: None,
+        },
+    }
+}
+
+fn project_file_read_contract() -> ToolContract {
+    ToolContract {
+        schema_version: 1,
+        name: "project.file.read",
+        version: "1.0.0",
+        title: "读取项目文本",
+        description: "读取当前科研项目授权目录内一个受限 UTF-8 文本文件的预览。",
+        executor: ToolExecutor {
+            kind: "native",
+            entrypoint: "desktop-core:project-file-read",
+            image: None,
+        },
+        permissions: ToolPermissions {
+            risk: "low",
+            approval: "automatic",
+            filesystem: vec![ToolFilesystemPermission {
+                scope: "project-root",
+                mode: "read",
+            }],
+            network: "none",
+            secrets: vec![],
+        },
+        resources: ToolResources {
+            timeout_seconds: 2,
+            max_input_bytes: 2048,
+            max_output_bytes: MAX_PROJECT_FILE_PREVIEW_BYTES,
+            memory_mb: None,
+            cpu: None,
+            pids: None,
+        },
+    }
+}
+
 fn contracts() -> Vec<ToolContract> {
     vec![
         text_statistics_contract(),
+        project_files_list_contract(),
+        project_file_read_contract(),
         python_run_contract(),
         python_container_contract(),
     ]
@@ -1192,9 +1263,267 @@ fn execute_text_statistics(input: &Value) -> Result<Value, String> {
     }))
 }
 
-fn execute_tool(name: &str, input: &Value) -> Result<Value, String> {
+fn execute_project_files_list(
+    project: &AuthorizedProjectDirectory,
+    input: &Value,
+) -> Result<Value, String> {
+    let object = input
+        .as_object()
+        .ok_or_else(|| "project.files.list input must be an object".to_string())?;
+    if !object.is_empty() {
+        return Err("project.files.list does not accept input fields".into());
+    }
+    let mut files = Vec::new();
+    let mut directories = vec![(project.root.clone(), 0_usize)];
+    let mut truncated = false;
+    while let Some((directory, depth)) = directories.pop() {
+        let mut entries = fs::read_dir(&directory)
+            .map_err(|error| format!("Unable to list authorized project directory: {error}"))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("Unable to list authorized project directory: {error}"))?;
+        entries.sort_by_key(|entry| entry.file_name());
+        for entry in entries {
+            let Some(name) = entry.file_name().to_str().map(str::to_string) else {
+                continue;
+            };
+            if should_skip_project_entry(&name) {
+                continue;
+            }
+            let metadata = entry
+                .path()
+                .symlink_metadata()
+                .map_err(|error| format!("Unable to inspect authorized project entry: {error}"))?;
+            if metadata.file_type().is_symlink() {
+                continue;
+            }
+            if metadata.is_dir() {
+                if depth < MAX_PROJECT_LIST_DEPTH {
+                    directories.push((entry.path(), depth + 1));
+                }
+                continue;
+            }
+            if !metadata.is_file() {
+                continue;
+            }
+            let relative = entry
+                .path()
+                .strip_prefix(&project.root)
+                .map_err(|_| "Project file escaped the authorized directory".to_string())?
+                .to_path_buf();
+            if is_sensitive_project_path(&relative) {
+                continue;
+            }
+            if files.len() >= MAX_PROJECT_LIST_FILES {
+                truncated = true;
+                break;
+            }
+            let Some(path) = relative.to_str() else {
+                continue;
+            };
+            if path.chars().count() > 1024 || path.chars().any(char::is_control) {
+                continue;
+            }
+            files.push(json!({
+                "path": path.replace('\\', "/"),
+                "sizeBytes": metadata.len(),
+                "kind": if is_project_text_file(&relative) { "text" } else { "file" },
+                "readable": is_project_text_file(&relative),
+            }));
+        }
+        if truncated {
+            break;
+        }
+    }
+    files.sort_by(|left, right| {
+        left["path"]
+            .as_str()
+            .unwrap_or_default()
+            .cmp(right["path"].as_str().unwrap_or_default())
+    });
+    Ok(json!({
+        "projectId": project.project_id,
+        "files": files,
+        "truncated": truncated,
+        "maxDepth": MAX_PROJECT_LIST_DEPTH,
+    }))
+}
+
+fn execute_project_file_read(
+    project: &AuthorizedProjectDirectory,
+    input: &Value,
+) -> Result<Value, String> {
+    let object = input
+        .as_object()
+        .ok_or_else(|| "project.file.read input must be an object".to_string())?;
+    if object.keys().any(|key| key != "path") {
+        return Err("project.file.read accepts only the path field".into());
+    }
+    let relative = object
+        .get("path")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "project.file.read requires a relative path string".to_string())?;
+    if relative.is_empty()
+        || relative.chars().count() > 1024
+        || relative.chars().any(char::is_control)
+    {
+        return Err("Project file path must contain 1 to 1024 printable characters".into());
+    }
+    let relative = Path::new(relative);
+    if relative.is_absolute()
+        || !relative
+            .components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)))
+        || relative
+            .components()
+            .any(|component| component.as_os_str().to_string_lossy().starts_with('.'))
+    {
+        return Err("Project file path must stay within the authorized directory".into());
+    }
+    if is_sensitive_project_path(relative) {
+        return Err("Sensitive credential files cannot be read by this Tool Contract".into());
+    }
+    if !is_project_text_file(relative) {
+        return Err("This Tool Contract reads only allowlisted UTF-8 text formats".into());
+    }
+
+    let mut candidate = project.root.clone();
+    for component in relative.components() {
+        candidate.push(component.as_os_str());
+        let metadata = candidate
+            .symlink_metadata()
+            .map_err(|_| "The requested project file does not exist".to_string())?;
+        if metadata.file_type().is_symlink() {
+            return Err("Symbolic links are not readable through the project Tool Contract".into());
+        }
+    }
+    let canonical = candidate
+        .canonicalize()
+        .map_err(|_| "The requested project file is unavailable".to_string())?;
+    if !canonical.starts_with(&project.root) || !canonical.is_file() {
+        return Err("Project file resolved outside the authorized directory".into());
+    }
+    let size_bytes = fs::metadata(&canonical)
+        .map_err(|error| format!("Unable to inspect project file: {error}"))?
+        .len();
+    let mut bytes = Vec::new();
+    File::open(&canonical)
+        .map_err(|error| format!("Unable to open project file: {error}"))?
+        .take((MAX_PROJECT_FILE_PREVIEW_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("Unable to read project file: {error}"))?;
+    let truncated = bytes.len() > MAX_PROJECT_FILE_PREVIEW_BYTES;
+    bytes.truncate(MAX_PROJECT_FILE_PREVIEW_BYTES);
+    let content = match std::str::from_utf8(&bytes) {
+        Ok(content) => content,
+        Err(error) if truncated && error.error_len().is_none() => {
+            std::str::from_utf8(&bytes[..error.valid_up_to()])
+                .map_err(|_| "Project file is not valid UTF-8 text".to_string())?
+        }
+        Err(_) => return Err("Project file is not valid UTF-8 text".into()),
+    };
+    Ok(json!({
+        "projectId": project.project_id,
+        "path": relative.to_string_lossy().replace('\\', "/"),
+        "content": content,
+        "sizeBytes": size_bytes,
+        "truncated": truncated,
+    }))
+}
+
+fn should_skip_project_entry(name: &str) -> bool {
+    if name.starts_with('.') {
+        return true;
+    }
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "node_modules" | "target" | "__pycache__" | "venv" | "python-packages"
+    )
+}
+
+fn is_sensitive_project_path(path: &Path) -> bool {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    matches!(
+        name.as_str(),
+        ".env"
+            | ".npmrc"
+            | ".pypirc"
+            | "credentials"
+            | "credentials.json"
+            | "id_rsa"
+            | "id_ed25519"
+            | "netrc"
+            | "dockerconfigjson"
+    ) || matches!(extension.as_str(), "pem" | "key" | "p12" | "pfx" | "kdbx")
+}
+
+fn is_project_text_file(path: &Path) -> bool {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if matches!(name.as_str(), "readme" | "license" | "authors" | "notice") {
+        return true;
+    }
+    matches!(
+        path.extension()
+            .and_then(|extension| extension.to_str())
+            .map(str::to_ascii_lowercase)
+            .as_deref(),
+        Some(
+            "txt"
+                | "md"
+                | "markdown"
+                | "csv"
+                | "tsv"
+                | "json"
+                | "jsonl"
+                | "yaml"
+                | "yml"
+                | "toml"
+                | "xml"
+                | "html"
+                | "css"
+                | "js"
+                | "ts"
+                | "py"
+                | "r"
+                | "sql"
+                | "log"
+                | "fasta"
+                | "fa"
+                | "fastq"
+                | "fq"
+                | "bib"
+                | "tex"
+        )
+    )
+}
+
+fn execute_tool(
+    name: &str,
+    input: &Value,
+    project: Option<&AuthorizedProjectDirectory>,
+) -> Result<Value, String> {
     match name {
         "text.statistics" => execute_text_statistics(input),
+        "project.files.list" => execute_project_files_list(
+            project.ok_or_else(|| "Project directory authorization is required".to_string())?,
+            input,
+        ),
+        "project.file.read" => execute_project_file_read(
+            project.ok_or_else(|| "Project directory authorization is required".to_string())?,
+            input,
+        ),
         _ => Err(format!("Tool {name} is not installed")),
     }
 }
@@ -1275,8 +1604,28 @@ pub fn desktop_run_low_risk_tool(
     if contract.permissions.risk != "low" || contract.permissions.approval != "automatic" {
         return Err("This Tool Contract requires an explicit approval flow".into());
     }
-    let permission_snapshot = serde_json::to_value(&contract.permissions)
+    let project_directory = match contract.name {
+        "project.files.list" | "project.file.read" => {
+            Some(store.authorized_project_directory_for_agent_job(agent_job_id.trim())?)
+        }
+        _ => None,
+    };
+    let mut permission_snapshot = serde_json::to_value(&contract.permissions)
         .map_err(|error| format!("Unable to encode Tool permission snapshot: {error}"))?;
+    if let Some(project) = &project_directory {
+        permission_snapshot
+            .as_object_mut()
+            .ok_or_else(|| "Tool permission snapshot must be an object".to_string())?
+            .insert(
+                "projectAuthorization".into(),
+                json!({
+                    "projectId": project.project_id,
+                    "authorizationUpdatedAt": project.authorization_updated_at,
+                    "authorizationMode": if project.write { "read-write" } else { "read" },
+                    "effectiveAccess": "read",
+                }),
+            );
+    }
     let tool_run = store.create_tool_run(
         agent_job_id.trim(),
         contract.name,
@@ -1285,7 +1634,7 @@ pub fn desktop_run_low_risk_tool(
         permission_snapshot,
         "running",
     )?;
-    let result = execute_tool(contract.name, &input);
+    let result = execute_tool(contract.name, &input, project_directory.as_ref());
     match result {
         Ok(output) => store.finish_tool_run(&tool_run.id, "succeeded", output),
         Err(error) => store.finish_tool_run(&tool_run.id, "failed", json!({"error": error})),
@@ -1709,6 +2058,81 @@ mod tests {
         assert_eq!(encoded["permissions"]["network"], "none");
         assert_eq!(encoded["permissions"]["filesystem"], json!([]));
         assert_eq!(encoded["permissions"]["secrets"], json!([]));
+    }
+
+    #[test]
+    fn project_read_tools_stay_inside_authorized_non_sensitive_text() {
+        let root = env::temp_dir().join(format!(
+            "open-rosalind-project-read-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        fs::create_dir_all(root.join("data")).unwrap();
+        fs::write(root.join("README.md"), "# Study\nTP53 cohort").unwrap();
+        fs::write(root.join("data/variants.csv"), "gene,variant\nTP53,R175H\n").unwrap();
+        fs::write(root.join("data/archive.zip"), [0_u8, 1, 2, 3]).unwrap();
+        fs::write(root.join(".env"), "API_KEY=must-not-be-read").unwrap();
+        fs::write(root.join("private.pem"), "must-not-be-read").unwrap();
+        let project = AuthorizedProjectDirectory {
+            project_id: "project-1".into(),
+            root: root.canonicalize().unwrap(),
+            write: true,
+            authorization_updated_at: 1,
+        };
+
+        let listed = execute_project_files_list(&project, &json!({})).unwrap();
+        let paths = listed["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|file| file["path"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            paths,
+            vec!["README.md", "data/archive.zip", "data/variants.csv"]
+        );
+        assert_eq!(listed["files"][0]["readable"], true);
+        assert_eq!(listed["files"][1]["readable"], false);
+
+        let read =
+            execute_project_file_read(&project, &json!({"path": "data/variants.csv"})).unwrap();
+        assert_eq!(read["content"], "gene,variant\nTP53,R175H\n");
+        assert!(execute_project_file_read(&project, &json!({"path": "../outside.txt"})).is_err());
+        assert!(execute_project_file_read(&project, &json!({"path": ".env"})).is_err());
+        assert!(execute_project_file_read(&project, &json!({"path": "private.pem"})).is_err());
+        assert!(execute_project_file_read(&project, &json!({"path": "data/archive.zip"})).is_err());
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn project_read_tool_rejects_symbolic_links() {
+        use std::os::unix::fs::symlink;
+
+        let root = env::temp_dir().join(format!(
+            "open-rosalind-project-link-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let outside = env::temp_dir().join(format!(
+            "open-rosalind-project-outside-{}",
+            uuid::Uuid::new_v4()
+        ));
+        fs::create_dir(&root).unwrap();
+        fs::write(&outside, "outside").unwrap();
+        symlink(&outside, root.join("linked.txt")).unwrap();
+        let project = AuthorizedProjectDirectory {
+            project_id: "project-1".into(),
+            root: root.canonicalize().unwrap(),
+            write: false,
+            authorization_updated_at: 1,
+        };
+
+        assert!(execute_project_file_read(&project, &json!({"path": "linked.txt"})).is_err());
+        let listed = execute_project_files_list(&project, &json!({})).unwrap();
+        assert!(listed["files"].as_array().unwrap().is_empty());
+
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_file(outside).unwrap();
     }
 
     #[test]

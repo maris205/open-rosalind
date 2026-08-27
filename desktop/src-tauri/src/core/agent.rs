@@ -99,6 +99,7 @@ impl AgentWorkerProcess {
             .arg("web_app.desktop_agent_worker")
             .current_dir(repository_root)
             .env("PYTHONPATH", python_path)
+            .env("PYTHONDONTWRITEBYTECODE", "1")
             .env("ROSALIND_AGENT_DATA_ROOT", data_root)
             .env("PYTHONUNBUFFERED", "1")
             .stdin(Stdio::piped())

@@ -1,19 +1,32 @@
 use std::{
-    path::{Component, Path},
+    collections::HashSet,
+    env,
+    path::{Component, Path, PathBuf},
+    process::{Command, Stdio},
     sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use rusqlite::{params, Connection, Row};
-use serde::Serialize;
+#[cfg(target_os = "macos")]
+use std::collections::HashMap;
+
+#[cfg(target_os = "macos")]
+use rusqlite::OpenFlags;
+use rusqlite::{params, Connection, OptionalExtension, Row};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
 use super::agent::WorkerJobStatus;
 
-const SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = 5;
 const MAX_AGENT_JOB_REQUEST_BYTES: usize = 512 * 1024;
+const MAX_UI_CHATS: usize = 100;
+const MAX_UI_MESSAGES: usize = 10_000;
+const MAX_UI_MESSAGE_BYTES: usize = 2 * 1024 * 1024;
+const MAX_UI_CHAT_STATE_BYTES: usize = 50 * 1024 * 1024;
 const TERMINAL_STATUSES: &[&str] = &["completed", "cancelled", "failed", "interrupted"];
 pub(crate) const DEFAULT_PROVIDER_ID: &str = "default-qwen-openai-compatible";
 const DEFAULT_PROVIDER_BASE_URL: &str =
@@ -28,6 +41,24 @@ pub struct Conversation {
     title: String,
     created_at: i64,
     updated_at: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UiChatSnapshot {
+    id: String,
+    function_id: String,
+    title: String,
+    messages: Vec<Value>,
+    created_at: String,
+    updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UiChatState {
+    active_chat_id: String,
+    chats: Vec<UiChatSnapshot>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -74,6 +105,28 @@ pub struct ProviderProfile {
     pub(crate) is_default: bool,
     pub(crate) created_at: i64,
     pub(crate) updated_at: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectDirectoryAuthorization {
+    project_id: String,
+    display_name: String,
+    display_path: String,
+    read: bool,
+    write: bool,
+    available: bool,
+    persistence: String,
+    authorized_at: i64,
+    updated_at: i64,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct AuthorizedProjectDirectory {
+    pub(crate) project_id: String,
+    pub(crate) root: PathBuf,
+    pub(crate) write: bool,
+    pub(crate) authorization_updated_at: i64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -161,6 +214,32 @@ impl DesktopStore {
                     updated_at INTEGER NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS ui_chat_states (
+                    owner_id TEXT PRIMARY KEY,
+                    active_chat_id TEXT NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS ui_chats (
+                    id TEXT PRIMARY KEY,
+                    owner_id TEXT NOT NULL,
+                    position INTEGER NOT NULL,
+                    function_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(owner_id, position)
+                );
+
+                CREATE TABLE IF NOT EXISTS ui_chat_messages (
+                    chat_id TEXT NOT NULL REFERENCES ui_chats(id) ON DELETE CASCADE,
+                    id TEXT NOT NULL,
+                    position INTEGER NOT NULL,
+                    message_json TEXT NOT NULL,
+                    PRIMARY KEY(chat_id, id),
+                    UNIQUE(chat_id, position)
+                );
+
                 CREATE TABLE IF NOT EXISTS agent_jobs (
                     id TEXT PRIMARY KEY,
                     conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
@@ -195,6 +274,16 @@ impl DesktopStore {
                     updated_at INTEGER NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS project_directory_authorizations (
+                    project_id TEXT PRIMARY KEY,
+                    root_path TEXT NOT NULL UNIQUE,
+                    display_name TEXT NOT NULL,
+                    access_mode TEXT NOT NULL CHECK(access_mode IN ('read', 'read-write')),
+                    persistence TEXT NOT NULL,
+                    authorized_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS tool_runs (
                     id TEXT PRIMARY KEY,
                     agent_job_id TEXT NOT NULL REFERENCES agent_jobs(id) ON DELETE CASCADE,
@@ -222,12 +311,18 @@ impl DesktopStore {
 
                 CREATE INDEX IF NOT EXISTS conversations_updated_at
                     ON conversations(updated_at DESC);
+                CREATE INDEX IF NOT EXISTS ui_chats_owner_position
+                    ON ui_chats(owner_id, position);
+                CREATE INDEX IF NOT EXISTS ui_chat_messages_chat_position
+                    ON ui_chat_messages(chat_id, position);
                 CREATE INDEX IF NOT EXISTS agent_jobs_conversation_created
                     ON agent_jobs(conversation_id, created_at DESC);
                 CREATE INDEX IF NOT EXISTS agent_job_events_job_sequence
                     ON agent_job_events(agent_job_id, sequence);
                 CREATE INDEX IF NOT EXISTS provider_profiles_default_updated
                     ON provider_profiles(is_default DESC, updated_at DESC);
+                CREATE INDEX IF NOT EXISTS project_directory_authorizations_updated
+                    ON project_directory_authorizations(updated_at DESC);
                 CREATE INDEX IF NOT EXISTS tool_runs_job_created
                     ON tool_runs(agent_job_id, created_at);
                 CREATE INDEX IF NOT EXISTS artifacts_job_created
@@ -336,6 +431,232 @@ impl DesktopStore {
             .map_err(|error| format!("Unable to read conversations: {error}"))?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|error| format!("Unable to decode conversation: {error}"))
+    }
+
+    fn load_ui_chat_state(&self, owner_id: String) -> Result<UiChatState, String> {
+        let owner_id = validate_text("Chat owner id", owner_id, 320)?;
+        let connection = self.lock_connection()?;
+        let active_chat_id = connection
+            .query_row(
+                "SELECT active_chat_id FROM ui_chat_states WHERE owner_id = ?1",
+                [&owner_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|error| format!("Unable to load desktop chat state: {error}"))?
+            .unwrap_or_default();
+
+        let chat_rows = {
+            let mut statement = connection
+                .prepare(
+                    "SELECT id, function_id, title, created_at, updated_at FROM ui_chats WHERE owner_id = ?1 ORDER BY position",
+                )
+                .map_err(|error| format!("Unable to load desktop chats: {error}"))?;
+            let rows = statement
+                .query_map([&owner_id], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                })
+                .map_err(|error| format!("Unable to read desktop chats: {error}"))?;
+            rows.collect::<Result<Vec<_>, _>>()
+                .map_err(|error| format!("Unable to decode desktop chats: {error}"))?
+        };
+
+        let mut chats = Vec::with_capacity(chat_rows.len());
+        let mut message_statement = connection
+            .prepare(
+                "SELECT message_json FROM ui_chat_messages WHERE chat_id = ?1 ORDER BY position",
+            )
+            .map_err(|error| format!("Unable to load desktop chat messages: {error}"))?;
+        for (id, function_id, title, created_at, updated_at) in chat_rows {
+            let rows = message_statement
+                .query_map([&id], |row| row.get::<_, String>(0))
+                .map_err(|error| format!("Unable to read desktop chat messages: {error}"))?;
+            let mut messages = Vec::new();
+            for row in rows {
+                let encoded =
+                    row.map_err(|error| format!("Unable to decode desktop chat message: {error}"))?;
+                messages.push(serde_json::from_str(&encoded).map_err(|error| {
+                    format!("Desktop chat message contains invalid JSON: {error}")
+                })?);
+            }
+            chats.push(UiChatSnapshot {
+                id,
+                function_id,
+                title,
+                messages,
+                created_at,
+                updated_at,
+            });
+        }
+
+        Ok(UiChatState {
+            active_chat_id,
+            chats,
+        })
+    }
+
+    fn replace_ui_chat_state(
+        &self,
+        owner_id: String,
+        active_chat_id: String,
+        chats: Vec<UiChatSnapshot>,
+    ) -> Result<UiChatState, String> {
+        let owner_id = validate_text("Chat owner id", owner_id, 320)?;
+        let (active_chat_id, chats, encoded_messages) =
+            validate_ui_chat_state(active_chat_id, chats)?;
+        let mut connection = self.lock_connection()?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("Unable to begin desktop chat transaction: {error}"))?;
+        transaction
+            .execute("DELETE FROM ui_chats WHERE owner_id = ?1", [&owner_id])
+            .map_err(|error| format!("Unable to replace desktop chats: {error}"))?;
+
+        let mut encoded_index = 0usize;
+        for (chat_position, chat) in chats.iter().enumerate() {
+            transaction
+                .execute(
+                    "INSERT INTO ui_chats (id, owner_id, position, function_id, title, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        chat.id,
+                        owner_id,
+                        chat_position as i64,
+                        chat.function_id,
+                        chat.title,
+                        chat.created_at,
+                        chat.updated_at,
+                    ],
+                )
+                .map_err(|error| format!("Unable to save desktop chat: {error}"))?;
+            for (message_position, message) in chat.messages.iter().enumerate() {
+                let message_id = message
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .expect("validated chat messages always have ids");
+                transaction
+                    .execute(
+                        "INSERT INTO ui_chat_messages (chat_id, id, position, message_json) VALUES (?1, ?2, ?3, ?4)",
+                        params![
+                            chat.id,
+                            message_id,
+                            message_position as i64,
+                            encoded_messages[encoded_index],
+                        ],
+                    )
+                    .map_err(|error| format!("Unable to save desktop chat message: {error}"))?;
+                encoded_index += 1;
+            }
+        }
+        transaction
+            .execute(
+                r#"
+                INSERT INTO ui_chat_states (owner_id, active_chat_id, updated_at)
+                VALUES (?1, ?2, ?3)
+                ON CONFLICT(owner_id) DO UPDATE SET
+                    active_chat_id = excluded.active_chat_id,
+                    updated_at = excluded.updated_at
+                "#,
+                params![owner_id, active_chat_id, unix_millis()],
+            )
+            .map_err(|error| format!("Unable to save desktop chat state: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("Unable to commit desktop chat state: {error}"))?;
+
+        Ok(UiChatState {
+            active_chat_id,
+            chats,
+        })
+    }
+
+    #[cfg(target_os = "macos")]
+    pub(crate) fn import_legacy_macos_webkit_chats(&self) -> Result<usize, String> {
+        let home_directory = env::var_os("HOME")
+            .map(PathBuf::from)
+            .ok_or_else(|| "Unable to locate the macOS home directory".to_string())?;
+        let webkit_root =
+            home_directory.join("Library/WebKit/bio.openrosalind.desktop/WebsiteData/Default");
+        if !webkit_root.is_dir() {
+            return Ok(0);
+        }
+        let mut database_paths = Vec::new();
+        collect_legacy_local_storage_databases(&webkit_root, 0, &mut database_paths)?;
+        let mut states_by_owner: HashMap<String, Vec<UiChatState>> = HashMap::new();
+        for database_path in database_paths.into_iter().take(512) {
+            let Ok(connection) = Connection::open_with_flags(
+                database_path,
+                OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+            ) else {
+                continue;
+            };
+            let Ok(mut statement) = connection
+                .prepare("SELECT key, value FROM ItemTable WHERE key LIKE 'rosalind.chats.%'")
+            else {
+                continue;
+            };
+            let Ok(rows) = statement.query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
+            }) else {
+                continue;
+            };
+            for row in rows.flatten() {
+                let Some(owner_id) = row.0.strip_prefix("rosalind.chats.") else {
+                    continue;
+                };
+                let Ok(owner_id) = percent_decode(owner_id) else {
+                    continue;
+                };
+                let Ok(encoded) = decode_utf16le(&row.1) else {
+                    continue;
+                };
+                let Ok(mut state) = serde_json::from_str::<UiChatState>(&encoded) else {
+                    continue;
+                };
+                if state.active_chat_id.is_empty() {
+                    state.active_chat_id = state
+                        .chats
+                        .first()
+                        .map(|chat| chat.id.clone())
+                        .unwrap_or_default();
+                }
+                if validate_ui_chat_state(state.active_chat_id.clone(), state.chats.clone()).is_ok()
+                {
+                    states_by_owner.entry(owner_id).or_default().push(state);
+                }
+            }
+        }
+
+        let mut imported = 0usize;
+        for (owner_id, states) in states_by_owner {
+            let already_migrated = {
+                let connection = self.lock_connection()?;
+                connection
+                    .query_row(
+                        "SELECT 1 FROM ui_chat_states WHERE owner_id = ?1",
+                        [&owner_id],
+                        |_| Ok(()),
+                    )
+                    .optional()
+                    .map_err(|error| format!("Unable to inspect desktop chat migration: {error}"))?
+                    .is_some()
+            };
+            if already_migrated {
+                continue;
+            }
+            let merged = merge_legacy_ui_chat_states(states);
+            if merged.chats.is_empty() {
+                continue;
+            }
+            self.replace_ui_chat_state(owner_id, merged.active_chat_id, merged.chats)?;
+            imported += 1;
+        }
+        Ok(imported)
     }
 
     fn create_agent_job(
@@ -934,6 +1255,186 @@ impl DesktopStore {
         self.get_provider_profile(&profile_id)
     }
 
+    fn get_project_directory_authorization(
+        &self,
+        project_id: &str,
+    ) -> Result<Option<ProjectDirectoryAuthorization>, String> {
+        let project_id = validate_text("Project id", project_id.to_string(), 128)?;
+        let connection = self.lock_connection()?;
+        let record = connection
+            .query_row(
+                "SELECT project_id, root_path, display_name, access_mode, persistence, authorized_at, updated_at FROM project_directory_authorizations WHERE project_id = ?1",
+                [project_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, i64>(6)?,
+                    ))
+                },
+            )
+            .optional()
+            .map_err(|error| format!("Unable to read project directory authorization: {error}"))?;
+        Ok(record.map(
+            |(
+                project_id,
+                root_path,
+                display_name,
+                access_mode,
+                persistence,
+                authorized_at,
+                updated_at,
+            )| {
+                project_authorization_view(
+                    project_id,
+                    root_path,
+                    display_name,
+                    access_mode,
+                    persistence,
+                    authorized_at,
+                    updated_at,
+                )
+            },
+        ))
+    }
+
+    fn authorize_project_directory(
+        &self,
+        project_id: &str,
+        selected_path: &Path,
+    ) -> Result<ProjectDirectoryAuthorization, String> {
+        let project_id = validate_text("Project id", project_id.to_string(), 128)?;
+        let root = validate_project_root(selected_path)?;
+        let root_path = root
+            .to_str()
+            .ok_or_else(|| "Project directory path is not valid Unicode".to_string())?
+            .to_string();
+        let display_name = root
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| !name.is_empty())
+            .unwrap_or(&root_path)
+            .to_string();
+        let now = unix_millis();
+        let persistence = if cfg!(target_os = "macos") {
+            "macos-path-policy"
+        } else if cfg!(target_os = "windows") {
+            "windows-path-policy"
+        } else {
+            "path-policy"
+        };
+
+        let mut connection = self.lock_connection()?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("Unable to begin project authorization update: {error}"))?;
+        let assigned_project = transaction
+            .query_row(
+                "SELECT project_id FROM project_directory_authorizations WHERE root_path = ?1 AND project_id <> ?2",
+                params![root_path, project_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|error| format!("Unable to inspect project directory authorization: {error}"))?;
+        if assigned_project.is_some() {
+            return Err(
+                "This directory is already authorized for another OpenRosalind project".into(),
+            );
+        }
+        transaction
+            .execute(
+                r#"
+                INSERT INTO project_directory_authorizations
+                    (project_id, root_path, display_name, access_mode, persistence, authorized_at, updated_at)
+                VALUES (?1, ?2, ?3, 'read-write', ?4, ?5, ?5)
+                ON CONFLICT(project_id) DO UPDATE SET
+                    root_path = excluded.root_path,
+                    display_name = excluded.display_name,
+                    access_mode = excluded.access_mode,
+                    persistence = excluded.persistence,
+                    updated_at = excluded.updated_at
+                "#,
+                params![project_id, root_path, display_name, persistence, now],
+            )
+            .map_err(|error| format!("Unable to save project directory authorization: {error}"))?;
+        transaction.commit().map_err(|error| {
+            format!("Unable to commit project directory authorization: {error}")
+        })?;
+        drop(connection);
+        self.get_project_directory_authorization(&project_id)?
+            .ok_or_else(|| "Project directory authorization was not saved".to_string())
+    }
+
+    fn revoke_project_directory(&self, project_id: &str) -> Result<bool, String> {
+        let project_id = validate_text("Project id", project_id.to_string(), 128)?;
+        let connection = self.lock_connection()?;
+        connection
+            .execute(
+                "DELETE FROM project_directory_authorizations WHERE project_id = ?1",
+                [project_id],
+            )
+            .map(|changed| changed == 1)
+            .map_err(|error| format!("Unable to revoke project directory authorization: {error}"))
+    }
+
+    pub(crate) fn authorized_project_directory_for_agent_job(
+        &self,
+        agent_job_id: &str,
+    ) -> Result<AuthorizedProjectDirectory, String> {
+        let agent_job_id = validate_text("Agent job id", agent_job_id.to_string(), 128)?;
+        let connection = self.lock_connection()?;
+        let context = connection
+            .query_row(
+                r#"
+                SELECT conversations.project_id,
+                       authorizations.root_path,
+                       authorizations.access_mode,
+                       authorizations.updated_at
+                  FROM agent_jobs jobs
+                  JOIN conversations ON conversations.id = jobs.conversation_id
+             LEFT JOIN project_directory_authorizations authorizations
+                    ON authorizations.project_id = conversations.project_id
+                 WHERE jobs.id = ?1
+                "#,
+                [agent_job_id],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<String>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, Option<i64>>(3)?,
+                    ))
+                },
+            )
+            .optional()
+            .map_err(|error| format!("Unable to resolve AgentJob project directory: {error}"))?
+            .ok_or_else(|| "AgentJob was not found".to_string())?;
+        let project_id = context
+            .0
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| "AgentJob is not associated with a research project".to_string())?;
+        let root_path = context.1.ok_or_else(|| {
+            "The research project does not have an authorized local directory".to_string()
+        })?;
+        let root = PathBuf::from(&root_path);
+        let canonical = root
+            .canonicalize()
+            .map_err(|_| "The authorized project directory is no longer available".to_string())?;
+        if canonical != root || !canonical.is_dir() {
+            return Err("The authorized project directory is no longer available".into());
+        }
+        Ok(AuthorizedProjectDirectory {
+            project_id,
+            root: canonical,
+            write: context.2.as_deref() == Some("read-write"),
+            authorization_updated_at: context.3.unwrap_or_default(),
+        })
+    }
+
     fn lock_connection(&self) -> Result<std::sync::MutexGuard<'_, Connection>, String> {
         self.connection
             .lock()
@@ -1005,6 +1506,85 @@ fn decode_artifact(row: &Row<'_>) -> rusqlite::Result<Artifact> {
     })
 }
 
+fn project_authorization_view(
+    project_id: String,
+    root_path: String,
+    display_name: String,
+    access_mode: String,
+    persistence: String,
+    authorized_at: i64,
+    updated_at: i64,
+) -> ProjectDirectoryAuthorization {
+    let root = Path::new(&root_path);
+    let available = root.is_dir()
+        && root
+            .canonicalize()
+            .map(|canonical| canonical == root)
+            .unwrap_or(false);
+    ProjectDirectoryAuthorization {
+        project_id,
+        display_name,
+        display_path: root_path,
+        read: true,
+        write: access_mode == "read-write",
+        available,
+        persistence,
+        authorized_at,
+        updated_at,
+    }
+}
+
+fn validate_project_root(selected_path: &Path) -> Result<PathBuf, String> {
+    let root = selected_path
+        .canonicalize()
+        .map_err(|error| format!("Unable to resolve selected project directory: {error}"))?;
+    if !root.is_dir() {
+        return Err("The selected project path is not a directory".into());
+    }
+    if root.parent().is_none() {
+        return Err("A filesystem root cannot be authorized as an OpenRosalind project".into());
+    }
+    let home = env::var_os(if cfg!(target_os = "windows") {
+        "USERPROFILE"
+    } else {
+        "HOME"
+    })
+    .map(PathBuf::from)
+    .and_then(|path| path.canonicalize().ok());
+    if home.as_ref() == Some(&root) {
+        return Err("Your entire home directory cannot be authorized as one project".into());
+    }
+    Ok(root)
+}
+
+fn reveal_directory(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = Command::new("open");
+        command.arg(path);
+        command
+    };
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = Command::new("explorer.exe");
+        command.arg(path);
+        command
+    };
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let mut command = {
+        let mut command = Command::new("xdg-open");
+        command.arg(path);
+        command
+    };
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| format!("Unable to open project directory in the file manager: {error}"))
+}
+
 fn validate_text(label: &str, value: String, max_characters: usize) -> Result<String, String> {
     let value = value.trim();
     if value.is_empty()
@@ -1016,6 +1596,220 @@ fn validate_text(label: &str, value: String, max_characters: usize) -> Result<St
         ));
     }
     Ok(value.to_string())
+}
+
+fn validate_ui_chat_state(
+    active_chat_id: String,
+    mut chats: Vec<UiChatSnapshot>,
+) -> Result<(String, Vec<UiChatSnapshot>, Vec<String>), String> {
+    if chats.len() > MAX_UI_CHATS {
+        return Err(format!(
+            "Desktop chat state exceeds the {MAX_UI_CHATS} chat limit"
+        ));
+    }
+    let active_chat_id = active_chat_id.trim().to_string();
+    if !active_chat_id.is_empty() {
+        validate_text("Active chat id", active_chat_id.clone(), 128)?;
+    }
+
+    let mut chat_ids = HashSet::new();
+    let mut message_count = 0usize;
+    let mut encoded_bytes = 0usize;
+    let mut encoded_messages = Vec::new();
+    for chat in &mut chats {
+        chat.id = validate_text("Chat id", std::mem::take(&mut chat.id), 128)?;
+        if !chat_ids.insert(chat.id.clone()) {
+            return Err("Desktop chat state contains duplicate chat ids".into());
+        }
+        chat.function_id = validate_text(
+            "Chat function id",
+            std::mem::take(&mut chat.function_id),
+            100,
+        )?;
+        chat.title = validate_text("Chat title", std::mem::take(&mut chat.title), 200)?;
+        chat.created_at = validate_text(
+            "Chat created timestamp",
+            std::mem::take(&mut chat.created_at),
+            64,
+        )?;
+        chat.updated_at = validate_text(
+            "Chat updated timestamp",
+            std::mem::take(&mut chat.updated_at),
+            64,
+        )?;
+
+        message_count = message_count
+            .checked_add(chat.messages.len())
+            .ok_or_else(|| "Desktop chat message count overflowed".to_string())?;
+        if message_count > MAX_UI_MESSAGES {
+            return Err(format!(
+                "Desktop chat state exceeds the {MAX_UI_MESSAGES} message limit"
+            ));
+        }
+        let mut message_ids = HashSet::new();
+        for message in &chat.messages {
+            let object = message
+                .as_object()
+                .ok_or_else(|| "Desktop chat messages must be JSON objects".to_string())?;
+            let message_id = object
+                .get("id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "Desktop chat message id is required".to_string())?;
+            validate_text("Chat message id", message_id.to_string(), 128)?;
+            if !message_ids.insert(message_id.to_string()) {
+                return Err("Desktop chat contains duplicate message ids".into());
+            }
+            let role = object
+                .get("role")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "Desktop chat message role is required".to_string())?;
+            if !matches!(role, "user" | "assistant") {
+                return Err("Desktop chat message role must be user or assistant".into());
+            }
+            if !object.get("content").is_some_and(Value::is_string) {
+                return Err("Desktop chat message content must be text".into());
+            }
+            let encoded = serde_json::to_string(message)
+                .map_err(|error| format!("Unable to encode desktop chat message: {error}"))?;
+            if encoded.len() > MAX_UI_MESSAGE_BYTES {
+                return Err("Desktop chat message exceeds the 2 MiB limit".into());
+            }
+            encoded_bytes = encoded_bytes
+                .checked_add(encoded.len())
+                .ok_or_else(|| "Desktop chat state size overflowed".to_string())?;
+            if encoded_bytes > MAX_UI_CHAT_STATE_BYTES {
+                return Err("Desktop chat state exceeds the 50 MiB limit".into());
+            }
+            encoded_messages.push(encoded);
+        }
+    }
+    if chats.is_empty() {
+        if !active_chat_id.is_empty() {
+            return Err("Active chat id must be empty when there are no chats".into());
+        }
+    } else if !chat_ids.contains(&active_chat_id) {
+        return Err("Active chat id does not belong to the desktop chat state".into());
+    }
+    Ok((active_chat_id, chats, encoded_messages))
+}
+
+#[cfg(target_os = "macos")]
+fn collect_legacy_local_storage_databases(
+    directory: &Path,
+    depth: usize,
+    results: &mut Vec<PathBuf>,
+) -> Result<(), String> {
+    if depth > 6 || results.len() >= 512 {
+        return Ok(());
+    }
+    let entries = std::fs::read_dir(directory)
+        .map_err(|error| format!("Unable to inspect legacy WebKit chat storage: {error}"))?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
+            collect_legacy_local_storage_databases(&path, depth + 1, results)?;
+        } else if file_type.is_file()
+            && path.file_name().and_then(|value| value.to_str()) == Some("localstorage.sqlite3")
+        {
+            results.push(path);
+        }
+        if results.len() >= 512 {
+            break;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn decode_utf16le(bytes: &[u8]) -> Result<String, String> {
+    if bytes.len() % 2 != 0 {
+        return Err("Legacy WebKit chat value has invalid UTF-16 length".into());
+    }
+    let values = bytes
+        .chunks_exact(2)
+        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+        .collect::<Vec<_>>();
+    String::from_utf16(&values)
+        .map_err(|_| "Legacy WebKit chat value contains invalid UTF-16".to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn percent_decode(value: &str) -> Result<String, String> {
+    let bytes = value.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut index = 0usize;
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            if index + 2 >= bytes.len() {
+                return Err("Legacy chat owner id contains invalid percent encoding".into());
+            }
+            let high = (bytes[index + 1] as char).to_digit(16).ok_or_else(|| {
+                "Legacy chat owner id contains invalid percent encoding".to_string()
+            })?;
+            let low = (bytes[index + 2] as char).to_digit(16).ok_or_else(|| {
+                "Legacy chat owner id contains invalid percent encoding".to_string()
+            })?;
+            decoded.push(((high << 4) | low) as u8);
+            index += 3;
+        } else {
+            decoded.push(bytes[index]);
+            index += 1;
+        }
+    }
+    String::from_utf8(decoded).map_err(|_| "Legacy chat owner id is not valid UTF-8".to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn merge_legacy_ui_chat_states(states: Vec<UiChatState>) -> UiChatState {
+    let mut chats_by_id: HashMap<String, UiChatSnapshot> = HashMap::new();
+    let mut active_candidate: Option<(String, String)> = None;
+    for state in states {
+        if let Some(active_chat) = state
+            .chats
+            .iter()
+            .find(|chat| chat.id == state.active_chat_id)
+        {
+            let candidate = (active_chat.updated_at.clone(), active_chat.id.clone());
+            if active_candidate
+                .as_ref()
+                .map_or(true, |current| candidate.0 > current.0)
+            {
+                active_candidate = Some(candidate);
+            }
+        }
+        for chat in state.chats {
+            let replace = chats_by_id.get(&chat.id).map_or(true, |existing| {
+                chat.updated_at > existing.updated_at
+                    || (chat.updated_at == existing.updated_at
+                        && chat.messages.len() > existing.messages.len())
+            });
+            if replace {
+                chats_by_id.insert(chat.id.clone(), chat);
+            }
+        }
+    }
+    let mut chats = chats_by_id.into_values().collect::<Vec<_>>();
+    chats.sort_by(|left, right| {
+        right
+            .updated_at
+            .cmp(&left.updated_at)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    let active_chat_id = active_candidate
+        .map(|candidate| candidate.1)
+        .filter(|id| chats.iter().any(|chat| &chat.id == id))
+        .or_else(|| chats.first().map(|chat| chat.id.clone()))
+        .unwrap_or_default();
+    UiChatState {
+        active_chat_id,
+        chats,
+    }
 }
 
 fn validate_provider_base_url(value: String) -> Result<String, String> {
@@ -1144,6 +1938,24 @@ pub fn desktop_list_conversations(
 }
 
 #[tauri::command]
+pub fn desktop_load_ui_chat_state(
+    state: State<'_, DesktopStore>,
+    owner_id: String,
+) -> Result<UiChatState, String> {
+    state.load_ui_chat_state(owner_id)
+}
+
+#[tauri::command]
+pub fn desktop_replace_ui_chat_state(
+    state: State<'_, DesktopStore>,
+    owner_id: String,
+    active_chat_id: String,
+    chats: Vec<UiChatSnapshot>,
+) -> Result<UiChatState, String> {
+    state.replace_ui_chat_state(owner_id, active_chat_id, chats)
+}
+
+#[tauri::command]
 pub fn desktop_create_agent_job(
     state: State<'_, DesktopStore>,
     conversation_id: String,
@@ -1158,6 +1970,58 @@ pub fn desktop_list_agent_jobs(
     conversation_id: String,
 ) -> Result<Vec<AgentJob>, String> {
     state.list_agent_jobs(conversation_id)
+}
+
+#[tauri::command]
+pub fn desktop_get_project_directory_authorization(
+    state: State<'_, DesktopStore>,
+    project_id: String,
+) -> Result<Option<ProjectDirectoryAuthorization>, String> {
+    state.get_project_directory_authorization(project_id.trim())
+}
+
+#[tauri::command]
+pub async fn desktop_authorize_project_directory(
+    app: AppHandle,
+    state: State<'_, DesktopStore>,
+    project_id: String,
+) -> Result<Option<ProjectDirectoryAuthorization>, String> {
+    let Some(selection) = app
+        .dialog()
+        .file()
+        .set_title("选择 OpenRosalind 项目目录")
+        .blocking_pick_folder()
+    else {
+        return Ok(None);
+    };
+    let path = selection
+        .into_path()
+        .map_err(|_| "Project authorization requires a local filesystem directory".to_string())?;
+    state
+        .authorize_project_directory(project_id.trim(), &path)
+        .map(Some)
+}
+
+#[tauri::command]
+pub fn desktop_reveal_project_directory(
+    state: State<'_, DesktopStore>,
+    project_id: String,
+) -> Result<(), String> {
+    let authorization = state
+        .get_project_directory_authorization(project_id.trim())?
+        .ok_or_else(|| "This project does not have an authorized local directory".to_string())?;
+    if !authorization.available {
+        return Err("The authorized project directory is no longer available".into());
+    }
+    reveal_directory(Path::new(&authorization.display_path))
+}
+
+#[tauri::command]
+pub fn desktop_revoke_project_directory(
+    state: State<'_, DesktopStore>,
+    project_id: String,
+) -> Result<bool, String> {
+    state.revoke_project_directory(project_id.trim())
 }
 
 #[cfg(test)]
@@ -1188,7 +2052,7 @@ mod tests {
         let connection = store.connection.lock().unwrap();
         let mut statement = connection
             .prepare(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('conversations', 'agent_jobs', 'agent_job_events', 'tool_runs', 'artifacts') ORDER BY name",
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('conversations', 'ui_chat_states', 'ui_chats', 'ui_chat_messages', 'agent_jobs', 'agent_job_events', 'project_directory_authorizations', 'tool_runs', 'artifacts') ORDER BY name",
             )
             .unwrap();
         let tables = statement
@@ -1204,7 +2068,11 @@ mod tests {
                 "agent_jobs",
                 "artifacts",
                 "conversations",
-                "tool_runs"
+                "project_directory_authorizations",
+                "tool_runs",
+                "ui_chat_messages",
+                "ui_chat_states",
+                "ui_chats"
             ]
         );
         assert_eq!(
@@ -1218,7 +2086,9 @@ mod tests {
     #[test]
     fn refuses_to_downgrade_a_newer_schema() {
         let connection = Connection::open_in_memory().unwrap();
-        connection.pragma_update(None, "user_version", 4).unwrap();
+        connection
+            .pragma_update(None, "user_version", SCHEMA_VERSION + 1)
+            .unwrap();
 
         let error = match DesktopStore::from_connection(connection) {
             Ok(_) => panic!("newer schemas must be rejected"),
@@ -1248,6 +2118,174 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM agent_jobs", [], |row| row.get(0))
             .unwrap();
         assert_eq!(remaining, 0);
+    }
+
+    #[test]
+    fn ui_chat_state_round_trips_replaces_and_isolates_owners() {
+        let store = store();
+        let chat = UiChatSnapshot {
+            id: "chat-1".into(),
+            function_id: "research_assistant".into(),
+            title: "TP53 plan".into(),
+            messages: vec![json!({
+                "id": "message-1",
+                "role": "user",
+                "content": "Design a TP53 study"
+            })],
+            created_at: "2026-08-27T00:00:00.000Z".into(),
+            updated_at: "2026-08-27T00:01:00.000Z".into(),
+        };
+        store
+            .replace_ui_chat_state("user-a".into(), "chat-1".into(), vec![chat])
+            .unwrap();
+        let loaded = store.load_ui_chat_state("user-a".into()).unwrap();
+        assert_eq!(loaded.active_chat_id, "chat-1");
+        assert_eq!(loaded.chats.len(), 1);
+        assert_eq!(
+            loaded.chats[0].messages[0]["content"],
+            "Design a TP53 study"
+        );
+
+        store
+            .replace_ui_chat_state("user-a".into(), "".into(), vec![])
+            .unwrap();
+        assert!(store
+            .load_ui_chat_state("user-a".into())
+            .unwrap()
+            .chats
+            .is_empty());
+        assert!(store
+            .load_ui_chat_state("user-b".into())
+            .unwrap()
+            .chats
+            .is_empty());
+    }
+
+    #[test]
+    fn ui_chat_state_rejects_invalid_messages_without_overwriting_existing_data() {
+        let store = store();
+        let valid = UiChatSnapshot {
+            id: "chat-1".into(),
+            function_id: "research_assistant".into(),
+            title: "Valid chat".into(),
+            messages: vec![json!({"id": "message-1", "role": "assistant", "content": "ok"})],
+            created_at: "2026-08-27T00:00:00.000Z".into(),
+            updated_at: "2026-08-27T00:00:01.000Z".into(),
+        };
+        store
+            .replace_ui_chat_state("user-a".into(), "chat-1".into(), vec![valid.clone()])
+            .unwrap();
+        let mut invalid = valid;
+        invalid.messages = vec![json!({
+            "id": "message-2",
+            "role": "system",
+            "content": "not allowed"
+        })];
+        let error = store
+            .replace_ui_chat_state("user-a".into(), "chat-1".into(), vec![invalid])
+            .unwrap_err();
+        assert!(error.contains("user or assistant"));
+        assert_eq!(
+            store.load_ui_chat_state("user-a".into()).unwrap().chats[0].messages[0]["content"],
+            "ok"
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn legacy_webkit_chat_values_decode_and_merge_by_newest_chat() {
+        let encoded = "{\"activeChatId\":\"chat-1\",\"chats\":[]}";
+        let utf16 = encoded
+            .encode_utf16()
+            .flat_map(u16::to_le_bytes)
+            .collect::<Vec<_>>();
+        assert_eq!(decode_utf16le(&utf16).unwrap(), encoded);
+        assert_eq!(
+            percent_decode("person%40example.com").unwrap(),
+            "person@example.com"
+        );
+
+        let older = UiChatSnapshot {
+            id: "chat-1".into(),
+            function_id: "research_assistant".into(),
+            title: "Older".into(),
+            messages: vec![],
+            created_at: "2026-08-26T00:00:00.000Z".into(),
+            updated_at: "2026-08-26T00:00:00.000Z".into(),
+        };
+        let mut newer = older.clone();
+        newer.title = "Newer".into();
+        newer.updated_at = "2026-08-27T00:00:00.000Z".into();
+        let merged = merge_legacy_ui_chat_states(vec![
+            UiChatState {
+                active_chat_id: "chat-1".into(),
+                chats: vec![older],
+            },
+            UiChatState {
+                active_chat_id: "chat-1".into(),
+                chats: vec![newer],
+            },
+        ]);
+        assert_eq!(merged.active_chat_id, "chat-1");
+        assert_eq!(merged.chats[0].title, "Newer");
+    }
+
+    #[test]
+    fn project_directory_authorization_is_explicit_unique_and_revocable() {
+        let store = store();
+        let root = env::temp_dir().join(format!("openrosalind-project-{}", Uuid::new_v4()));
+        std::fs::create_dir(&root).unwrap();
+
+        let authorization = store
+            .authorize_project_directory("project-1", &root)
+            .unwrap();
+        assert_eq!(authorization.project_id, "project-1");
+        assert_eq!(
+            authorization.display_name,
+            root.file_name().unwrap().to_string_lossy()
+        );
+        assert!(authorization.read);
+        assert!(authorization.write);
+        assert!(authorization.available);
+        assert_eq!(
+            store
+                .get_project_directory_authorization("project-1")
+                .unwrap()
+                .unwrap()
+                .display_path,
+            root.canonicalize().unwrap().to_string_lossy()
+        );
+        let conversation = store
+            .create_conversation("Authorized project".into(), Some("project-1".into()))
+            .unwrap();
+        let job = store
+            .create_agent_job(conversation.id, json!({"mode": "tool-host"}))
+            .unwrap();
+        let grant = store
+            .authorized_project_directory_for_agent_job(&job.id)
+            .unwrap();
+        assert_eq!(grant.project_id, "project-1");
+        assert_eq!(grant.root, root.canonicalize().unwrap());
+        assert!(grant.write);
+
+        let duplicate = store
+            .authorize_project_directory("project-2", &root)
+            .unwrap_err();
+        assert!(duplicate.contains("already authorized"));
+        assert!(store.revoke_project_directory("project-1").unwrap());
+        assert!(store
+            .get_project_directory_authorization("project-1")
+            .unwrap()
+            .is_none());
+
+        std::fs::remove_dir(&root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn project_directory_authorization_rejects_filesystem_root() {
+        let error = validate_project_root(Path::new("/")).unwrap_err();
+        assert!(error.contains("filesystem root"));
     }
 
     #[test]

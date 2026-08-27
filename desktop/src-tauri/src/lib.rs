@@ -30,13 +30,15 @@ fn repository_root(app: &tauri::App) -> Result<PathBuf, String> {
         return Err("OPENROSALIND_REPO_ROOT does not contain web_app/server.py".into());
     }
 
-    let development_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .map(Path::to_path_buf)
-        .ok_or("Unable to locate the development repository root")?;
-    if development_root.join("web_app/server.py").is_file() {
-        return Ok(development_root);
+    if cfg!(debug_assertions) {
+        let development_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .map(Path::to_path_buf)
+            .ok_or("Unable to locate the development repository root")?;
+        if development_root.join("web_app/server.py").is_file() {
+            return Ok(development_root);
+        }
     }
 
     let bundled_root = app
@@ -83,11 +85,35 @@ fn python_executable(root: &Path) -> PathBuf {
 }
 
 fn validate_python(python: &Path) -> Result<(), String> {
-    let output = Command::new(python)
+    let mut child = Command::new(python)
         .arg("-c")
         .arg("import platform, sys; print(f'{sys.version_info.major}.{sys.version_info.minor}\\t{platform.machine()}')")
         .stdin(Stdio::null())
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Unable to inspect {}: {error}", python.display()))?;
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        if child
+            .try_wait()
+            .map_err(|error| format!("Unable to inspect {}: {error}", python.display()))?
+            .is_some()
+        {
+            break;
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!(
+                "Timed out while inspecting {}. OpenRosalind Desktop requires a responsive Python 3.10+ runtime.",
+                python.display()
+            ));
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    let output = child
+        .wait_with_output()
         .map_err(|error| format!("Unable to inspect {}: {error}", python.display()))?;
     if !output.status.success() {
         return Err(format!(
@@ -223,6 +249,7 @@ fn start_backend(app: &tauri::App) -> Result<BackendLaunch, String> {
         .arg(port.to_string())
         .current_dir(&root)
         .env("PYTHONPATH", &python_path)
+        .env("PYTHONDONTWRITEBYTECODE", "1")
         .env("ROSALIND_DESKTOP_MODE", "1")
         .env("ROSALIND_DESKTOP_TOKEN", &bootstrap_token)
         .env("ROSALIND_COOKIE_SECURE", "0")
@@ -271,8 +298,14 @@ pub fn run() {
             core::desktop_core_status,
             storage::desktop_create_conversation,
             storage::desktop_list_conversations,
+            storage::desktop_load_ui_chat_state,
+            storage::desktop_replace_ui_chat_state,
             storage::desktop_create_agent_job,
             storage::desktop_list_agent_jobs,
+            storage::desktop_get_project_directory_authorization,
+            storage::desktop_authorize_project_directory,
+            storage::desktop_reveal_project_directory,
+            storage::desktop_revoke_project_directory,
             jobs::desktop_get_agent_job,
             jobs::desktop_start_agent_job,
             jobs::desktop_refresh_agent_job,
@@ -306,6 +339,10 @@ pub fn run() {
                     let _ = launch.child.wait();
                 },
             )?;
+            #[cfg(target_os = "macos")]
+            if let Err(error) = store.import_legacy_macos_webkit_chats() {
+                eprintln!("OpenRosalind legacy chat migration was skipped: {error}");
+            }
             let tool_manager =
                 ToolManager::new(launch.python.clone(), launch.data_root.join("tool-runs"))
                     .inspect_err(|_| {

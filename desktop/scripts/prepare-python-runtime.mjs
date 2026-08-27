@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +11,20 @@ const requirements = resolve(repositoryRoot, "requirements.txt");
 const stampPath = resolve(target, ".openrosalind-runtime.json");
 const python = process.env.OPENROSALIND_PYTHON || (process.platform === "win32" ? "python" : "python3");
 const force = process.env.OPENROSALIND_FORCE_RUNTIME === "1";
+
+function removePythonBytecode(directory) {
+  if (!existsSync(directory)) return;
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = resolve(directory, entry.name);
+    if (entry.isDirectory() && entry.name === "__pycache__") {
+      rmSync(entryPath, { recursive: true, force: true });
+    } else if (entry.isDirectory()) {
+      removePythonBytecode(entryPath);
+    } else if (entry.isFile() && entry.name.endsWith(".pyc")) {
+      rmSync(entryPath, { force: true });
+    }
+  }
+}
 
 const probe = spawnSync(python, [
   "-c",
@@ -50,6 +64,7 @@ if (!force && existsSync(stampPath)) {
       stamp.requirementsSha256 === requirementsHash &&
       stamp.platform === process.platform
     ) {
+      removePythonBytecode(target);
       console.log(`Python runtime is up to date: ${target}`);
       process.exit(0);
     }
@@ -72,6 +87,7 @@ const result = spawnSync(python, [
 
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status || 1);
+removePythonBytecode(target);
 
 writeFileSync(stampPath, `${JSON.stringify({
   schema: 2,

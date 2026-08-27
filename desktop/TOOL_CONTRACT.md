@@ -27,6 +27,13 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 网络或 Secret 权限。输入、输出、Executor、权限快照、状态和时间线都会写入本地
 `desktop-core.db`，从而验证完整的低风险自动执行链路。
 
+`project.files.list@1.0.0` 和 `project.file.read@1.0.0` 是首批消费项目目录授权的
+只读工具。Desktop Core 根据 AgentJob -> Conversation -> Project 关系解析授权根目录，
+WebView 只能提交空的清单请求或相对文件路径。文件读取拒绝绝对路径、`..`、隐藏路径、
+符号链接、凭据文件和非 allowlist 文本格式，并把预览限制为 64 KiB；文件清单限制为
+4 层、200 项，跳过生成目录和敏感条目。权限快照记录 Project ID、授权版本和实际只读
+访问，但不把主机绝对路径写入 ToolRun 审计 JSON。
+
 `python.run@1.0.0-alpha.1` 已接入逐次批准状态机。Desktop Core 先创建
 `awaiting_approval` ToolRun 并冻结权限快照，UI 展示权限后记录批准或拒绝；只有
 `approved` 才能进入 `running`，最终写入 `succeeded`、`failed`、`cancelled` 或

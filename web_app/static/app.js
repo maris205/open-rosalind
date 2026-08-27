@@ -308,11 +308,20 @@ const state = {
   projects: [],
   desktopMode: false,
   containerCapability: null,
+  projectDirectoryAuthorization: null,
+  projectFiles: [],
+  projectFilesProjectId: "",
+  projectFileAgentJobId: "",
   providerProfileId: "",
-  desktopConversationIds: {}
+  desktopConversationIds: {},
+  desktopChatStorageAvailable: false,
+  desktopChatPersistenceError: ""
 };
 
 const agentPlanPolls = new Map();
+let containerCapabilityRefreshTimer = null;
+let containerCapabilityRefreshInFlight = null;
+let chatPersistenceChain = Promise.resolve();
 
 const els = {
   authScreen: document.getElementById("authScreen"),
@@ -336,6 +345,16 @@ const els = {
   openProject: document.getElementById("openProject"),
   projectDialog: document.getElementById("projectDialog"),
   projectDialogTitle: document.getElementById("projectDialogTitle"),
+  projectDirectorySection: document.getElementById("projectDirectorySection"),
+  projectDirectoryStatus: document.getElementById("projectDirectoryStatus"),
+  projectDirectoryPath: document.getElementById("projectDirectoryPath"),
+  authorizeProjectDirectory: document.getElementById("authorizeProjectDirectory"),
+  revealProjectDirectory: document.getElementById("revealProjectDirectory"),
+  scanProjectFiles: document.getElementById("scanProjectFiles"),
+  revokeProjectDirectory: document.getElementById("revokeProjectDirectory"),
+  projectFilesSection: document.getElementById("projectFilesSection"),
+  projectFilesStatus: document.getElementById("projectFilesStatus"),
+  projectFileList: document.getElementById("projectFileList"),
   memoryCategory: document.getElementById("memoryCategory"),
   memoryContent: document.getElementById("memoryContent"),
   addMemory: document.getElementById("addMemory"),
@@ -404,11 +423,12 @@ async function showApp(user) {
   state.user = user;
   els.currentUser.textContent = user.email;
   els.accountAvatar.textContent = (user.email || "U").trim().slice(0, 1).toUpperCase();
-  loadChats(user);
+  await loadConfig();
+  await loadChats(user);
   drawSignal();
   renderFunctions();
   selectFunction(state.functionId);
-  await Promise.all([loadConfig(), loadProjects()]);
+  await loadProjects();
   await hydrateCompletedAgentArtifacts();
   resumeAgentPlanPolling();
 }
@@ -443,9 +463,11 @@ async function submitAuth(event) {
 async function logout() {
   await fetch("/api/auth/logout", { method: "POST" });
   persistChats();
+  await flushChatPersistence();
   state.chats = [];
   state.activeChatId = "";
   state.user = null;
+  state.desktopChatStorageAvailable = false;
   closeAccountMenu();
   clearAttachment();
   showAuth();
@@ -507,9 +529,182 @@ async function createProjectFromUi() {
   }
 }
 
+function renderProjectDirectoryAuthorization(authorization) {
+  const previous = state.projectDirectoryAuthorization;
+  state.projectDirectoryAuthorization = authorization || null;
+  els.projectDirectorySection.hidden = !state.desktopMode;
+  if (!state.desktopMode) return;
+  if (!authorization) {
+    resetProjectFiles();
+    els.projectDirectoryStatus.textContent = "尚未授权目录。Agent 和工具无法访问你的其他文件。";
+    els.projectDirectoryPath.textContent = "";
+    els.projectDirectoryPath.hidden = true;
+    els.authorizeProjectDirectory.textContent = "选择文件夹";
+    els.revealProjectDirectory.hidden = true;
+    els.scanProjectFiles.hidden = true;
+    els.revokeProjectDirectory.hidden = true;
+    return;
+  }
+  if (previous?.projectId !== authorization.projectId || previous?.displayPath !== authorization.displayPath) {
+    resetProjectFiles(authorization.projectId);
+  }
+  els.projectDirectoryStatus.textContent = authorization.available
+    ? `已授权${authorization.write ? "读取和写入" : "只读访问"}。只有此目录可作为当前项目的本地工作区。`
+    : "原授权目录当前不可用，请重新选择文件夹或撤销授权。";
+  els.projectDirectoryPath.textContent = authorization.displayPath;
+  els.projectDirectoryPath.hidden = false;
+  els.authorizeProjectDirectory.textContent = "更换文件夹";
+  els.revealProjectDirectory.hidden = !authorization.available;
+  els.scanProjectFiles.hidden = !authorization.available;
+  els.revokeProjectDirectory.hidden = false;
+  els.projectFilesSection.hidden = false;
+}
+
+function resetProjectFiles(projectId = "") {
+  state.projectFiles = [];
+  state.projectFilesProjectId = projectId;
+  state.projectFileAgentJobId = "";
+  els.projectFilesSection.hidden = !projectId;
+  els.projectFilesStatus.textContent = "点击“扫描项目文件”读取安全文件清单。";
+  els.projectFileList.innerHTML = "";
+}
+
+function renderProjectFiles(files, truncated = false) {
+  state.projectFiles = Array.isArray(files) ? files : [];
+  els.projectFilesSection.hidden = false;
+  els.projectFilesStatus.textContent = state.projectFiles.length
+    ? `已发现 ${state.projectFiles.length} 个非敏感文件${truncated ? "，结果已达到安全上限" : ""}。`
+    : "授权目录中没有可展示的非敏感文件。";
+  els.projectFileList.innerHTML = "";
+  for (const file of state.projectFiles) {
+    const article = document.createElement("article");
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = file.path;
+    const meta = document.createElement("small");
+    meta.textContent = `${formatFileSize(file.sizeBytes)} · ${file.readable ? "可预览文本" : "文件"}`;
+    copy.append(title, meta);
+    article.appendChild(copy);
+    if (file.readable) {
+      const preview = document.createElement("button");
+      preview.type = "button";
+      preview.textContent = "预览";
+      preview.addEventListener("click", () => previewProjectFile(file.path, article, preview));
+      article.appendChild(preview);
+    }
+    els.projectFileList.appendChild(article);
+  }
+}
+
+async function scanProjectFiles() {
+  if (!state.desktopMode || !state.projectId || !state.projectDirectoryAuthorization?.available) return;
+  els.scanProjectFiles.disabled = true;
+  els.projectFilesStatus.textContent = "正在通过 Desktop Core 扫描授权目录…";
+  try {
+    const agentJobId = await desktopToolHostJob();
+    const toolRun = await desktopInvoke("desktop_run_low_risk_tool", {
+      agentJobId,
+      toolName: "project.files.list",
+      input: {}
+    });
+    if (toolRun.status !== "succeeded") throw new Error(toolRun.output?.error || `ToolRun ${toolRun.status}`);
+    state.projectFileAgentJobId = agentJobId;
+    state.projectFilesProjectId = state.projectId;
+    renderProjectFiles(toolRun.output?.files, Boolean(toolRun.output?.truncated));
+    setBadge("project files ready");
+  } catch (error) {
+    els.projectFilesStatus.textContent = `扫描失败：${String(error.message || error)}`;
+    setBadge("error", "error");
+  } finally {
+    els.scanProjectFiles.disabled = false;
+  }
+}
+
+async function previewProjectFile(path, article, button) {
+  if (!state.projectFileAgentJobId || state.projectFilesProjectId !== state.projectId) return;
+  button.disabled = true;
+  button.textContent = "读取中";
+  try {
+    const toolRun = await desktopInvoke("desktop_run_low_risk_tool", {
+      agentJobId: state.projectFileAgentJobId,
+      toolName: "project.file.read",
+      input: { path }
+    });
+    if (toolRun.status !== "succeeded") throw new Error(toolRun.output?.error || `ToolRun ${toolRun.status}`);
+    let preview = article.querySelector("pre");
+    if (!preview) {
+      preview = document.createElement("pre");
+      article.appendChild(preview);
+    }
+    preview.textContent = `${toolRun.output?.content || ""}${toolRun.output?.truncated ? "\n\n[预览已截断]" : ""}`;
+    button.textContent = "刷新预览";
+  } catch (error) {
+    button.textContent = "预览失败";
+    button.title = String(error.message || error);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadProjectDirectoryAuthorization() {
+  if (!state.desktopMode || !state.projectId) {
+    renderProjectDirectoryAuthorization(null);
+    return null;
+  }
+  const authorization = await desktopInvoke("desktop_get_project_directory_authorization", {
+    projectId: state.projectId
+  });
+  renderProjectDirectoryAuthorization(authorization);
+  return authorization;
+}
+
+async function authorizeProjectDirectory() {
+  if (!state.desktopMode || !state.projectId) return;
+  els.authorizeProjectDirectory.disabled = true;
+  try {
+    const authorization = await desktopInvoke("desktop_authorize_project_directory", {
+      projectId: state.projectId
+    });
+    if (authorization) {
+      renderProjectDirectoryAuthorization(authorization);
+      setBadge("project directory ready");
+    }
+  } catch (error) {
+    setBadge("error", "error");
+    window.alert(String(error.message || error));
+  } finally {
+    els.authorizeProjectDirectory.disabled = false;
+  }
+}
+
+async function revealProjectDirectory() {
+  if (!state.desktopMode || !state.projectId) return;
+  try {
+    await desktopInvoke("desktop_reveal_project_directory", { projectId: state.projectId });
+  } catch (error) {
+    window.alert(String(error.message || error));
+    await loadProjectDirectoryAuthorization();
+  }
+}
+
+async function revokeProjectDirectory() {
+  if (!state.desktopMode || !state.projectId) return;
+  const approved = await confirmDesktopAction(
+    "撤销后，Agent 和工具将无法继续访问这个目录。目录及其中的文件不会被删除。",
+    { title: "撤销项目目录授权" }
+  );
+  if (!approved) return;
+  await desktopInvoke("desktop_revoke_project_directory", { projectId: state.projectId });
+  renderProjectDirectoryAuthorization(null);
+  setBadge("project directory revoked");
+}
+
 async function loadProjectDialog() {
   if (!state.projectId) return;
-  const data = await agentRequest(`/api/projects/${state.projectId}/workspace`);
+  const [data] = await Promise.all([
+    agentRequest(`/api/projects/${state.projectId}/workspace`),
+    loadProjectDirectoryAuthorization()
+  ]);
   els.projectDialogTitle.textContent = data.project.name;
   els.memoryList.innerHTML = "";
   if (!data.memory.length) els.memoryList.textContent = "暂无项目记忆。";
@@ -670,9 +865,13 @@ function addSessionMessage(role, content, extras = {}) {
   return message;
 }
 
-function chatStorageKey(user = state.user) {
+function chatOwnerId(user = state.user) {
   const identity = user?.id || user?.email || "anonymous";
-  return `rosalind.chats.${encodeURIComponent(String(identity).toLowerCase())}`;
+  return String(identity).trim().toLowerCase();
+}
+
+function chatStorageKey(user = state.user) {
+  return `rosalind.chats.${encodeURIComponent(chatOwnerId(user))}`;
 }
 
 function createChat(functionId = state.functionId, shouldRender = true) {
@@ -702,51 +901,114 @@ function activeChat() {
   return chat;
 }
 
-function loadChats(user) {
+function normalizeChatState(saved) {
+  const savedChats = Array.isArray(saved) ? saved : saved?.chats;
+  if (!Array.isArray(savedChats)) return { activeChatId: "", chats: [] };
+  let chats = savedChats.slice(0, 100).filter((chat) => chat && typeof chat.id === "string").map((chat) => ({
+    id: chat.id,
+    functionId: functions[chat.functionId] ? chat.functionId : "research_assistant",
+    title: typeof chat.title === "string" && chat.title.trim() ? chat.title.trim().slice(0, 60) : "新对话",
+    messages: Array.isArray(chat.messages) ? chat.messages.map(normalizeMessage) : [],
+    createdAt: chat.createdAt || new Date().toISOString(),
+    updatedAt: chat.updatedAt || chat.createdAt || new Date().toISOString()
+  }));
+  const savedActiveId = chats.some((chat) => chat.id === saved?.activeChatId)
+    ? saved.activeChatId
+    : chats[0]?.id || "";
+  const activeIsEmpty = chats.find((chat) => chat.id === savedActiveId)?.messages.length === 0;
+  const emptyChatId = activeIsEmpty
+    ? savedActiveId
+    : chats.find((chat) => chat.messages.length === 0)?.id;
+  chats = chats.filter((chat) => chat.messages.length > 0 || chat.id === emptyChatId);
+  return {
+    chats,
+    activeChatId: chats.some((chat) => chat.id === savedActiveId) ? savedActiveId : chats[0]?.id || ""
+  };
+}
+
+async function loadChats(user) {
   state.chats = [];
   state.activeChatId = "";
+  state.desktopChatStorageAvailable = false;
+  state.desktopChatPersistenceError = "";
+  let localState = { activeChatId: "", chats: [] };
   try {
-    const saved = JSON.parse(localStorage.getItem(chatStorageKey(user)) || "null");
-    const savedChats = Array.isArray(saved) ? saved : saved?.chats;
-    if (Array.isArray(savedChats)) {
-      state.chats = savedChats.slice(0, 100).filter((chat) => chat && typeof chat.id === "string").map((chat) => ({
-        id: chat.id,
-        functionId: functions[chat.functionId] ? chat.functionId : "research_assistant",
-        title: typeof chat.title === "string" && chat.title.trim() ? chat.title.trim().slice(0, 60) : "新对话",
-        messages: Array.isArray(chat.messages) ? chat.messages.map(normalizeMessage) : [],
-        createdAt: chat.createdAt || new Date().toISOString(),
-        updatedAt: chat.updatedAt || chat.createdAt || new Date().toISOString()
-      }));
-      const savedActiveId = state.chats.some((chat) => chat.id === saved?.activeChatId)
-        ? saved.activeChatId
-        : state.chats[0]?.id || "";
-      const activeIsEmpty = state.chats.find((chat) => chat.id === savedActiveId)?.messages.length === 0;
-      const emptyChatId = activeIsEmpty
-        ? savedActiveId
-        : state.chats.find((chat) => chat.messages.length === 0)?.id;
-      state.chats = state.chats.filter((chat) => chat.messages.length > 0 || chat.id === emptyChatId);
-      state.activeChatId = state.chats.some((chat) => chat.id === savedActiveId)
-        ? savedActiveId
-        : state.chats[0]?.id || "";
-    }
+    localState = normalizeChatState(JSON.parse(localStorage.getItem(chatStorageKey(user)) || "null"));
   } catch {
-    state.chats = [];
+    localState = { activeChatId: "", chats: [] };
   }
-  if (!state.chats.length) createChat("research_assistant", false);
+
+  let loadedState = localState;
+  let shouldWriteDesktopState = false;
+  if (state.desktopMode) {
+    try {
+      const desktopState = normalizeChatState(await desktopInvoke("desktop_load_ui_chat_state", {
+        ownerId: chatOwnerId(user)
+      }));
+      state.desktopChatStorageAvailable = true;
+      if (desktopState.chats.length) {
+        loadedState = desktopState;
+      } else {
+        shouldWriteDesktopState = true;
+      }
+    } catch (error) {
+      state.desktopChatPersistenceError = String(error.message || error);
+      console.error("Unable to load Desktop Core chat state", error);
+    }
+  }
+
+  state.chats = loadedState.chats;
+  state.activeChatId = loadedState.activeChatId;
+  if (!state.chats.length) {
+    createChat("research_assistant", false);
+    shouldWriteDesktopState = state.desktopChatStorageAvailable;
+  }
   state.functionId = activeChat().functionId;
+  if (shouldWriteDesktopState) {
+    persistChats();
+    await flushChatPersistence();
+  }
   renderChatHistory();
 }
 
 function persistChats() {
   if (!state.user) return;
+  const snapshot = {
+    activeChatId: state.activeChatId,
+    chats: state.chats.slice(0, 100)
+  };
   try {
-    localStorage.setItem(chatStorageKey(), JSON.stringify({
-      activeChatId: state.activeChatId,
-      chats: state.chats.slice(0, 100)
-    }));
+    localStorage.setItem(chatStorageKey(), JSON.stringify(snapshot));
   } catch {
     // A full or unavailable localStorage must not block the chat UI.
   }
+  if (!state.desktopMode || !state.desktopChatStorageAvailable) return;
+  let desktopSnapshot;
+  try {
+    desktopSnapshot = JSON.parse(JSON.stringify(snapshot));
+  } catch (error) {
+    state.desktopChatPersistenceError = String(error.message || error);
+    return;
+  }
+  const ownerId = chatOwnerId();
+  chatPersistenceChain = chatPersistenceChain
+    .catch(() => {})
+    .then(() => desktopInvoke("desktop_replace_ui_chat_state", {
+      ownerId,
+      activeChatId: desktopSnapshot.activeChatId,
+      chats: desktopSnapshot.chats
+    }))
+    .then(() => {
+      state.desktopChatPersistenceError = "";
+    })
+    .catch((error) => {
+      state.desktopChatPersistenceError = String(error.message || error);
+      console.error("Unable to persist Desktop Core chat state", error);
+    });
+}
+
+async function flushChatPersistence() {
+  await chatPersistenceChain.catch(() => {});
 }
 
 function chatTimeLabel(value) {
@@ -1606,13 +1868,13 @@ async function desktopToolHostJob(agentJobId) {
 }
 
 async function ensureDesktopContainerImage() {
-  let capability = state.containerCapability || await desktopInvoke("desktop_container_capability");
-  state.containerCapability = capability;
+  let capability = await refreshDesktopContainerCapability({ render: false });
   if (!capability.available) throw new Error(capability.reason || "Docker Desktop 不可用。");
   if (capability.imageAvailable) return true;
   setBadge("preparing container");
   capability = await desktopInvoke("desktop_prepare_container_image");
   state.containerCapability = capability;
+  updateDesktopContainerStatus(capability);
   return capability.imageAvailable;
 }
 
@@ -1660,7 +1922,15 @@ async function runPythonCode(code, agentJobId = "", triggerButton = null, execut
   const warning = execution.runtime === "Local Python"
     ? `极高风险工具 python.run 请求逐次授权。\n\n将在本机 Python 中直接执行此代码。它不是 Docker 沙箱，拥有当前用户级文件和网络能力。\n\n权限快照：文件 ${permissions?.filesystem?.map((item) => `${item.scope}:${item.mode}`).join(", ") || "未声明"}；网络 ${permissions?.network || "host"}；Secret ${permissions?.secrets?.length || 0} 项。\n\n请确认你已经逐行检查代码，是否继续？`
     : `高风险工具 python.container 请求逐次授权。\n\n将在固定镜像、无网络、只读根文件系统、非 root 的 Docker 沙箱中执行代码，只挂载本次任务的只读输入目录和可写输出目录。\n\n镜像：${state.containerCapability?.image || "固定摘要镜像"}\n权限快照：文件 ${permissions?.filesystem?.map((item) => `${item.scope}:${item.mode}`).join(", ") || "未声明"}；网络 ${permissions?.network || "none"}；Secret ${permissions?.secrets?.length || 0} 项。\n\n是否继续？`;
-  const approved = window.confirm(warning);
+  let approved;
+  try {
+    approved = await confirmDesktopToolRun(warning);
+  } catch (error) {
+    addSessionMessage("assistant", `## 无法显示工具授权对话框\n\n${String(error.message || error)}`);
+    renderConversation();
+    setBadge("error", "error");
+    return;
+  }
   if (contractRun) {
     try {
       await desktopInvoke("desktop_decide_tool_run", {
@@ -1978,6 +2248,53 @@ function chooseFunction(functionId) {
   selectFunction(targetFunctionId);
 }
 
+function updateDesktopContainerStatus(capability) {
+  const dockerStatus = capability?.available
+    ? capability.imageAvailable ? "Docker 沙箱就绪" : "Docker 待准备镜像"
+    : capability?.installed ? "Docker 未启动" : "无 Docker";
+  const baseTitle = els.desktopRuntime.dataset.baseTitle || "本地执行";
+  els.desktopRuntime.title = `${baseTitle} · ${dockerStatus}`;
+}
+
+function scheduleDesktopContainerRefresh(capability) {
+  if (containerCapabilityRefreshTimer) {
+    clearTimeout(containerCapabilityRefreshTimer);
+    containerCapabilityRefreshTimer = null;
+  }
+  if (!state.desktopMode || capability?.available || document.visibilityState === "hidden") return;
+  containerCapabilityRefreshTimer = setTimeout(() => {
+    containerCapabilityRefreshTimer = null;
+    void refreshDesktopContainerCapability();
+  }, 5000);
+}
+
+async function refreshDesktopContainerCapability({ render = true } = {}) {
+  if (!state.desktopMode) return null;
+  if (containerCapabilityRefreshInFlight) return containerCapabilityRefreshInFlight;
+  containerCapabilityRefreshInFlight = (async () => {
+    const previous = JSON.stringify(state.containerCapability);
+    try {
+      state.containerCapability = await desktopInvoke("desktop_container_capability");
+    } catch {
+      state.containerCapability = {
+        installed: false,
+        available: false,
+        imageAvailable: false,
+        reason: "无法读取 Docker 能力。"
+      };
+    }
+    updateDesktopContainerStatus(state.containerCapability);
+    scheduleDesktopContainerRefresh(state.containerCapability);
+    if (render && previous !== JSON.stringify(state.containerCapability)) renderConversation();
+    return state.containerCapability;
+  })();
+  try {
+    return await containerCapabilityRefreshInFlight;
+  } finally {
+    containerCapabilityRefreshInFlight = null;
+  }
+}
+
 async function loadConfig() {
   const config = await fetch("/api/config").then((response) => response.json());
   state.desktopMode = Boolean(config.desktopMode);
@@ -1992,28 +2309,15 @@ async function loadConfig() {
       const status = await fetch("/api/desktop/status").then((response) => response.json());
       els.desktopRuntime.hidden = false;
       els.desktopRuntime.textContent = "本地执行";
-      els.desktopRuntime.title = `Python ${status.python} · ${status.agentRuntime}`;
+      els.desktopRuntime.dataset.baseTitle = `Python ${status.python} · ${status.agentRuntime}`;
+      els.desktopRuntime.title = els.desktopRuntime.dataset.baseTitle;
       document.documentElement.dataset.runtime = "desktop";
     } catch {
       els.desktopRuntime.hidden = false;
       els.desktopRuntime.textContent = "本地模式";
+      els.desktopRuntime.dataset.baseTitle = "本地模式";
     }
-    try {
-      state.containerCapability = await desktopInvoke("desktop_container_capability");
-      const capability = state.containerCapability;
-      const dockerStatus = capability.available
-        ? capability.imageAvailable ? "Docker 沙箱就绪" : "Docker 待准备镜像"
-        : capability.installed ? "Docker 未启动" : "无 Docker";
-      els.desktopRuntime.title = `${els.desktopRuntime.title} · ${dockerStatus}`;
-    } catch {
-      state.containerCapability = {
-        installed: false,
-        available: false,
-        imageAvailable: false,
-        reason: "无法读取 Docker 能力。"
-      };
-    }
-    renderConversation();
+    await refreshDesktopContainerCapability({ render: false });
   }
 }
 
@@ -2021,6 +2325,21 @@ function desktopInvoke(command, args = {}) {
   const invoke = window.__TAURI__?.core?.invoke;
   if (!invoke) throw new Error("Desktop Core IPC 不可用。");
   return invoke(command, args);
+}
+
+async function confirmDesktopAction(message, { title = "OpenRosalind", kind = "warning" } = {}) {
+  const nativeConfirm = window.__TAURI__?.dialog?.confirm;
+  const approved = typeof nativeConfirm === "function"
+    ? await nativeConfirm(message, { title, kind })
+    : window.confirm(message);
+  if (typeof approved !== "boolean") {
+    throw new Error("确认对话框没有返回有效决定。");
+  }
+  return approved;
+}
+
+async function confirmDesktopToolRun(message) {
+  return confirmDesktopAction(message, { title: "OpenRosalind 工具授权" });
 }
 
 async function loadDesktopProviderProfile() {
@@ -2637,12 +2956,13 @@ async function generateWithDesktopProvider(requestInput, displayInput) {
 
 async function desktopAgentConversation() {
   const chatId = activeChat().id;
-  if (state.desktopConversationIds[chatId]) return state.desktopConversationIds[chatId];
+  const contextId = `${chatId}:${state.projectId || "no-project"}`;
+  if (state.desktopConversationIds[contextId]) return state.desktopConversationIds[contextId];
   const conversation = await desktopInvoke("desktop_create_conversation", {
     title: activeChat().title || "Research Assistant",
     projectId: state.projectId || null
   });
-  state.desktopConversationIds[chatId] = conversation.id;
+  state.desktopConversationIds[contextId] = conversation.id;
   return conversation.id;
 }
 
@@ -2806,6 +3126,8 @@ function clearCurrentChat() {
   closeDetailPanel();
   clearAttachment();
   closeAccountMenu();
+  persistChats();
+  renderChatHistory();
   renderConversation();
   setBadge("ready");
 }
@@ -2837,6 +3159,14 @@ function startNewChat() {
 }
 
 function bindEvents() {
+  window.addEventListener("focus", () => {
+    void refreshDesktopContainerCapability();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void refreshDesktopContainerCapability();
+    else persistChats();
+  });
+  window.addEventListener("beforeunload", persistChats);
   els.loginMode.addEventListener("click", () => setAuthMode("login"));
   els.registerMode.addEventListener("click", () => setAuthMode("register"));
   els.authForm.addEventListener("submit", submitAuth);
@@ -2861,10 +3191,20 @@ function bindEvents() {
   });
   els.projectSelect.addEventListener("change", () => {
     state.projectId = els.projectSelect.value;
+    renderProjectDirectoryAuthorization(null);
     setBadge("project switched");
   });
   els.newProject.addEventListener("click", createProjectFromUi);
   els.openProject.addEventListener("click", openProjectDialog);
+  els.authorizeProjectDirectory.addEventListener("click", authorizeProjectDirectory);
+  els.revealProjectDirectory.addEventListener("click", revealProjectDirectory);
+  els.scanProjectFiles.addEventListener("click", scanProjectFiles);
+  els.revokeProjectDirectory.addEventListener("click", () => {
+    void revokeProjectDirectory().catch((error) => {
+      setBadge("error", "error");
+      window.alert(String(error.message || error));
+    });
+  });
   els.addMemory.addEventListener("click", addProjectMemory);
   els.agentDialog.addEventListener("close", () => {
     if (els.agentDialog.returnValue === "save") saveAgentChoices();

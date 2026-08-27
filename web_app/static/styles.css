@@ -1653,6 +1653,94 @@ p {
   width: min(760px, calc(100% - 32px));
 }
 
+.project-directory-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.project-directory-section[hidden] {
+  display: none;
+}
+
+.project-directory-section h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+
+.project-directory-section p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.project-directory-section code {
+  display: block;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.project-directory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.danger-button {
+  color: var(--danger) !important;
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line)) !important;
+}
+
+.project-files-section {
+  margin-bottom: 18px;
+}
+
+.project-files-section h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+
+.project-files-section > p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.project-file-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-file-list small {
+  display: block;
+  color: var(--muted);
+}
+
+.project-file-list pre {
+  grid-column: 1 / -1;
+  max-height: 240px;
+  overflow: auto;
+  margin: 4px 0 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .project-memory-editor {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr) auto;

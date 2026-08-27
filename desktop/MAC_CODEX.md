@@ -190,8 +190,11 @@ desktop/src-tauri/target/release/bundle/dmg/*.dmg
 ## 6. Apple 签名与公证
 
 `tauri.macos.conf.json` 已启用 hardened runtime，并使用最小权限的空
-`Entitlements.plist`。未签名本地构建仅用于开发测试，不能直接作为面向用户的
-正式安装包分发。
+`Entitlements.plist`。macOS 本地构建脚本在没有配置 Apple 证书时使用 ad-hoc
+identity 对完整 `.app` 签名，使 `.app` 以及 `.dmg` 内副本都能通过本机
+`codesign --verify --deep --strict`；这种签名仅用于开发测试，不能替代 Developer ID
+签名和公证，也不能作为面向用户的正式安装包分发。检测到正式证书或 signing identity
+时，脚本会保留 CI 提供的签名配置。
 
 签名与公证使用 Tauri/CI 环境变量注入，不写入仓库：
 
@@ -232,5 +235,9 @@ tests/web/desktop.spec.js。不要自动推送、创建 PR、签名或发布安�
 ```text
 ~/Library/Application Support/bio.openrosalind.desktop/
 ```
+
+`desktop-core.db` schema v5 保存桌面聊天、消息、AgentJob、ToolRun 和 Artifact。
+从旧版升级时，客户端会从自身 WebKit 数据目录一次性合并旧聊天；由于本地 API
+每次使用随机端口，后续聊天不得再以 WebKit `localStorage` 作为权威存储。
 
 不要把该目录、聊天记录、真实密钥或 `desktop/src-tauri/target` 提交到 Git。
