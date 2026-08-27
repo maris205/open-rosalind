@@ -81,6 +81,14 @@ class DesktopAgentWorkerTests(unittest.TestCase):
         self.assertFalse(responses[0]["result"]["capabilities"]["modelCredentials"])
         self.assertTrue(responses[0]["result"]["capabilities"]["modelBrokerRequests"])
         self.assertTrue(responses[0]["result"]["capabilities"]["toolCalls"])
+        self.assertEqual(
+            responses[0]["result"]["capabilities"]["automaticTools"],
+            ["project.file.read", "project.files.list", "text.statistics"],
+        )
+        self.assertEqual(
+            responses[0]["result"]["capabilities"]["approvalRequiredTools"],
+            ["project.file.write"],
+        )
         self.assertTrue(responses[1]["result"]["ok"])
         self.assertTrue(responses[2]["result"]["ok"])
 
@@ -504,6 +512,79 @@ class DesktopAgentWorkerTests(unittest.TestCase):
         )
 
         self.assertEqual(response["error"]["code"], -32011)
+
+    def test_project_write_reaches_desktop_core_for_user_approval(self) -> None:
+        state = self.initialized_state()
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "job.start",
+                "params": {
+                    "jobId": "job-project-write",
+                    "request": {
+                        "mode": "agent",
+                        "messages": [{"role": "user", "content": "Create notes.md"}],
+                    },
+                },
+            },
+            state,
+        )
+        pending_model = None
+        for request_id in range(3, 30):
+            snapshot = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-project-write"},
+                },
+                state,
+            )
+            pending_model = snapshot["result"]["pendingModelRequest"]
+            if pending_model:
+                break
+            time.sleep(0.01)
+        handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": 30,
+                "method": "model.complete",
+                "params": {
+                    "jobId": "job-project-write",
+                    "requestId": pending_model["requestId"],
+                    "result": {
+                        "content": json.dumps(
+                            {
+                                "type": "tool",
+                                "tool": "project.file.write",
+                                "input": {"path": "notes.md", "content": "review me"},
+                            }
+                        ),
+                        "model": "test-model",
+                    },
+                },
+            },
+            state,
+        )
+        pending_tool = None
+        for request_id in range(31, 60):
+            snapshot = handle_request(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "method": "job.status",
+                    "params": {"jobId": "job-project-write"},
+                },
+                state,
+            )
+            pending_tool = snapshot["result"]["pendingToolRequest"]
+            if pending_tool:
+                break
+            time.sleep(0.01)
+        self.assertEqual(pending_tool["toolName"], "project.file.write")
+        self.assertEqual(pending_tool["input"]["path"], "notes.md")
+        self.assertEqual(pending_tool["input"]["content"], "review me")
 
 
 if __name__ == "__main__":

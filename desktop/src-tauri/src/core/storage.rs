@@ -151,6 +151,10 @@ impl ToolRun {
     pub(crate) fn input(&self) -> &Value {
         &self.input
     }
+
+    pub(crate) fn permission_snapshot(&self) -> &Value {
+        &self.permission_snapshot
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -2417,6 +2421,7 @@ pub fn desktop_restore_data_backup(
 mod tests {
     use super::*;
     use crate::core::agent::{WorkerJobProgress, WorkerJobStatus};
+    use crate::core::tools::{propose_tool_run, run_low_risk_tool};
 
     fn store() -> DesktopStore {
         DesktopStore::from_connection(Connection::open_in_memory().unwrap()).unwrap()
@@ -2811,6 +2816,67 @@ mod tests {
             .is_none());
 
         std::fs::remove_dir(&root).unwrap();
+    }
+
+    #[test]
+    fn project_write_proposal_requires_a_complete_audited_read() {
+        let store = store();
+        let root = env::temp_dir().join(format!(
+            "openrosalind-project-write-review-{}",
+            Uuid::new_v4()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("result.md"), "reviewed content").unwrap();
+        store
+            .authorize_project_directory("project-reviewed-write", &root)
+            .unwrap();
+        let conversation = store
+            .create_conversation(
+                "Reviewed write".into(),
+                Some("project-reviewed-write".into()),
+            )
+            .unwrap();
+        let job = store
+            .create_agent_job(conversation.id, json!({"mode":"agent"}))
+            .unwrap();
+
+        let unreviewed = propose_tool_run(
+            &store,
+            &job.id,
+            "project.file.write",
+            json!({
+                "path":"result.md",
+                "content":"replacement",
+                "expectedSha256":"0".repeat(64)
+            }),
+            None,
+        )
+        .unwrap_err();
+        assert!(unreviewed.contains("successful, complete project.file.read"));
+
+        let read = run_low_risk_tool(
+            &store,
+            &job.id,
+            "project.file.read",
+            json!({"path":"result.md"}),
+        )
+        .unwrap();
+        let digest = read.output.unwrap()["sha256"].as_str().unwrap().to_string();
+        let proposed = propose_tool_run(
+            &store,
+            &job.id,
+            "project.file.write",
+            json!({
+                "path":"result.md",
+                "content":"replacement",
+                "expectedSha256":digest
+            }),
+            None,
+        )
+        .unwrap();
+        assert_eq!(proposed.status, "awaiting_approval");
+
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[cfg(unix)]

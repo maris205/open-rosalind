@@ -8,10 +8,11 @@ started per Conversation or per AgentJob, and it does not run in Docker.
 
 Version 4 adds a bounded model/tool/model loop to the credential-free model
 requests, cancellation, and structured progress from v3. The Worker may ask
-Desktop Core to run a bounded model request or one allowlisted automatic Tool
-Contract, but it cannot resolve credentials, access the model network, or run a
-tool itself. Desktop Core remains the owner of Provider calls, ToolRun audit
-records, filesystem authorization, persisted state, cancellation, and recovery.
+Desktop Core to run a bounded model request, one allowlisted automatic Tool
+Contract, or the explicitly approval-gated project write contract. It cannot
+resolve credentials, access the model network, approve a request, or run a tool
+itself. Desktop Core remains the owner of Provider calls, ToolRun audit records,
+filesystem authorization, persisted state, cancellation, and recovery.
 
 ## Transport
 
@@ -45,6 +46,7 @@ numeric request ID, and the Worker returns the same ID.
       "progressPolling": true,
       "toolCalls": true,
       "automaticTools": ["project.file.read", "project.files.list", "text.statistics"],
+      "approvalRequiredTools": ["project.file.write"],
       "modelCredentials": false,
       "modelBrokerRequests": true
     }
@@ -158,6 +160,26 @@ Python, Shell, Docker, network tools, secret-bearing tools, and all `per-run`
 approval contracts are rejected by this automatic path. They continue to use
 the separate user-visible proposal and approval flow.
 
+## Approval-gated project write round trip
+
+The v4 allowlist also recognizes one non-automatic directive:
+
+```json
+{"type":"tool","tool":"project.file.write","input":{"path":"notes/result.md","content":"complete UTF-8 content","expectedSha256":"digest from project.file.read"}}
+```
+
+Desktop Core validates the input and current read-write project authorization,
+creates an `awaiting_approval` ToolRun tied to the Worker request ID, and leaves
+the Worker paused. The UI obtains that durable ToolRun, previews the path,
+operation, permissions, byte count and content, then records an explicit approve
+or deny decision. An approval still does not write the file: the dedicated
+Desktop Core executor re-resolves authorization, rejects authorization changes,
+requires a matching prior-read digest for overwrites, rejects path/symlink
+escapes, and performs an atomic write. Previous and written content become
+audited Artifacts. Desktop Core then completes the same pending Worker tool
+request with a sanitized success or failure result, allowing the model loop to
+finish normally. A restart never silently replays the write.
+
 ## State machine and recovery
 
 Normal execution follows `queued -> running -> completed`. Cancellation uses
@@ -175,9 +197,9 @@ Worker's in-memory execution state no longer exists.
 - Model API keys, OpenRosalind authentication tokens, GitHub tokens, and the
   loopback bootstrap token are not passed to the Worker.
 - Version 4 cannot invoke Shell, Docker, network, Provider credentials, or
-  high-risk tools. It may request only allowlisted low-risk Tool Contracts;
-  actual execution and project filesystem access belong exclusively to Desktop
-  Core.
+  high-risk tools. It may request only allowlisted low-risk Tool Contracts and
+  the medium-risk, per-run-approved project write contract; actual execution,
+  approval, and project filesystem access belong exclusively to Desktop Core.
 - Non-model lifecycle results explicitly identify themselves as
   `lifecycle-stub-v4` and never claim model or tool work was performed.
 - Only Desktop Core may resolve a credential reference, approve a Tool Contract
@@ -185,7 +207,7 @@ Worker's in-memory execution state no longer exists.
 
 ## Future extension
 
-A later protocol revision may make high-risk proposals resumable across UI
-approval and add signed third-party Tool Packs. Those capabilities must keep
+A later protocol revision may make Python/container proposals resumable across
+UI approval and add signed third-party Tool Packs. Those capabilities must keep
 permission snapshots, ToolRuns, Artifacts, credential resolution,
 cancellation, and audit records under Desktop Core ownership.

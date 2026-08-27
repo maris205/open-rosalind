@@ -11,6 +11,7 @@ const requirements = resolve(repositoryRoot, "requirements.txt");
 const stampPath = resolve(target, ".openrosalind-runtime.json");
 const python = process.env.OPENROSALIND_PYTHON || (process.platform === "win32" ? "python" : "python3");
 const force = process.env.OPENROSALIND_FORCE_RUNTIME === "1";
+const pythonEnvironment = { ...process.env, PYTHONDONTWRITEBYTECODE: "1" };
 
 function removePythonBytecode(directory) {
   if (!existsSync(directory)) return;
@@ -27,9 +28,10 @@ function removePythonBytecode(directory) {
 }
 
 const probe = spawnSync(python, [
+  "-B",
   "-c",
   "import json, platform, sys; print(json.dumps({'executable': sys.executable, 'machine': platform.machine(), 'version': platform.python_version(), 'version_info': list(sys.version_info[:2])}))"
-], { encoding: "utf8" });
+], { encoding: "utf8", env: pythonEnvironment });
 
 if (probe.error) throw probe.error;
 if (probe.status !== 0) {
@@ -78,12 +80,12 @@ if (!force && existsSync(stampPath)) {
 rmSync(target, { recursive: true, force: true });
 mkdirSync(target, { recursive: true });
 const result = spawnSync(python, [
-  "-m", "pip", "install",
+  "-B", "-m", "pip", "install",
   "--disable-pip-version-check",
   "--upgrade",
   "--target", target,
   "-r", requirements
-], { stdio: "inherit" });
+], { stdio: "inherit", env: pythonEnvironment });
 
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status || 1);

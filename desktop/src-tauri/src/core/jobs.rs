@@ -6,7 +6,7 @@ use tauri::{State, WebviewWindow};
 use super::{
     provider::{execute_provider_chat, ProviderManager},
     storage::{is_terminal_status, AgentJobDetail, DesktopStore},
-    tools::run_low_risk_tool,
+    tools::{propose_tool_run, run_low_risk_tool},
     DesktopCore,
 };
 
@@ -91,6 +91,70 @@ pub fn desktop_refresh_agent_job(
     }
 
     if let Some(tool_request) = worker_status.pending_tool_request {
+        if tool_request.tool_name == "project.file.write" {
+            let runs = store.list_tool_runs(job_id)?;
+            let tool_run = runs.into_iter().find(|run| {
+                run.tool_name == "project.file.write"
+                    && run
+                        .permission_snapshot()
+                        .get("workerRequestId")
+                        .and_then(serde_json::Value::as_str)
+                        == Some(tool_request.request_id.as_str())
+            });
+            let tool_run = match tool_run {
+                Some(run) => run,
+                None => match propose_tool_run(
+                    &store,
+                    job_id,
+                    &tool_request.tool_name,
+                    tool_request.input,
+                    Some(&tool_request.request_id),
+                ) {
+                    Ok(run) => run,
+                    Err(error) => {
+                        core.complete_agent_tool_request(
+                            job_id,
+                            &tool_request.request_id,
+                            None,
+                            Some(error),
+                        )?;
+                        return settle_worker_request(
+                            &core,
+                            &store,
+                            job_id,
+                            &tool_request.request_id,
+                            false,
+                        );
+                    }
+                },
+            };
+            if matches!(
+                tool_run.status.as_str(),
+                "awaiting_approval" | "approved" | "running"
+            ) {
+                return store.get_agent_job_detail(job_id);
+            }
+            let (result, error) = if tool_run.status == "succeeded" {
+                (
+                    Some(json!({
+                        "toolRunId": tool_run.id,
+                        "status": tool_run.status,
+                        "output": tool_run.output,
+                    })),
+                    None,
+                )
+            } else {
+                (
+                    None,
+                    Some(format!(
+                        "project.file.write ended with status {}",
+                        tool_run.status
+                    )),
+                )
+            };
+            core.complete_agent_tool_request(job_id, &tool_request.request_id, result, error)?;
+            return settle_worker_request(&core, &store, job_id, &tool_request.request_id, false);
+        }
         let tool_result =
             run_low_risk_tool(&store, job_id, &tool_request.tool_name, tool_request.input).map(
                 |tool_run| {

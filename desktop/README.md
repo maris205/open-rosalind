@@ -54,6 +54,13 @@ message presentation, and biomedical tools remain shared with the web build.
   interpreter, isolated run directories, an environment allowlist, a
   cross-platform process group, timeout/cancellation, and bounded logs/output;
   the Agent Worker cannot approve or start it.
+- `project.file.write` lets the Agent propose one allowlisted UTF-8 project
+  file change. It is never automatic: the UI previews the target, size,
+  permissions, and content before each decision. Desktop Core revalidates the
+  current read-write project authorization, requires the digest returned by a
+  prior read before overwriting, rejects symlink/path escapes, writes by atomic
+  replacement, and preserves the new and previous versions as audited
+  Artifacts.
 - Native Python output files are indexed in SQLite as immutable Artifacts with
   relative paths, sizes, and SHA-256 digests. The shared WebView receives only
   Artifact IDs. Desktop Core revalidates the path, size, and digest before a
@@ -131,8 +138,9 @@ submits bounded model and automatic-tool requests to Desktop Core. Desktop Core
 resolves the system credential, performs HTTPS calls, validates Tool Contracts,
 executes the three low-risk tools, and returns sanitized results. Protocol v4
 supports up to four model/tool rounds for text statistics and authorized project
-file listing/preview. High-risk Python and Docker remain in the explicit user
-approval flow.
+file listing/preview. It may also pause on a `project.file.write` proposal and
+resume only after a user-visible per-run decision and Desktop Core execution.
+Python and Docker remain separate explicit user-triggered approval flows.
 
 Desktop chat persistence is separate from execution Conversations so replacing
 or clearing UI history cannot cascade-delete AgentJob audit records. Desktop IPC
@@ -150,8 +158,10 @@ the native folder picker, reveal it in Finder or File Explorer, and revoke the
 authorization. The WebView cannot submit an arbitrary path, filesystem roots
 and the entire home directory are rejected, and a directory cannot be bound to
 two projects. The first project-aware Tool Contracts can list non-sensitive
-files and preview allowlisted UTF-8 text through relative paths. They do not
-grant Python, the Agent Worker, or write-capable tools access to the directory.
+files and preview allowlisted UTF-8 text through relative paths. Read-write
+authorization additionally permits the Agent to propose an allowlisted text
+change, but neither the WebView nor Agent Worker can write it directly or
+approve it. Python still receives no project access.
 
 The Rust Desktop Core owns the Python process and exposes a restricted set of
 Tauri commands to the authenticated loopback UI. The bootstrap token is never

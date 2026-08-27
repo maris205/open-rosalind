@@ -4,7 +4,7 @@ use std::{
     ffi::OsString,
     fs,
     fs::File,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
     process::{Command, ExitStatus, Stdio},
     sync::{
@@ -31,6 +31,8 @@ const MAX_OUTPUT_BYTES: u64 = 20 * 1024 * 1024;
 const MAX_OUTPUT_FILES: usize = 100;
 const MAX_ARTIFACT_PREVIEW_BYTES: usize = 512 * 1024;
 const MAX_PROJECT_FILE_PREVIEW_BYTES: usize = 64 * 1024;
+const MAX_PROJECT_FILE_READ_BYTES: usize = 10 * 1024 * 1024;
+const MAX_PROJECT_FILE_WRITE_BYTES: usize = 256 * 1024;
 const MAX_PROJECT_LIST_FILES: usize = 200;
 const MAX_PROJECT_LIST_DEPTH: usize = 4;
 const PYTHON_TIMEOUT: Duration = Duration::from_secs(60);
@@ -430,6 +432,155 @@ impl ToolManager {
                     "maxOutputBytes": limits.max_output_bytes,
                     "maxOutputFiles": limits.max_output_files,
                 }
+            }),
+            artifacts,
+        })
+    }
+
+    fn execute_project_file_write(
+        &self,
+        tool_run_id: &str,
+        project: &AuthorizedProjectDirectory,
+        input: &Value,
+    ) -> Result<ToolExecution, String> {
+        if !project.write {
+            return Err("The project directory is not authorized for writes".into());
+        }
+        let write = project_write_input(input)?;
+        let destination = prepare_project_write_destination(project, write.relative)?;
+        let existing = match destination.symlink_metadata() {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() || !metadata.is_file() {
+                    return Err("Project write destination is not a regular file".into());
+                }
+                if metadata.len() > MAX_PROJECT_FILE_WRITE_BYTES as u64 {
+                    return Err("Existing project file exceeds the 256 KiB rollback limit".into());
+                }
+                Some((metadata, sha256_file(&destination)?))
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => {
+                return Err(format!(
+                    "Unable to inspect project write destination: {error}"
+                ))
+            }
+        };
+        match (&existing, write.expected_sha256) {
+            (Some((_, actual)), Some(expected)) if actual.eq_ignore_ascii_case(expected) => {}
+            (Some(_), None) => {
+                return Err("Overwriting an existing file requires its expectedSha256".into())
+            }
+            (Some((_, actual)), Some(_)) => {
+                return Err(format!(
+                    "Project file changed after it was reviewed; expected digest does not match {actual}"
+                ))
+            }
+            (None, Some(_)) => {
+                return Err("A file expected for replacement no longer exists".into())
+            }
+            (None, None) => {}
+        }
+
+        let output_root = self.inner.runs_root.join(tool_run_id).join("output");
+        let written_artifact = Path::new("written").join(write.relative);
+        let written_path = output_root.join(&written_artifact);
+        fs::create_dir_all(
+            written_path
+                .parent()
+                .ok_or("Invalid written artifact path")?,
+        )
+        .map_err(|error| format!("Unable to create project-write artifact directory: {error}"))?;
+        fs::write(&written_path, write.content)
+            .map_err(|error| format!("Unable to stage project-write content: {error}"))?;
+        let mut output_files = vec![OutputFile {
+            name: written_artifact.to_string_lossy().replace('\\', "/"),
+            size: write.content.len() as u64,
+        }];
+        if existing.is_some() {
+            let previous_artifact = Path::new("previous").join(write.relative);
+            let previous_path = output_root.join(&previous_artifact);
+            fs::create_dir_all(
+                previous_path
+                    .parent()
+                    .ok_or("Invalid rollback artifact path")?,
+            )
+            .map_err(|error| format!("Unable to create rollback artifact directory: {error}"))?;
+            fs::copy(&destination, &previous_path)
+                .map_err(|error| format!("Unable to preserve previous project file: {error}"))?;
+            if let Some((_, digest)) = &existing {
+                if sha256_file(&previous_path)? != *digest {
+                    return Err(
+                        "Project file changed while its rollback copy was being preserved".into(),
+                    );
+                }
+            }
+            output_files.push(OutputFile {
+                name: previous_artifact.to_string_lossy().replace('\\', "/"),
+                size: existing
+                    .as_ref()
+                    .map(|(metadata, _)| metadata.len())
+                    .unwrap_or(0),
+            });
+        }
+        let (indexed_files, artifacts) = index_output_files(&output_root, &output_files)?;
+
+        let temporary = destination.with_file_name(format!(
+            ".openrosalind-write-{}.tmp",
+            uuid::Uuid::new_v4().simple()
+        ));
+        let write_result = (|| -> Result<(), String> {
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temporary)
+                .map_err(|error| format!("Unable to create atomic project-write file: {error}"))?;
+            file.write_all(write.content.as_bytes())
+                .map_err(|error| format!("Unable to flush project-write content: {error}"))?;
+            if let Some((metadata, _)) = &existing {
+                fs::set_permissions(&temporary, metadata.permissions()).map_err(|error| {
+                    format!("Unable to preserve project file permissions: {error}")
+                })?;
+            }
+            file.sync_all()
+                .map_err(|error| format!("Unable to flush project-write content: {error}"))?;
+            drop(file);
+            if let Some((_, approved_digest)) = &existing {
+                if sha256_file(&destination)? != *approved_digest {
+                    return Err(
+                        "Project file changed after approval and before atomic replacement".into(),
+                    );
+                }
+                fs::rename(&temporary, &destination).map_err(|error| {
+                    format!("Unable to atomically replace project file: {error}")
+                })?;
+            } else {
+                fs::hard_link(&temporary, &destination).map_err(|error| {
+                    format!(
+                        "Unable to atomically create project file; the destination may now exist: {error}"
+                    )
+                })?;
+                let _ = fs::remove_file(&temporary);
+            }
+            sync_parent_directory(&destination)?;
+            Ok(())
+        })();
+        if write_result.is_err() {
+            let _ = fs::remove_file(&temporary);
+        }
+        write_result?;
+        let new_sha256 = sha256_file(&destination)?;
+        Ok(ToolExecution {
+            terminal_status: "succeeded",
+            output: json!({
+                "ok": true,
+                "projectId": project.project_id,
+                "path": write.relative.to_string_lossy().replace('\\', "/"),
+                "created": existing.is_none(),
+                "previousSha256": existing.as_ref().map(|(_, digest)| digest),
+                "sha256": new_sha256,
+                "sizeBytes": write.content.len(),
+                "rollbackArtifact": existing.is_some(),
+                "files": indexed_files,
             }),
             artifacts,
         })
@@ -874,6 +1025,21 @@ fn file_size(path: &Path) -> u64 {
         .unwrap_or(0)
 }
 
+fn sync_parent_directory(path: &Path) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        let parent = path
+            .parent()
+            .ok_or_else(|| "Project file does not have a parent directory".to_string())?;
+        File::open(parent)
+            .and_then(|directory| directory.sync_all())
+            .map_err(|error| format!("Unable to flush project directory: {error}"))?;
+    }
+    #[cfg(not(unix))]
+    let _ = path;
+    Ok(())
+}
+
 fn read_bounded(path: &Path, max_bytes: usize) -> Result<(String, bool), String> {
     let file = File::open(path)
         .map_err(|error| format!("Unable to read ToolRun log {}: {error}", path.display()))?;
@@ -1149,11 +1315,45 @@ fn project_file_read_contract() -> ToolContract {
     }
 }
 
+fn project_file_write_contract() -> ToolContract {
+    ToolContract {
+        schema_version: 1,
+        name: "project.file.write",
+        version: "1.0.0-alpha.1",
+        title: "写入项目文本",
+        description: "经用户逐次批准后，原子写入授权项目内一个非敏感文本文件。",
+        executor: ToolExecutor {
+            kind: "native",
+            entrypoint: "desktop-core:project-file-write",
+            image: None,
+        },
+        permissions: ToolPermissions {
+            risk: "medium",
+            approval: "per-run",
+            filesystem: vec![ToolFilesystemPermission {
+                scope: "project-root",
+                mode: "write",
+            }],
+            network: "none",
+            secrets: vec![],
+        },
+        resources: ToolResources {
+            timeout_seconds: 2,
+            max_input_bytes: MAX_PROJECT_FILE_WRITE_BYTES + 4096,
+            max_output_bytes: MAX_PROJECT_FILE_WRITE_BYTES * 2,
+            memory_mb: None,
+            cpu: None,
+            pids: None,
+        },
+    }
+}
+
 fn contracts() -> Vec<ToolContract> {
     vec![
         text_statistics_contract(),
         project_files_list_contract(),
         project_file_read_contract(),
+        project_file_write_contract(),
         python_run_contract(),
         python_container_contract(),
     ]
@@ -1367,6 +1567,7 @@ fn execute_project_file_read(
     if relative.is_empty()
         || relative.chars().count() > 1024
         || relative.chars().any(char::is_control)
+        || relative.contains('\\')
     {
         return Err("Project file path must contain 1 to 1024 printable characters".into());
     }
@@ -1407,29 +1608,136 @@ fn execute_project_file_read(
     let size_bytes = fs::metadata(&canonical)
         .map_err(|error| format!("Unable to inspect project file: {error}"))?
         .len();
-    let mut bytes = Vec::new();
-    File::open(&canonical)
-        .map_err(|error| format!("Unable to open project file: {error}"))?
-        .take((MAX_PROJECT_FILE_PREVIEW_BYTES + 1) as u64)
-        .read_to_end(&mut bytes)
-        .map_err(|error| format!("Unable to read project file: {error}"))?;
+    if size_bytes > MAX_PROJECT_FILE_READ_BYTES as u64 {
+        return Err("Project file exceeds the 10 MiB safe preview limit".into());
+    }
+    let bytes =
+        fs::read(&canonical).map_err(|error| format!("Unable to read project file: {error}"))?;
+    if bytes.len() as u64 != size_bytes {
+        return Err("Project file changed while its preview was being read".into());
+    }
+    let complete_content = std::str::from_utf8(&bytes)
+        .map_err(|_| "Project file is not valid UTF-8 text".to_string())?;
     let truncated = bytes.len() > MAX_PROJECT_FILE_PREVIEW_BYTES;
-    bytes.truncate(MAX_PROJECT_FILE_PREVIEW_BYTES);
-    let content = match std::str::from_utf8(&bytes) {
-        Ok(content) => content,
-        Err(error) if truncated && error.error_len().is_none() => {
-            std::str::from_utf8(&bytes[..error.valid_up_to()])
-                .map_err(|_| "Project file is not valid UTF-8 text".to_string())?
-        }
-        Err(_) => return Err("Project file is not valid UTF-8 text".into()),
-    };
+    let mut preview_end = bytes.len().min(MAX_PROJECT_FILE_PREVIEW_BYTES);
+    while !complete_content.is_char_boundary(preview_end) {
+        preview_end -= 1;
+    }
+    let content = &complete_content[..preview_end];
+    let sha256 = format!("{:x}", Sha256::digest(&bytes));
     Ok(json!({
         "projectId": project.project_id,
         "path": relative.to_string_lossy().replace('\\', "/"),
         "content": content,
         "sizeBytes": size_bytes,
+        "sha256": sha256,
         "truncated": truncated,
     }))
+}
+
+struct ProjectWriteInput<'a> {
+    relative: &'a Path,
+    content: &'a str,
+    expected_sha256: Option<&'a str>,
+}
+
+fn project_write_input(input: &Value) -> Result<ProjectWriteInput<'_>, String> {
+    let object = input
+        .as_object()
+        .ok_or_else(|| "project.file.write input must be an object".to_string())?;
+    if object
+        .keys()
+        .any(|key| !matches!(key.as_str(), "path" | "content" | "expectedSha256"))
+    {
+        return Err("project.file.write accepts only path, content, and expectedSha256".into());
+    }
+    let path = object
+        .get("path")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "project.file.write requires a relative path string".to_string())?;
+    let relative = Path::new(path);
+    if path.is_empty()
+        || path.chars().count() > 1024
+        || path.chars().any(char::is_control)
+        || path.contains('\\')
+        || relative.is_absolute()
+        || !relative
+            .components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)))
+        || relative
+            .components()
+            .any(|component| component.as_os_str().to_string_lossy().starts_with('.'))
+    {
+        return Err(
+            "Project file path must stay within the authorized non-hidden directory".into(),
+        );
+    }
+    if is_sensitive_project_path(relative) || !is_project_text_file(relative) {
+        return Err("Only allowlisted, non-sensitive project text files can be written".into());
+    }
+    let content = object
+        .get("content")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "project.file.write requires UTF-8 text content".to_string())?;
+    if content.len() > MAX_PROJECT_FILE_WRITE_BYTES || content.contains('\0') {
+        return Err("Project file content exceeds 256 KiB or contains a NUL byte".into());
+    }
+    let expected_sha256 = match object.get("expectedSha256") {
+        None => None,
+        Some(Value::String(digest)) => Some(digest.as_str()),
+        Some(_) => return Err("expectedSha256 must be a hexadecimal string".into()),
+    };
+    if expected_sha256.is_some_and(|digest| {
+        digest.len() != 64
+            || !digest
+                .chars()
+                .all(|character| character.is_ascii_hexdigit())
+    }) {
+        return Err("expectedSha256 must be a 64-character hexadecimal digest".into());
+    }
+    Ok(ProjectWriteInput {
+        relative,
+        content,
+        expected_sha256,
+    })
+}
+
+fn prepare_project_write_destination(
+    project: &AuthorizedProjectDirectory,
+    relative: &Path,
+) -> Result<PathBuf, String> {
+    let parent = relative
+        .parent()
+        .ok_or_else(|| "Project write path does not have a parent".to_string())?;
+    let mut directory = project.root.clone();
+    for component in parent.components() {
+        directory.push(component.as_os_str());
+        match directory.symlink_metadata() {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                    return Err(
+                        "Project write parent contains a symbolic link or non-directory".into(),
+                    );
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                fs::create_dir(&directory)
+                    .map_err(|error| format!("Unable to create project subdirectory: {error}"))?;
+            }
+            Err(error) => return Err(format!("Unable to inspect project subdirectory: {error}")),
+        }
+    }
+    let canonical_parent = directory
+        .canonicalize()
+        .map_err(|error| format!("Unable to resolve project-write parent: {error}"))?;
+    if !canonical_parent.starts_with(&project.root) {
+        return Err("Project write parent escaped the authorized directory".into());
+    }
+    Ok(canonical_parent.join(
+        relative
+            .file_name()
+            .ok_or_else(|| "Project write file name is missing".to_string())?,
+    ))
 }
 
 fn should_skip_project_entry(name: &str) -> bool {
@@ -1554,6 +1862,7 @@ fn validate_proposed_input(name: &str, input: &Value) -> Result<(), String> {
             }
             Ok(())
         }
+        "project.file.write" => project_write_input(input).map(|_| ()),
         _ => Err(format!("Tool {name} does not support approval proposals")),
     }
 }
@@ -1659,6 +1968,16 @@ pub fn desktop_propose_tool_run(
     tool_name: String,
     input: Value,
 ) -> Result<ToolRun, String> {
+    propose_tool_run(&store, agent_job_id.trim(), tool_name.trim(), input, None)
+}
+
+pub(crate) fn propose_tool_run(
+    store: &DesktopStore,
+    agent_job_id: &str,
+    tool_name: &str,
+    input: Value,
+    worker_request_id: Option<&str>,
+) -> Result<ToolRun, String> {
     let tool_name = tool_name.trim();
     let contract =
         contract(tool_name).ok_or_else(|| format!("Tool {tool_name} is not installed"))?;
@@ -1666,16 +1985,129 @@ pub fn desktop_propose_tool_run(
         return Err("Automatic tools must use desktop_run_low_risk_tool".into());
     }
     validate_proposed_input(contract.name, &input)?;
-    let permission_snapshot = serde_json::to_value(&contract.permissions)
+    let mut permission_snapshot = serde_json::to_value(&contract.permissions)
         .map_err(|error| format!("Unable to encode Tool permission snapshot: {error}"))?;
+    if contract.name == "project.file.write" {
+        let project = store.authorized_project_directory_for_agent_job(agent_job_id.trim())?;
+        if !project.write {
+            return Err("The project directory requires read-write authorization".into());
+        }
+        let write = project_write_input(&input)?;
+        if let Some(expected_digest) = write.expected_sha256 {
+            let path = write.relative.to_string_lossy().replace('\\', "/");
+            let reviewed = store.list_tool_runs(agent_job_id)?.into_iter().any(|run| {
+                let output = run.output.as_ref();
+                run.tool_name == "project.file.read"
+                    && run.status == "succeeded"
+                    && run.input().get("path").and_then(Value::as_str) == Some(path.as_str())
+                    && output
+                        .and_then(|value| value.get("path"))
+                        .and_then(Value::as_str)
+                        == Some(path.as_str())
+                    && output
+                        .and_then(|value| value.get("sha256"))
+                        .and_then(Value::as_str)
+                        .is_some_and(|digest| digest.eq_ignore_ascii_case(expected_digest))
+                    && output
+                        .and_then(|value| value.get("truncated"))
+                        .and_then(Value::as_bool)
+                        == Some(false)
+                    && run
+                        .permission_snapshot()
+                        .get("projectAuthorization")
+                        .and_then(|value| value.get("projectId"))
+                        .and_then(Value::as_str)
+                        == Some(project.project_id.as_str())
+                    && run
+                        .permission_snapshot()
+                        .get("projectAuthorization")
+                        .and_then(|value| value.get("authorizationUpdatedAt"))
+                        .and_then(Value::as_i64)
+                        == Some(project.authorization_updated_at)
+            });
+            if !reviewed {
+                return Err(
+                    "Overwriting a project file requires a successful, complete project.file.read in the same AgentJob and authorization version"
+                        .into(),
+                );
+            }
+        }
+        permission_snapshot
+            .as_object_mut()
+            .ok_or_else(|| "Tool permission snapshot must be an object".to_string())?
+            .insert(
+                "projectAuthorization".into(),
+                json!({
+                    "projectId": project.project_id,
+                    "authorizationUpdatedAt": project.authorization_updated_at,
+                    "authorizationMode": "read-write",
+                    "effectiveAccess": "write",
+                }),
+            );
+    }
+    if let Some(request_id) = worker_request_id {
+        permission_snapshot
+            .as_object_mut()
+            .ok_or_else(|| "Tool permission snapshot must be an object".to_string())?
+            .insert(
+                "workerRequestId".into(),
+                Value::String(request_id.to_string()),
+            );
+    }
     store.create_tool_run(
-        agent_job_id.trim(),
+        agent_job_id,
         contract.name,
         contract.executor.kind,
         input,
         permission_snapshot,
         "awaiting_approval",
     )
+}
+
+#[tauri::command]
+pub async fn desktop_execute_approved_project_write(
+    app: AppHandle,
+    tool_run_id: String,
+) -> Result<ToolRun, String> {
+    let manager = app.state::<ToolManager>().inner().clone();
+    let store = app.state::<DesktopStore>().inner().clone();
+    let tool_run_id = tool_run_id.trim().to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        execute_approved_project_write(&manager, &store, &tool_run_id)
+    })
+    .await
+    .map_err(|error| format!("Project write executor task failed: {error}"))?
+}
+
+fn execute_approved_project_write(
+    manager: &ToolManager,
+    store: &DesktopStore,
+    tool_run_id: &str,
+) -> Result<ToolRun, String> {
+    let tool_run = store.get_tool_run(tool_run_id)?;
+    if tool_run.tool_name != "project.file.write" || tool_run.status != "approved" {
+        return Err("Only an approved project.file.write ToolRun can enter this executor".into());
+    }
+    store.start_approved_tool_run(tool_run_id)?;
+    let execution = (|| {
+        let project = store.authorized_project_directory_for_agent_job(&tool_run.agent_job_id)?;
+        let authorization = tool_run
+            .permission_snapshot()
+            .get("projectAuthorization")
+            .ok_or_else(|| "Project write permission snapshot is missing".to_string())?;
+        if authorization.get("projectId").and_then(Value::as_str) != Some(&project.project_id)
+            || authorization
+                .get("authorizationUpdatedAt")
+                .and_then(Value::as_i64)
+                != Some(project.authorization_updated_at)
+            || authorization.get("effectiveAccess").and_then(Value::as_str) != Some("write")
+            || !project.write
+        {
+            return Err("Project authorization changed after approval; write was blocked".into());
+        }
+        manager.execute_project_file_write(tool_run_id, &project, tool_run.input())
+    })();
+    finish_tool_execution(store, tool_run_id, execution)
 }
 
 #[tauri::command]
@@ -2085,6 +2517,155 @@ mod tests {
         );
         assert!(!automatic.contains(&"python.run"));
         assert!(!automatic.contains(&"python.container"));
+        assert!(!automatic.contains(&"project.file.write"));
+    }
+
+    #[test]
+    fn project_write_contract_requires_per_run_project_only_approval() {
+        let encoded = serde_json::to_value(project_file_write_contract()).unwrap();
+        assert_eq!(encoded["permissions"]["risk"], "medium");
+        assert_eq!(encoded["permissions"]["approval"], "per-run");
+        assert_eq!(encoded["permissions"]["network"], "none");
+        assert_eq!(
+            encoded["permissions"]["filesystem"][0]["scope"],
+            "project-root"
+        );
+        assert_eq!(encoded["permissions"]["filesystem"][0]["mode"], "write");
+    }
+
+    #[test]
+    fn project_write_is_atomic_and_preserves_rollback_artifact() {
+        let (manager, runs_root) = test_tool_manager();
+        let project_root = env::temp_dir().join(format!(
+            "open-rosalind-project-write-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        fs::create_dir_all(&project_root).unwrap();
+        let project = AuthorizedProjectDirectory {
+            project_id: "project-write".into(),
+            root: project_root.canonicalize().unwrap(),
+            write: true,
+            authorization_updated_at: 10,
+        };
+        let target = project.root.join("notes/result.md");
+        let created = manager
+            .execute_project_file_write(
+                "write-new",
+                &project,
+                &json!({"path":"notes/result.md","content":"first"}),
+            )
+            .unwrap();
+        assert_eq!(fs::read_to_string(&target).unwrap(), "first");
+        assert_eq!(created.output["created"], true);
+
+        let digest = sha256_file(&target).unwrap();
+        let replaced = manager
+            .execute_project_file_write(
+                "write-replace",
+                &project,
+                &json!({"path":"notes/result.md","content":"second","expectedSha256":digest}),
+            )
+            .unwrap();
+        assert_eq!(fs::read_to_string(&target).unwrap(), "second");
+        assert_eq!(replaced.output["rollbackArtifact"], true);
+        assert_eq!(
+            fs::read_to_string(runs_root.join("write-replace/output/previous/notes/result.md"))
+                .unwrap(),
+            "first"
+        );
+        assert_eq!(replaced.artifacts.len(), 2);
+
+        fs::remove_dir_all(project_root).unwrap();
+        fs::remove_dir_all(runs_root).unwrap();
+    }
+
+    #[test]
+    fn project_write_rejects_stale_sensitive_and_read_only_changes() {
+        let (manager, runs_root) = test_tool_manager();
+        let project_root = env::temp_dir().join(format!(
+            "open-rosalind-project-write-reject-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        fs::create_dir_all(&project_root).unwrap();
+        fs::write(project_root.join("result.txt"), "current").unwrap();
+        let mut project = AuthorizedProjectDirectory {
+            project_id: "project-write".into(),
+            root: project_root.canonicalize().unwrap(),
+            write: true,
+            authorization_updated_at: 10,
+        };
+        assert!(manager
+            .execute_project_file_write(
+                "stale",
+                &project,
+                &json!({"path":"result.txt","content":"changed","expectedSha256":"0".repeat(64)}),
+            )
+            .unwrap_err()
+            .contains("changed after it was reviewed"));
+        assert!(manager
+            .execute_project_file_write(
+                "missing-digest",
+                &project,
+                &json!({"path":"result.txt","content":"changed"}),
+            )
+            .unwrap_err()
+            .contains("requires its expectedSha256"));
+        assert!(project_write_input(&json!({"path":".env","content":"secret"})).is_err());
+        assert!(project_write_input(
+            &json!({"path":"new.txt","content":"blocked","expectedSha256":null})
+        )
+        .is_err());
+        project.write = false;
+        assert!(manager
+            .execute_project_file_write(
+                "read-only",
+                &project,
+                &json!({"path":"new.txt","content":"blocked"}),
+            )
+            .unwrap_err()
+            .contains("not authorized for writes"));
+
+        fs::remove_dir_all(project_root).unwrap();
+        fs::remove_dir_all(runs_root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn project_write_rejects_symbolic_link_parents() {
+        use std::os::unix::fs::symlink;
+
+        let (manager, runs_root) = test_tool_manager();
+        let project_root = env::temp_dir().join(format!(
+            "open-rosalind-project-write-symlink-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let outside = env::temp_dir().join(format!(
+            "open-rosalind-project-write-outside-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        fs::create_dir_all(&project_root).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        symlink(&outside, project_root.join("linked")).unwrap();
+        let project = AuthorizedProjectDirectory {
+            project_id: "project-write".into(),
+            root: project_root.canonicalize().unwrap(),
+            write: true,
+            authorization_updated_at: 10,
+        };
+
+        assert!(manager
+            .execute_project_file_write(
+                "symlink-parent",
+                &project,
+                &json!({"path":"linked/result.txt","content":"blocked"}),
+            )
+            .unwrap_err()
+            .contains("symbolic link"));
+        assert!(!outside.join("result.txt").exists());
+
+        fs::remove_dir_all(project_root).unwrap();
+        fs::remove_dir_all(outside).unwrap();
+        fs::remove_dir_all(runs_root).unwrap();
     }
 
     #[test]
@@ -2097,6 +2678,9 @@ mod tests {
         fs::write(root.join("README.md"), "# Study\nTP53 cohort").unwrap();
         fs::write(root.join("data/variants.csv"), "gene,variant\nTP53,R175H\n").unwrap();
         fs::write(root.join("data/archive.zip"), [0_u8, 1, 2, 3]).unwrap();
+        let mut late_binary = vec![b'a'; MAX_PROJECT_FILE_PREVIEW_BYTES + 1];
+        late_binary.push(0xff);
+        fs::write(root.join("data/late-binary.txt"), late_binary).unwrap();
         fs::write(root.join(".env"), "API_KEY=must-not-be-read").unwrap();
         fs::write(root.join("private.pem"), "must-not-be-read").unwrap();
         let project = AuthorizedProjectDirectory {
@@ -2115,7 +2699,12 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(
             paths,
-            vec!["README.md", "data/archive.zip", "data/variants.csv"]
+            vec![
+                "README.md",
+                "data/archive.zip",
+                "data/late-binary.txt",
+                "data/variants.csv"
+            ]
         );
         assert_eq!(listed["files"][0]["readable"], true);
         assert_eq!(listed["files"][1]["readable"], false);
@@ -2127,6 +2716,9 @@ mod tests {
         assert!(execute_project_file_read(&project, &json!({"path": ".env"})).is_err());
         assert!(execute_project_file_read(&project, &json!({"path": "private.pem"})).is_err());
         assert!(execute_project_file_read(&project, &json!({"path": "data/archive.zip"})).is_err());
+        assert!(
+            execute_project_file_read(&project, &json!({"path": "data/late-binary.txt"})).is_err()
+        );
 
         fs::remove_dir_all(root).unwrap();
     }

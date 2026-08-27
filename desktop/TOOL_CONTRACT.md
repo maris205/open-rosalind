@@ -12,6 +12,7 @@ Desktop Core 已提供 Tool Contract 注册表，以及以下 Tauri 命令：
 
 - `desktop_list_tool_contracts`：返回已安装工具及其权限和资源声明；
 - `desktop_run_low_risk_tool`：只运行 `risk=low` 且 `approval=automatic` 的工具；
+- `desktop_execute_approved_project_write`：执行已经逐次批准、授权版本未变化的项目文本写入；
 - `desktop_execute_approved_python_tool`：在 Rust Tool Manager 内运行已逐次批准的 Python；
 - `desktop_execute_approved_container_tool`：运行已逐次批准的 Docker Python 沙箱；
 - `desktop_container_capability`：检测 Docker CLI、Daemon 和固定镜像状态；
@@ -33,6 +34,15 @@ WebView 只能提交空的清单请求或相对文件路径。文件读取拒绝
 符号链接、凭据文件和非 allowlist 文本格式，并把预览限制为 64 KiB；文件清单限制为
 4 层、200 项，跳过生成目录和敏感条目。权限快照记录 Project ID、授权版本和实际只读
 访问，但不把主机绝对路径写入 ToolRun 审计 JSON。
+
+`project.file.write@1.0.0-alpha.1` 提供首个 Agent 可提议、但绝不自动执行的项目变更
+闭环。模型只能提交相对路径、完整 UTF-8 内容和可选的 `expectedSha256`；UI 会显示路径、
+操作类型、字节数、权限范围和内容预览，用户逐次批准后才由 Desktop Core 执行。它只
+接受当前项目的读写授权，拒绝绝对路径、`..`、隐藏/敏感路径、符号链接父目录、非
+allowlist 文本格式、NUL 和超过 256 KiB 的内容。覆盖已有文件必须带上此前
+`project.file.read` 返回的 SHA-256，摘要过期即拒绝，以避免覆盖用户的新修改。写入使用
+同目录临时文件、刷新和原子替换；本次新内容及覆盖前版本均索引为 ToolRun Artifact，
+用于审计和手工回滚。授权被撤销或在批准后变化时，执行失败关闭。
 
 `python.run@1.0.0-alpha.1` 已接入逐次批准状态机。Desktop Core 先创建
 `awaiting_approval` ToolRun 并冻结权限快照，UI 展示权限后记录批准或拒绝；只有
@@ -77,5 +87,6 @@ Token 或密码不得出现在 Tool input、命令行、日志或 Agent Worker �
 - Compose Executor：独立项目名、网络和 Volume，由 Tool Manager 管理健康状态；
 - Remote Executor：必须声明 HTTPS 目标、上传数据范围、费用和数据处理政策。
 
-下一步是增加镜像签名/升级清单、Container Executor 的真实 Docker Desktop 集成矩阵，
-以及 Compose Executor。Agent 仍不能自动批准本机 Python、容器或 Shell。
+下一步是增加文件差异预览与一键回滚、镜像签名/升级清单、Container Executor 的真实
+Docker Desktop 集成矩阵，以及 Compose Executor。Agent 仍不能自动批准项目写入、
+本机 Python、容器或 Shell。

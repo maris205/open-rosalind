@@ -12,6 +12,9 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
     window.__desktopArtifactInvocations = [];
     window.__desktopContainerReady = false;
     window.__desktopProjectAuthorization = null;
+    window.__desktopWriteScenario = false;
+    window.__desktopWriteRun = null;
+    window.__desktopConfirmResult = true;
     window.__desktopBackups = [{
       fileName: "desktop-core-initial.db",
       createdAt: Date.now() - 1000,
@@ -19,7 +22,7 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
     }];
     window.__TAURI__ = {
       dialog: {
-        confirm: async () => true
+        confirm: async () => window.__desktopConfirmResult
       },
       core: {
         invoke: async (command, args = {}) => {
@@ -96,6 +99,9 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
             return window.__desktopProjectAuthorization;
           }
           if (command === "desktop_reveal_project_directory") return null;
+          if (command === "desktop_list_tool_runs") {
+            return window.__desktopWriteRun ? [window.__desktopWriteRun] : [];
+          }
           if (command === "desktop_revoke_project_directory") {
             window.__desktopProjectAuthorization = null;
             return true;
@@ -141,6 +147,16 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
           if (command === "desktop_create_conversation") return { id: "conversation-123" };
           if (command === "desktop_create_agent_job") return { id: "agent-job-123" };
           if (command === "desktop_start_agent_job") {
+            if (window.__desktopWriteScenario) {
+              window.__desktopWriteRun = {
+                id: "project-write-run",
+                toolName: "project.file.write",
+                status: "awaiting_approval",
+                input: { path: "notes/agent-result.md", content: "# Agent result\nVerified content." },
+                permissionSnapshot: { filesystem: [{ scope: "project-root", mode: "write" }], network: "none", secrets: [] }
+              };
+              return { job: { id: "agent-job-123", status: "running" }, events: [] };
+            }
             return {
               job: {
                 id: "agent-job-123",
@@ -164,6 +180,49 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
               ]
             };
           }
+          if (command === "desktop_refresh_agent_job") {
+            if (window.__desktopWriteRun?.status === "denied") {
+              window.__desktopWriteScenario = false;
+              return {
+                job: {
+                  id: "agent-job-123",
+                  status: "completed",
+                  result: {
+                    content: "用户拒绝了项目文件写入，未修改文件。",
+                    model: "test-model",
+                    toolRuns: [{
+                      toolRunId: "project-write-run",
+                      toolName: "project.file.write",
+                      status: "failed",
+                      error: "project.file.write ended with status denied"
+                    }]
+                  }
+                },
+                events: [{ kind: "tool_requested" }, { kind: "tool_completed" }]
+              };
+            }
+            if (window.__desktopWriteRun?.status === "succeeded") {
+              window.__desktopWriteScenario = false;
+              return {
+                job: {
+                  id: "agent-job-123",
+                  status: "completed",
+                  result: {
+                    content: "项目文件已由 Desktop Core 写入。",
+                    model: "test-model",
+                    toolRuns: [{
+                      toolRunId: "project-write-run",
+                      toolName: "project.file.write",
+                      status: "succeeded",
+                      output: { path: "notes/agent-result.md", rollbackArtifact: false }
+                    }]
+                  }
+                },
+                events: [{ kind: "tool_requested" }, { kind: "tool_completed" }]
+              };
+            }
+            return { job: { id: "agent-job-123", status: "running" }, events: [] };
+          }
           if (command === "desktop_propose_tool_run") {
             return {
               id: "tool-run-123",
@@ -176,7 +235,15 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
           }
           if (command === "desktop_decide_tool_run") {
             if (typeof args.approved !== "boolean") throw new Error("approved must be a boolean");
+            if (args.toolRunId === "project-write-run") {
+              window.__desktopWriteRun.status = args.approved ? "approved" : "denied";
+            }
             return { id: args.toolRunId, status: args.approved ? "approved" : "denied" };
+          }
+          if (command === "desktop_execute_approved_project_write") {
+            window.__desktopWriteRun.status = "succeeded";
+            window.__desktopWriteRun.output = { path: "notes/agent-result.md", rollbackArtifact: false };
+            return window.__desktopWriteRun;
           }
           if (command === "desktop_execute_approved_python_tool") {
             return {
@@ -327,6 +394,26 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   await agentAnswer.getByRole("button", { name: "查看 Agent 执行过程" }).click();
   await expect(page.locator("#detailPanelTitle")).toHaveText("执行过程 (1)");
   await expect(page.locator("#detailPanelContent")).toContainText("text.statistics");
+
+  await page.evaluate(() => { window.__desktopWriteScenario = true; });
+  await page.locator("#taskInput").fill("在当前项目创建 notes/agent-result.md");
+  await page.locator("#sendButton").click();
+  await expect(page.locator(".message.assistant").last()).toContainText("项目文件已由 Desktop Core 写入");
+  await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_execute_approved_project_write").length)).toBe(1);
+
+  await page.evaluate(() => {
+    window.__desktopWriteScenario = true;
+    window.__desktopConfirmResult = false;
+  });
+  await page.locator("#taskInput").fill("在当前项目创建 notes/denied.md");
+  await page.locator("#sendButton").click();
+  await expect(page.locator(".message.assistant").last()).toContainText("用户拒绝了项目文件写入");
+  await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_execute_approved_project_write").length)).toBe(1);
+  const deniedDecision = await page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_decide_tool_run").at(-1));
+  expect(deniedDecision.args).toEqual({ toolRunId: "project-write-run", approved: false });
 
   await context.close();
 });

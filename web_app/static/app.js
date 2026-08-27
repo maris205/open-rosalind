@@ -3042,6 +3042,53 @@ async function desktopAgentConversation() {
   return conversation.id;
 }
 
+async function resolvePendingAgentToolApprovals(agentJobId) {
+  const runs = await desktopInvoke("desktop_list_tool_runs", { agentJobId });
+  const pending = runs.find((run) => (
+    run.toolName === "project.file.write" && run.status === "awaiting_approval"
+  ));
+  if (!pending) return;
+  const path = String(pending.input?.path || "");
+  const content = String(pending.input?.content || "");
+  const preview = content.length > 1200 ? `${content.slice(0, 1200)}\n…（内容已截断）` : content;
+  const replacing = Boolean(pending.input?.expectedSha256);
+  const warning = [
+    "Agent 请求写入当前科研项目。",
+    "",
+    `路径：${path}`,
+    `操作：${replacing ? "替换已经读取并校验摘要的文件" : "创建新文件"}`,
+    `大小：${formatFileSize(new TextEncoder().encode(content).length)}`,
+    "权限：仅当前授权项目目录；无网络、无 Secret。",
+    "",
+    "内容预览：",
+    preview,
+    "",
+    "批准后会原子写入；覆盖文件时会保留可审计的旧版本产物。"
+  ].join("\n");
+  const approved = await confirmDesktopAction(warning, {
+    title: "批准 Agent 项目文件变更",
+    kind: "warning"
+  });
+  await desktopInvoke("desktop_decide_tool_run", {
+    toolRunId: pending.id,
+    approved
+  });
+  if (approved) {
+    setBadge("writing project file");
+    try {
+      await desktopInvoke("desktop_execute_approved_project_write", {
+        toolRunId: pending.id
+      });
+    } catch (error) {
+      // Desktop Core has already persisted the failed ToolRun. Keep polling so
+      // the Worker receives the sanitized failure and can finish the AgentJob.
+      setBadge("project write failed", "error");
+    }
+  } else {
+    setBadge("project write denied");
+  }
+}
+
 async function generateWithDesktopAgent(requestInput, displayInput) {
   els.sendButton.disabled = true;
   setBadge("starting local agent");
@@ -3076,6 +3123,7 @@ async function generateWithDesktopAgent(requestInput, displayInput) {
     for (let attempt = 0; attempt < 120 && ["queued", "running", "cancelling"].includes(detail.job.status); attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       detail = await desktopInvoke("desktop_refresh_agent_job", { jobId: job.id });
+      await resolvePendingAgentToolApprovals(job.id);
     }
     const result = detail.job.result || {};
     if (detail.job.status !== "completed") {
