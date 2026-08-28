@@ -34,6 +34,10 @@ message presentation, and biomedical tools remain shared with the web build.
   the newest verified snapshot; Desktop Core first snapshots the current state,
   restores through SQLite's online backup API, verifies the result, and asks
   the application to restart.
+- Settings can export a redacted JSON diagnostics report for support. It
+  includes the app/platform/runtime versions, database integrity, schema and
+  aggregate AgentJob/ToolRun counts, but deliberately excludes API Keys,
+  prompts, responses, file contents and filesystem paths.
 - Schema v5 migrates legacy macOS WebKit `localStorage` chat databases on first
   launch. It merges duplicate chat IDs using the newest copy, then makes Desktop
   Core SQLite the authoritative store. The current-origin browser copy remains

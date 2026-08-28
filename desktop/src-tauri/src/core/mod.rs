@@ -1,8 +1,16 @@
-use std::{process::Child, sync::Mutex};
+use std::{
+    fs,
+    process::Child,
+    sync::Mutex,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use serde::Serialize;
-use serde_json::Value;
-use tauri::State;
+use serde_json::{json, Value};
+use tauri::{AppHandle, State};
+use tauri_plugin_dialog::DialogExt;
+
+use self::storage::DesktopStore;
 
 mod agent;
 pub mod jobs;
@@ -176,4 +184,78 @@ impl Drop for DesktopCore {
 #[tauri::command]
 pub fn desktop_core_status(state: State<'_, DesktopCore>) -> Result<DesktopRuntimeStatus, String> {
     Ok(state.status.clone())
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagnosticsExport {
+    file_name: String,
+    size_bytes: u64,
+}
+
+#[tauri::command]
+pub fn desktop_export_diagnostics(
+    app: AppHandle,
+    core: State<'_, DesktopCore>,
+    store: State<'_, DesktopStore>,
+) -> Result<Option<DiagnosticsExport>, String> {
+    let generated_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or_default();
+    let agent_runtime = match core.status.agent_runtime.as_str() {
+        "legacy" => "legacy",
+        "openhands" => "openhands",
+        _ => "custom",
+    };
+    let report = json!({
+        "reportSchemaVersion": 1,
+        "generatedAtUnixMillis": generated_at,
+        "application": {
+            "name": "OpenRosalind",
+            "version": env!("CARGO_PKG_VERSION"),
+            "os": std::env::consts::OS,
+            "architecture": std::env::consts::ARCH,
+        },
+        "runtime": {
+            "ready": core.status.ready,
+            "transport": core.status.transport,
+            "agentWorkerReady": core.status.agent_worker_ready,
+            "agentProtocolVersion": core.status.agent_protocol_version,
+            "agentRuntime": agent_runtime,
+        },
+        "storage": store.diagnostics_snapshot()?,
+        "privacy": {
+            "containsApiKeys": false,
+            "containsPromptsOrResponses": false,
+            "containsFileContents": false,
+            "containsFilesystemPaths": false,
+            "note": "This report contains only runtime capability and aggregate status counts."
+        }
+    });
+    let bytes = serde_json::to_vec_pretty(&report)
+        .map_err(|error| format!("Unable to encode diagnostics report: {error}"))?;
+    let Some(destination) = app
+        .dialog()
+        .file()
+        .set_title("导出 OpenRosalind 诊断报告")
+        .set_file_name(format!("OpenRosalind-diagnostics-{generated_at}.json"))
+        .add_filter("JSON", &["json"])
+        .blocking_save_file()
+    else {
+        return Ok(None);
+    };
+    let path = destination
+        .into_path()
+        .map_err(|_| "Diagnostics export requires a local filesystem destination".to_string())?;
+    fs::write(&path, &bytes)
+        .map_err(|error| format!("Unable to save diagnostics report: {error}"))?;
+    Ok(Some(DiagnosticsExport {
+        file_name: path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("OpenRosalind-diagnostics.json")
+            .to_string(),
+        size_bytes: bytes.len() as u64,
+    }))
 }

@@ -1533,6 +1533,80 @@ impl DesktopStore {
         })
     }
 
+    pub(crate) fn diagnostics_snapshot(&self) -> Result<Value, String> {
+        let connection = self.lock_connection()?;
+        verify_database_integrity(&connection, "quick_check")?;
+        let schema_version = connection
+            .pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
+            .map_err(|error| format!("Unable to read diagnostics schema version: {error}"))?;
+        let count = |table: &str| -> Result<i64, String> {
+            if !matches!(
+                table,
+                "ui_chats"
+                    | "ui_chat_messages"
+                    | "conversations"
+                    | "agent_jobs"
+                    | "agent_job_events"
+                    | "tool_runs"
+                    | "artifacts"
+                    | "project_directory_authorizations"
+                    | "provider_profiles"
+            ) {
+                return Err("Diagnostics table is not allowlisted".into());
+            }
+            connection
+                .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+                    row.get(0)
+                })
+                .map_err(|error| format!("Unable to count diagnostics table {table}: {error}"))
+        };
+        let grouped_counts = |query: &str| -> Result<Value, String> {
+            let mut statement = connection
+                .prepare(query)
+                .map_err(|error| format!("Unable to prepare diagnostics summary: {error}"))?;
+            let rows = statement
+                .query_map([], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+                })
+                .map_err(|error| format!("Unable to read diagnostics summary: {error}"))?;
+            let mut values = serde_json::Map::new();
+            for row in rows {
+                let (key, value) =
+                    row.map_err(|error| format!("Unable to decode diagnostics summary: {error}"))?;
+                values.insert(key, Value::from(value));
+            }
+            Ok(Value::Object(values))
+        };
+        let backups = self
+            .backup_directory
+            .as_ref()
+            .map(|directory| list_database_backups(directory))
+            .transpose()?
+            .map_or(0, |items| items.len());
+        Ok(json!({
+            "integrity": "ok",
+            "schemaVersion": schema_version,
+            "records": {
+                "uiChats": count("ui_chats")?,
+                "uiMessages": count("ui_chat_messages")?,
+                "conversations": count("conversations")?,
+                "agentJobs": count("agent_jobs")?,
+                "agentJobEvents": count("agent_job_events")?,
+                "toolRuns": count("tool_runs")?,
+                "artifacts": count("artifacts")?,
+                "projectAuthorizations": count("project_directory_authorizations")?,
+                "providerProfiles": count("provider_profiles")?,
+                "verifiedBackups": backups,
+            },
+            "agentJobStatuses": grouped_counts(
+                "SELECT status, COUNT(*) FROM agent_jobs GROUP BY status ORDER BY status"
+            )?,
+            "toolRunStatuses": grouped_counts(
+                "SELECT status, COUNT(*) FROM tool_runs GROUP BY status ORDER BY status"
+            )?,
+        }))
+    }
+
     pub fn create_backup(&self) -> Result<DesktopBackupInfo, String> {
         if self.database_path.is_none() {
             return Err("Database backups are unavailable for an in-memory store".into());
@@ -2478,6 +2552,41 @@ mod tests {
                 .unwrap(),
             SCHEMA_VERSION
         );
+    }
+
+    #[test]
+    fn diagnostics_snapshot_contains_only_aggregate_redacted_state() {
+        let store = store();
+        let conversation = store
+            .create_conversation("PRIVATE_CONVERSATION_TITLE".into(), None)
+            .unwrap();
+        let job = store
+            .create_agent_job(conversation.id, json!({"input":"PRIVATE_PROMPT"}))
+            .unwrap();
+        let run = store
+            .create_tool_run(
+                &job.id,
+                "text.statistics",
+                "native",
+                json!({"text":"PRIVATE_TOOL_INPUT"}),
+                json!({"risk":"low"}),
+                "running",
+            )
+            .unwrap();
+        store
+            .finish_tool_run(&run.id, "failed", json!({"error":"PRIVATE_TOOL_ERROR"}))
+            .unwrap();
+
+        let snapshot = store.diagnostics_snapshot().unwrap();
+        assert_eq!(snapshot["integrity"], "ok");
+        assert_eq!(snapshot["records"]["conversations"], 1);
+        assert_eq!(snapshot["records"]["agentJobs"], 1);
+        assert_eq!(snapshot["records"]["toolRuns"], 1);
+        assert_eq!(snapshot["agentJobStatuses"]["queued"], 1);
+        assert_eq!(snapshot["toolRunStatuses"]["failed"], 1);
+        let encoded = snapshot.to_string();
+        assert!(!encoded.contains("PRIVATE_"));
+        assert!(!encoded.contains("path"));
     }
 
     #[test]

@@ -49,6 +49,9 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
             return backup;
           }
           if (command === "desktop_reveal_data_backups") return null;
+          if (command === "desktop_export_diagnostics") {
+            return { fileName: "OpenRosalind-diagnostics-test.json", sizeBytes: 1024 };
+          }
           if (command === "desktop_restore_data_backup") {
             return {
               restoredBackup: args.fileName,
@@ -348,6 +351,11 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   await page.locator("#openSettings").click();
   await expect(page.locator("#desktopDataBackupSection")).toBeVisible();
   await expect(page.locator("#desktopDataBackupStatus")).toContainText("已有 1 份已验证备份");
+  await expect(page.locator("#desktopDiagnosticsSection")).toBeVisible();
+  await page.locator("#exportDesktopDiagnostics").click();
+  await expect(page.locator("#desktopDiagnosticsStatus")).toContainText("不包含 Key、对话和文件内容");
+  await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_export_diagnostics").length)).toBe(1);
   await page.locator("#createDesktopDataBackup").click();
   await expect(page.locator("#desktopDataBackupStatus")).toContainText("已有 2 份已验证备份");
   await page.locator("#revealDesktopDataBackups").click();

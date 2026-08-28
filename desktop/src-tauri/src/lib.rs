@@ -360,6 +360,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             core::desktop_core_status,
+            core::desktop_export_diagnostics,
             storage::desktop_create_conversation,
             storage::desktop_list_conversations,
             storage::desktop_load_ui_chat_state,

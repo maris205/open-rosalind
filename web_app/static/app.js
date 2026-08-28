@@ -395,6 +395,9 @@ const els = {
   createDesktopDataBackup: document.getElementById("createDesktopDataBackup"),
   restoreDesktopDataBackup: document.getElementById("restoreDesktopDataBackup"),
   revealDesktopDataBackups: document.getElementById("revealDesktopDataBackups"),
+  desktopDiagnosticsSection: document.getElementById("desktopDiagnosticsSection"),
+  desktopDiagnosticsStatus: document.getElementById("desktopDiagnosticsStatus"),
+  exportDesktopDiagnostics: document.getElementById("exportDesktopDiagnostics"),
   temperature: document.getElementById("temperature"),
   temperatureValue: document.getElementById("temperatureValue"),
   documentFile: document.getElementById("documentFile"),
@@ -2535,6 +2538,22 @@ async function revealDesktopDataBackups() {
   }
 }
 
+async function exportDesktopDiagnostics() {
+  if (!state.desktopMode) return;
+  els.exportDesktopDiagnostics.disabled = true;
+  els.desktopDiagnosticsStatus.textContent = "正在汇总并脱敏诊断信息…";
+  try {
+    const result = await desktopInvoke("desktop_export_diagnostics");
+    els.desktopDiagnosticsStatus.textContent = result
+      ? `已导出 ${result.fileName}（${formatFileSize(result.sizeBytes)}）。报告不包含 Key、对话和文件内容。`
+      : "已取消导出；未创建文件。";
+  } catch (error) {
+    els.desktopDiagnosticsStatus.textContent = `诊断报告导出失败：${String(error.message || error)}`;
+  } finally {
+    els.exportDesktopDiagnostics.disabled = false;
+  }
+}
+
 async function saveDesktopProviderProfile() {
   const apiKey = els.apiKey.value.trim();
   const profile = await desktopInvoke("desktop_save_provider_profile", {
@@ -3518,7 +3537,10 @@ function bindEvents() {
     els.apiKey.value = "";
     els.apiKey.readOnly = true;
     els.settingsDialog.showModal();
-    if (state.desktopMode) loadDesktopDataBackupStatus();
+    if (state.desktopMode) {
+      els.desktopDiagnosticsSection.hidden = false;
+      loadDesktopDataBackupStatus();
+    }
   });
   els.apiKey.addEventListener("focus", () => {
     els.apiKey.readOnly = false;
@@ -3551,6 +3573,7 @@ function bindEvents() {
   els.createDesktopDataBackup.addEventListener("click", createDesktopDataBackup);
   els.restoreDesktopDataBackup.addEventListener("click", restoreLatestDesktopDataBackup);
   els.revealDesktopDataBackups.addEventListener("click", revealDesktopDataBackups);
+  els.exportDesktopDiagnostics.addEventListener("click", exportDesktopDiagnostics);
   els.temperature.addEventListener("input", () => {
     els.temperatureValue.textContent = els.temperature.value;
   });

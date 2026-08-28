@@ -126,7 +126,7 @@ Docker Socket。
 Core 通信。若保留 loopback HTTP，必须使用随机端口、每次启动随机 Token、严格
 Origin 校验和最小接口，不再固定使用未认证的高权限端口。
 
-当前 macOS alpha.8 已落地 stdio JSON-RPC v4：Worker 可以在最多四轮的
+当前 macOS alpha.9 已落地 stdio JSON-RPC v4：Worker 可以在最多四轮的
 模型/工具循环中请求 `text.statistics`、`project.files.list` 和
 `project.file.read`。Worker 只提出结构化请求，Desktop Core 负责检查项目目录
 授权、Tool Contract 风险和自动批准策略，并持久化 ToolRun；工具结果会被标记为
@@ -411,7 +411,7 @@ WebView2、嵌入 Python、Authenticode、.msi/NSIS 和升级卸载验证。
 更新清单由 OpenRosalind Control Plane 提供。客户端必须验证签名、版本、平台和
 架构，更新失败时保留可回滚版本。
 
-当前 macOS alpha.8 已将固定 SHA-256 的 arm64/x86_64 独立 CPython 3.11 与
+当前 macOS alpha.9 已将固定 SHA-256 的 arm64/x86_64 独立 CPython 3.11 与
 哈希锁定的 Python wheels 纳入 `.app`/`.dmg`。Release 模式只接受签名包内与应用
 架构匹配的解释器，缺失时失败关闭，不再搜索 Homebrew、Xcode Python、用户目录或
 `PATH`。Desktop Core 同时提供事务迁移、启动完整性校验和最多五份经过完整性验证的
