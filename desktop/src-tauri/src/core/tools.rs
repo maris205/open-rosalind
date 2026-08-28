@@ -586,6 +586,44 @@ impl ToolManager {
         })
     }
 
+    fn execute_project_file_restore(
+        &self,
+        tool_run_id: &str,
+        project: &AuthorizedProjectDirectory,
+        source: &ProjectRestoreSource,
+    ) -> Result<ToolExecution, String> {
+        let artifact_path = self.verified_artifact_path(&source.artifact)?;
+        let metadata = artifact_path
+            .metadata()
+            .map_err(|error| format!("Unable to inspect rollback Artifact: {error}"))?;
+        if metadata.len() > MAX_PROJECT_FILE_WRITE_BYTES as u64 {
+            return Err("Rollback Artifact exceeds the 256 KiB restore limit".into());
+        }
+        let bytes = fs::read(&artifact_path)
+            .map_err(|error| format!("Unable to read rollback Artifact: {error}"))?;
+        let content = std::str::from_utf8(&bytes)
+            .map_err(|_| "Rollback Artifact is not valid UTF-8 text".to_string())?;
+        let mut execution = self.execute_project_file_write(
+            tool_run_id,
+            project,
+            &json!({
+                "path": source.path,
+                "content": content,
+                "expectedSha256": source.current_sha256,
+            }),
+        )?;
+        let output = execution
+            .output
+            .as_object_mut()
+            .ok_or_else(|| "Project restore output must be an object".to_string())?;
+        output.insert("operation".into(), Value::String("restore".into()));
+        output.insert(
+            "restoredFromArtifactId".into(),
+            Value::String(source.artifact.id.clone()),
+        );
+        Ok(execution)
+    }
+
     fn execute_registered_container_python(
         &self,
         tool_run_id: &str,
@@ -1348,12 +1386,46 @@ fn project_file_write_contract() -> ToolContract {
     }
 }
 
+fn project_file_restore_contract() -> ToolContract {
+    ToolContract {
+        schema_version: 1,
+        name: "project.file.restore",
+        version: "1.0.0-alpha.1",
+        title: "恢复项目文本",
+        description: "经用户逐次批准后，将已校验的覆盖前版本恢复到原项目路径。",
+        executor: ToolExecutor {
+            kind: "native",
+            entrypoint: "desktop-core:project-file-restore",
+            image: None,
+        },
+        permissions: ToolPermissions {
+            risk: "medium",
+            approval: "per-run",
+            filesystem: vec![ToolFilesystemPermission {
+                scope: "project-root",
+                mode: "write",
+            }],
+            network: "none",
+            secrets: vec![],
+        },
+        resources: ToolResources {
+            timeout_seconds: 2,
+            max_input_bytes: 2048,
+            max_output_bytes: MAX_PROJECT_FILE_WRITE_BYTES * 2,
+            memory_mb: None,
+            cpu: None,
+            pids: None,
+        },
+    }
+}
+
 fn contracts() -> Vec<ToolContract> {
     vec![
         text_statistics_contract(),
         project_files_list_contract(),
         project_file_read_contract(),
         project_file_write_contract(),
+        project_file_restore_contract(),
         python_run_contract(),
         python_container_contract(),
     ]
@@ -1641,6 +1713,88 @@ struct ProjectWriteInput<'a> {
     expected_sha256: Option<&'a str>,
 }
 
+struct ProjectRestoreSource {
+    artifact: Artifact,
+    path: String,
+    current_sha256: String,
+}
+
+fn project_restore_artifact_id(input: &Value) -> Result<&str, String> {
+    let object = input
+        .as_object()
+        .ok_or_else(|| "project.file.restore input must be an object".to_string())?;
+    if object.keys().any(|key| key != "artifactId") {
+        return Err("project.file.restore accepts only the artifactId field".into());
+    }
+    let artifact_id = object
+        .get("artifactId")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "project.file.restore requires an Artifact ID".to_string())?;
+    if artifact_id.is_empty()
+        || artifact_id.len() > 128
+        || artifact_id.chars().any(char::is_control)
+    {
+        return Err("project.file.restore Artifact ID is invalid".into());
+    }
+    Ok(artifact_id)
+}
+
+fn project_restore_source(
+    store: &DesktopStore,
+    agent_job_id: &str,
+    artifact_id: &str,
+) -> Result<ProjectRestoreSource, String> {
+    let artifact = store.get_artifact(artifact_id)?;
+    if artifact.agent_job_id != agent_job_id || artifact.kind != "text" {
+        return Err("Rollback Artifact does not belong to this AgentJob or is not text".into());
+    }
+    if artifact.size_bytes < 0 || artifact.size_bytes > MAX_PROJECT_FILE_WRITE_BYTES as i64 {
+        return Err("Rollback Artifact exceeds the 256 KiB restore limit".into());
+    }
+    let source_run = store.get_tool_run(&artifact.tool_run_id)?;
+    if source_run.agent_job_id != agent_job_id
+        || source_run.status != "succeeded"
+        || !matches!(
+            source_run.tool_name.as_str(),
+            "project.file.write" | "project.file.restore"
+        )
+    {
+        return Err("Rollback Artifact is not from a successful project file change".into());
+    }
+    let output = source_run
+        .output
+        .as_ref()
+        .ok_or_else(|| "Source project change output is missing".to_string())?;
+    let path = output
+        .get("path")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "Source project change path is missing".to_string())?;
+    let previous_sha256 = output
+        .get("previousSha256")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "Source project change has no rollback digest".to_string())?;
+    let current_sha256 = output
+        .get("sha256")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "Source project change digest is missing".to_string())?;
+    if output.get("rollbackArtifact").and_then(Value::as_bool) != Some(true)
+        || artifact.path != format!("previous/{path}")
+        || !artifact.sha256.eq_ignore_ascii_case(previous_sha256)
+    {
+        return Err("Artifact provenance does not match the source project change".into());
+    }
+    project_write_input(&json!({
+        "path": path,
+        "content": "",
+        "expectedSha256": current_sha256,
+    }))?;
+    Ok(ProjectRestoreSource {
+        artifact,
+        path: path.to_string(),
+        current_sha256: current_sha256.to_string(),
+    })
+}
+
 fn project_write_input(input: &Value) -> Result<ProjectWriteInput<'_>, String> {
     let object = input
         .as_object()
@@ -1863,6 +2017,7 @@ fn validate_proposed_input(name: &str, input: &Value) -> Result<(), String> {
             Ok(())
         }
         "project.file.write" => project_write_input(input).map(|_| ()),
+        "project.file.restore" => project_restore_artifact_id(input).map(|_| ()),
         _ => Err(format!("Tool {name} does not support approval proposals")),
     }
 }
@@ -2044,6 +2199,34 @@ pub(crate) fn propose_tool_run(
                     "effectiveAccess": "write",
                 }),
             );
+    } else if contract.name == "project.file.restore" {
+        let project = store.authorized_project_directory_for_agent_job(agent_job_id.trim())?;
+        if !project.write {
+            return Err("The project directory requires read-write authorization".into());
+        }
+        let artifact_id = project_restore_artifact_id(&input)?;
+        let source = project_restore_source(store, agent_job_id, artifact_id)?;
+        let snapshot = permission_snapshot
+            .as_object_mut()
+            .ok_or_else(|| "Tool permission snapshot must be an object".to_string())?;
+        snapshot.insert(
+            "projectAuthorization".into(),
+            json!({
+                "projectId": project.project_id,
+                "authorizationUpdatedAt": project.authorization_updated_at,
+                "authorizationMode": "read-write",
+                "effectiveAccess": "write",
+            }),
+        );
+        snapshot.insert(
+            "restore".into(),
+            json!({
+                "sourceArtifactId": source.artifact.id,
+                "path": source.path,
+                "expectedSha256": source.current_sha256,
+                "restoreSha256": source.artifact.sha256,
+            }),
+        );
     }
     if let Some(request_id) = worker_request_id {
         permission_snapshot
@@ -2079,7 +2262,7 @@ pub async fn desktop_execute_approved_project_write(
     .map_err(|error| format!("Project write executor task failed: {error}"))?
 }
 
-fn execute_approved_project_write(
+pub(crate) fn execute_approved_project_write(
     manager: &ToolManager,
     store: &DesktopStore,
     tool_run_id: &str,
@@ -2106,6 +2289,76 @@ fn execute_approved_project_write(
             return Err("Project authorization changed after approval; write was blocked".into());
         }
         manager.execute_project_file_write(tool_run_id, &project, tool_run.input())
+    })();
+    finish_tool_execution(store, tool_run_id, execution)
+}
+
+#[tauri::command]
+pub async fn desktop_execute_approved_project_restore(
+    app: AppHandle,
+    tool_run_id: String,
+) -> Result<ToolRun, String> {
+    let manager = app.state::<ToolManager>().inner().clone();
+    let store = app.state::<DesktopStore>().inner().clone();
+    let tool_run_id = tool_run_id.trim().to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        execute_approved_project_restore(&manager, &store, &tool_run_id)
+    })
+    .await
+    .map_err(|error| format!("Project restore executor task failed: {error}"))?
+}
+
+pub(crate) fn execute_approved_project_restore(
+    manager: &ToolManager,
+    store: &DesktopStore,
+    tool_run_id: &str,
+) -> Result<ToolRun, String> {
+    let tool_run = store.get_tool_run(tool_run_id)?;
+    if tool_run.tool_name != "project.file.restore" || tool_run.status != "approved" {
+        return Err("Only an approved project.file.restore ToolRun can enter this executor".into());
+    }
+    store.start_approved_tool_run(tool_run_id)?;
+    let execution = (|| {
+        let project = store.authorized_project_directory_for_agent_job(&tool_run.agent_job_id)?;
+        let authorization = tool_run
+            .permission_snapshot()
+            .get("projectAuthorization")
+            .ok_or_else(|| "Project restore permission snapshot is missing".to_string())?;
+        if authorization.get("projectId").and_then(Value::as_str) != Some(&project.project_id)
+            || authorization
+                .get("authorizationUpdatedAt")
+                .and_then(Value::as_i64)
+                != Some(project.authorization_updated_at)
+            || authorization.get("effectiveAccess").and_then(Value::as_str) != Some("write")
+            || !project.write
+        {
+            return Err("Project authorization changed after approval; restore was blocked".into());
+        }
+        let artifact_id = project_restore_artifact_id(tool_run.input())?;
+        let source = project_restore_source(store, &tool_run.agent_job_id, artifact_id)?;
+        let restore_snapshot = tool_run
+            .permission_snapshot()
+            .get("restore")
+            .ok_or_else(|| "Project restore source snapshot is missing".to_string())?;
+        if restore_snapshot
+            .get("sourceArtifactId")
+            .and_then(Value::as_str)
+            != Some(source.artifact.id.as_str())
+            || restore_snapshot.get("path").and_then(Value::as_str) != Some(source.path.as_str())
+            || !restore_snapshot
+                .get("expectedSha256")
+                .and_then(Value::as_str)
+                .is_some_and(|digest| digest.eq_ignore_ascii_case(&source.current_sha256))
+            || !restore_snapshot
+                .get("restoreSha256")
+                .and_then(Value::as_str)
+                .is_some_and(|digest| digest.eq_ignore_ascii_case(&source.artifact.sha256))
+        {
+            return Err(
+                "Project restore source changed after approval; restore was blocked".into(),
+            );
+        }
+        manager.execute_project_file_restore(tool_run_id, &project, &source)
     })();
     finish_tool_execution(store, tool_run_id, execution)
 }
@@ -2523,6 +2776,19 @@ mod tests {
     #[test]
     fn project_write_contract_requires_per_run_project_only_approval() {
         let encoded = serde_json::to_value(project_file_write_contract()).unwrap();
+        assert_eq!(encoded["permissions"]["risk"], "medium");
+        assert_eq!(encoded["permissions"]["approval"], "per-run");
+        assert_eq!(encoded["permissions"]["network"], "none");
+        assert_eq!(
+            encoded["permissions"]["filesystem"][0]["scope"],
+            "project-root"
+        );
+        assert_eq!(encoded["permissions"]["filesystem"][0]["mode"], "write");
+    }
+
+    #[test]
+    fn project_restore_contract_requires_per_run_project_only_approval() {
+        let encoded = serde_json::to_value(project_file_restore_contract()).unwrap();
         assert_eq!(encoded["permissions"]["risk"], "medium");
         assert_eq!(encoded["permissions"]["approval"], "per-run");
         assert_eq!(encoded["permissions"]["network"], "none");

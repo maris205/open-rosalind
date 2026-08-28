@@ -56,11 +56,16 @@ message presentation, and biomedical tools remain shared with the web build.
   the Agent Worker cannot approve or start it.
 - `project.file.write` lets the Agent propose one allowlisted UTF-8 project
   file change. It is never automatic: the UI previews the target, size,
-  permissions, and content before each decision. Desktop Core revalidates the
+  permissions, and a compact old/new line diff before each replacement.
+  Desktop Core revalidates the
   current read-write project authorization, requires the digest returned by a
   prior read before overwriting, rejects symlink/path escapes, writes by atomic
   replacement, and preserves the new and previous versions as audited
-  Artifacts.
+  Artifacts. Agent file Artifacts appear on the final answer. A user can restore
+  an overwrite Artifact with another per-run approval; `project.file.restore`
+  verifies its database provenance, authorization version, Artifact digest and
+  current target digest, then atomically restores it while saving an undo
+  Artifact.
 - Native Python output files are indexed in SQLite as immutable Artifacts with
   relative paths, sizes, and SHA-256 digests. The shared WebView receives only
   Artifact IDs. Desktop Core revalidates the path, size, and digest before a

@@ -841,8 +841,13 @@ function normalizeMessage(message) {
       name: String(artifact?.name || artifact?.path || "ToolRun 产物"),
       size: Number(artifact?.size ?? artifact?.sizeBytes ?? 0),
       sha256: String(artifact?.sha256 || ""),
-      kind: String(artifact?.kind || "file")
+      kind: String(artifact?.kind || "file"),
+      agentJobId: String(artifact?.agentJobId || ""),
+      toolRunId: String(artifact?.toolRunId || "")
     })).filter((artifact) => artifact.artifactId && artifact.name) : [];
+    normalized.restoredArtifactIds = Array.isArray(normalized.restoredArtifactIds)
+      ? normalized.restoredArtifactIds.map(String).filter(Boolean)
+      : [];
     normalized.feedback = ["like", "dislike"].includes(normalized.feedback) ? normalized.feedback : "none";
     normalized.agentJobId = String(normalized.agentJobId || "");
     if (!normalized.agentPlan && normalized.content.includes("任务已提交后台执行")) {
@@ -1536,7 +1541,85 @@ function renderArtifactsPanel(artifacts) {
   return list;
 }
 
-function renderToolArtifactsPanel(artifacts) {
+function projectArtifactPresentation(name) {
+  if (name.startsWith("previous/")) return { label: "覆盖前版本", path: name.slice("previous/".length), restorable: true };
+  if (name.startsWith("written/")) return { label: "写入版本", path: name.slice("written/".length), restorable: false };
+  return { label: "ToolRun 产物", path: name, restorable: false };
+}
+
+async function restoreProjectArtifact(artifact, message, button) {
+  button.disabled = true;
+  button.textContent = "校验中";
+  let proposal = null;
+  try {
+    const preview = await desktopInvoke("desktop_read_tool_artifact", { artifactId: artifact.artifactId });
+    proposal = await desktopInvoke("desktop_propose_tool_run", {
+      agentJobId: artifact.agentJobId,
+      toolName: "project.file.restore",
+      input: { artifactId: artifact.artifactId }
+    });
+    const restore = proposal.permissionSnapshot?.restore || {};
+    const content = preview.previewable ? String(preview.content || "") : "[该版本不是可预览文本]";
+    const shortPreview = content.length > 1200 ? `${content.slice(0, 1200)}\n…（内容已截断）` : content;
+    const approved = await confirmDesktopAction([
+      "将项目文件恢复到覆盖前版本？",
+      "",
+      `路径：${String(restore.path || projectArtifactPresentation(artifact.name).path)}`,
+      `恢复版本：${String(restore.restoreSha256 || artifact.sha256).slice(0, 12)}…`,
+      `当前版本：${String(restore.expectedSha256 || "").slice(0, 12)}…`,
+      "权限：仅当前授权项目目录；无网络、无 Secret。",
+      "",
+      "恢复内容预览：",
+      shortPreview,
+      "",
+      "恢复前的当前版本也会再次保存，因此可以撤销这次恢复。"
+    ].join("\n"), {
+      title: "恢复项目文件",
+      kind: "warning"
+    });
+    await desktopInvoke("desktop_decide_tool_run", { toolRunId: proposal.id, approved });
+    if (!approved) {
+      button.textContent = "恢复此版本";
+      return;
+    }
+    button.textContent = "恢复中";
+    const completed = await desktopInvoke("desktop_execute_approved_project_restore", {
+      toolRunId: proposal.id
+    });
+    if (completed.status !== "succeeded") {
+      throw new Error(completed.output?.error || `ToolRun ${completed.status}`);
+    }
+    message.restoredArtifactIds = [...new Set([...(message.restoredArtifactIds || []), artifact.artifactId])];
+    const restoredFiles = Array.isArray(completed.output?.files) ? completed.output.files : [];
+    message.toolArtifacts = [
+      ...(message.toolArtifacts || []),
+      ...restoredFiles.map((file) => ({
+        ...file,
+        agentJobId: artifact.agentJobId,
+        toolRunId: completed.id
+      }))
+    ];
+    normalizeMessage(message);
+    persistChats();
+    setBadge("project file restored");
+    openDetailPanel("tool-artifacts", message, presentationForMessage(message));
+  } catch (error) {
+    if (proposal?.id && proposal.status === "awaiting_approval") {
+      try {
+        await desktopInvoke("desktop_decide_tool_run", { toolRunId: proposal.id, approved: false });
+      } catch {
+        // The original error is more useful to the user.
+      }
+    }
+    button.textContent = "恢复失败";
+    button.title = String(error.message || error);
+    setBadge("project restore failed", "error");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderToolArtifactsPanel(artifacts, message) {
   const list = document.createElement("div");
   list.className = "artifact-list";
   for (const artifact of artifacts) {
@@ -1545,10 +1628,11 @@ function renderToolArtifactsPanel(artifacts) {
     const icon = actionIcon("files");
     const copy = document.createElement("div");
     const title = document.createElement("strong");
-    title.textContent = artifact.name;
+    const projectArtifact = projectArtifactPresentation(artifact.name);
+    title.textContent = projectArtifact.path;
     const meta = document.createElement("small");
     const digest = artifact.sha256 ? ` · SHA-256 ${artifact.sha256.slice(0, 12)}…` : "";
-    meta.textContent = `${formatFileSize(artifact.size)} · ${artifact.kind === "text" ? "文本" : "文件"}${digest}`;
+    meta.textContent = `${projectArtifact.label} · ${formatFileSize(artifact.size)} · ${artifact.kind === "text" ? "文本" : "文件"}${digest}`;
     copy.append(title, meta);
     const controls = document.createElement("div");
     controls.className = "tool-artifact-actions";
@@ -1614,6 +1698,17 @@ function renderToolArtifactsPanel(artifacts) {
       }
     });
     controls.appendChild(exportButton);
+    if (projectArtifact.restorable && artifact.agentJobId) {
+      const restore = document.createElement("button");
+      restore.type = "button";
+      const restored = (message.restoredArtifactIds || []).includes(artifact.artifactId);
+      restore.textContent = restored ? "已恢复" : "恢复此版本";
+      restore.disabled = restored;
+      if (!restored) {
+        restore.addEventListener("click", () => restoreProjectArtifact(artifact, message, restore));
+      }
+      controls.appendChild(restore);
+    }
     card.append(icon, copy, controls);
     list.appendChild(card);
   }
@@ -1643,7 +1738,7 @@ function openDetailPanel(type, message, presentation) {
     els.detailPanelTitle.textContent = `本地产物 (${presentation.toolArtifacts.length})`;
     els.detailPanelNote.textContent = "预览和显示文件都由 Desktop Core 按 Artifact ID 校验路径、大小和 SHA-256；WebView 不能提交任意本地路径。";
     els.detailPanelContent.appendChild(presentation.toolArtifacts.length
-      ? renderToolArtifactsPanel(presentation.toolArtifacts)
+      ? renderToolArtifactsPanel(presentation.toolArtifacts, message)
       : Object.assign(document.createElement("p"), { className: "detail-empty", textContent: "这次 ToolRun 没有保存产物。" }));
   } else if (type === "agent-process") {
     els.detailPanelEyebrow.textContent = "Agent 执行记录";
@@ -3042,6 +3137,33 @@ async function desktopAgentConversation() {
   return conversation.id;
 }
 
+function summarizeLineDiff(before, after, maxCharacters = 4000) {
+  const oldLines = String(before).split("\n");
+  const newLines = String(after).split("\n");
+  let prefix = 0;
+  while (prefix < oldLines.length && prefix < newLines.length && oldLines[prefix] === newLines[prefix]) prefix += 1;
+  let suffix = 0;
+  while (
+    suffix < oldLines.length - prefix
+    && suffix < newLines.length - prefix
+    && oldLines[oldLines.length - 1 - suffix] === newLines[newLines.length - 1 - suffix]
+  ) suffix += 1;
+  const oldChanged = oldLines.slice(prefix, oldLines.length - suffix);
+  const newChanged = newLines.slice(prefix, newLines.length - suffix);
+  const contextBefore = oldLines.slice(Math.max(0, prefix - 2), prefix);
+  const contextAfter = oldLines.slice(oldLines.length - suffix, Math.min(oldLines.length, oldLines.length - suffix + 2));
+  const lines = [
+    `变更范围：旧 ${oldChanged.length} 行 → 新 ${newChanged.length} 行`,
+    ...contextBefore.map((line) => `  ${line}`),
+    ...oldChanged.map((line) => `- ${line}`),
+    ...newChanged.map((line) => `+ ${line}`),
+    ...contextAfter.map((line) => `  ${line}`)
+  ];
+  let summary = lines.join("\n");
+  if (summary.length > maxCharacters) summary = `${summary.slice(0, maxCharacters)}\n…（差异已截断）`;
+  return summary;
+}
+
 async function resolvePendingAgentToolApprovals(agentJobId) {
   const runs = await desktopInvoke("desktop_list_tool_runs", { agentJobId });
   const pending = runs.find((run) => (
@@ -3052,6 +3174,17 @@ async function resolvePendingAgentToolApprovals(agentJobId) {
   const content = String(pending.input?.content || "");
   const preview = content.length > 1200 ? `${content.slice(0, 1200)}\n…（内容已截断）` : content;
   const replacing = Boolean(pending.input?.expectedSha256);
+  const reviewed = replacing ? runs.find((run) => (
+    run.toolName === "project.file.read"
+    && run.status === "succeeded"
+    && run.input?.path === path
+    && run.output?.path === path
+    && run.output?.truncated === false
+    && String(run.output?.sha256 || "").toLowerCase() === String(pending.input?.expectedSha256 || "").toLowerCase()
+  )) : null;
+  const changePreview = reviewed
+    ? ["变更差异（- 删除，+ 新增）：", summarizeLineDiff(reviewed.output?.content || "", content)]
+    : ["内容预览：", preview];
   const warning = [
     "Agent 请求写入当前科研项目。",
     "",
@@ -3060,8 +3193,7 @@ async function resolvePendingAgentToolApprovals(agentJobId) {
     `大小：${formatFileSize(new TextEncoder().encode(content).length)}`,
     "权限：仅当前授权项目目录；无网络、无 Secret。",
     "",
-    "内容预览：",
-    preview,
+    ...changePreview,
     "",
     "批准后会原子写入；覆盖文件时会保留可审计的旧版本产物。"
   ].join("\n");
@@ -3158,7 +3290,16 @@ async function generateWithDesktopAgent(requestInput, displayInput) {
           confidence: toolRun.status === "succeeded" ? 95 : 30,
           detail: `${String(toolRun.status || "unknown")} · ${String(toolRun.toolRunId || "未创建 ToolRun")}`
         }))
-      ]
+      ],
+      toolArtifacts: toolRuns.flatMap((toolRun) => (
+        Array.isArray(toolRun.output?.files)
+          ? toolRun.output.files.map((file) => ({
+              ...file,
+              agentJobId: job.id,
+              toolRunId: String(toolRun.toolRunId || "")
+            }))
+          : []
+      ))
     });
     setBadge("local agent");
   } catch (error) {

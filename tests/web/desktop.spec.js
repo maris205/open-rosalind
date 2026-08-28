@@ -15,6 +15,7 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
     window.__desktopWriteScenario = false;
     window.__desktopWriteRun = null;
     window.__desktopConfirmResult = true;
+    window.__desktopConfirmMessages = [];
     window.__desktopBackups = [{
       fileName: "desktop-core-initial.db",
       createdAt: Date.now() - 1000,
@@ -22,7 +23,10 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
     }];
     window.__TAURI__ = {
       dialog: {
-        confirm: async () => window.__desktopConfirmResult
+        confirm: async (message) => {
+          window.__desktopConfirmMessages.push(String(message));
+          return window.__desktopConfirmResult;
+        }
       },
       core: {
         invoke: async (command, args = {}) => {
@@ -100,7 +104,18 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
           }
           if (command === "desktop_reveal_project_directory") return null;
           if (command === "desktop_list_tool_runs") {
-            return window.__desktopWriteRun ? [window.__desktopWriteRun] : [];
+            return window.__desktopWriteRun ? [{
+              id: "project-read-before-write",
+              toolName: "project.file.read",
+              status: "succeeded",
+              input: { path: "notes/agent-result.md" },
+              output: {
+                path: "notes/agent-result.md",
+                content: "# Previous result\nNeeds revision.",
+                sha256: "b".repeat(64),
+                truncated: false
+              }
+            }, window.__desktopWriteRun] : [];
           }
           if (command === "desktop_revoke_project_directory") {
             window.__desktopProjectAuthorization = null;
@@ -152,7 +167,11 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
                 id: "project-write-run",
                 toolName: "project.file.write",
                 status: "awaiting_approval",
-                input: { path: "notes/agent-result.md", content: "# Agent result\nVerified content." },
+                input: {
+                  path: "notes/agent-result.md",
+                  content: "# Agent result\nVerified content.",
+                  expectedSha256: "b".repeat(64)
+                },
                 permissionSnapshot: { filesystem: [{ scope: "project-root", mode: "write" }], network: "none", secrets: [] }
               };
               return { job: { id: "agent-job-123", status: "running" }, events: [] };
@@ -214,7 +233,14 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
                       toolRunId: "project-write-run",
                       toolName: "project.file.write",
                       status: "succeeded",
-                      output: { path: "notes/agent-result.md", rollbackArtifact: false }
+                      output: {
+                        path: "notes/agent-result.md",
+                        rollbackArtifact: true,
+                        files: [
+                          { artifactId: "written-agent-result", name: "written/notes/agent-result.md", size: 32, sha256: "c".repeat(64), kind: "text" },
+                          { artifactId: "previous-agent-result", name: "previous/notes/agent-result.md", size: 33, sha256: "b".repeat(64), kind: "text" }
+                        ]
+                      }
                     }]
                   }
                 },
@@ -224,6 +250,22 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
             return { job: { id: "agent-job-123", status: "running" }, events: [] };
           }
           if (command === "desktop_propose_tool_run") {
+            if (args.toolName === "project.file.restore") {
+              return {
+                id: "project-restore-run",
+                status: "awaiting_approval",
+                permissionSnapshot: {
+                  filesystem: [{ scope: "project-root", mode: "write" }],
+                  network: "none",
+                  secrets: [],
+                  restore: {
+                    path: "result.txt",
+                    expectedSha256: "c".repeat(64),
+                    restoreSha256: "a".repeat(64)
+                  }
+                }
+              };
+            }
             return {
               id: "tool-run-123",
               permissionSnapshot: {
@@ -242,8 +284,28 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
           }
           if (command === "desktop_execute_approved_project_write") {
             window.__desktopWriteRun.status = "succeeded";
-            window.__desktopWriteRun.output = { path: "notes/agent-result.md", rollbackArtifact: false };
+            window.__desktopWriteRun.output = {
+              path: "notes/agent-result.md",
+              rollbackArtifact: true,
+              files: [
+                { artifactId: "written-agent-result", name: "written/notes/agent-result.md", size: 32, sha256: "c".repeat(64), kind: "text" },
+                { artifactId: "previous-agent-result", name: "previous/notes/agent-result.md", size: 33, sha256: "b".repeat(64), kind: "text" }
+              ]
+            };
             return window.__desktopWriteRun;
+          }
+          if (command === "desktop_execute_approved_project_restore") {
+            return {
+              id: args.toolRunId,
+              status: "succeeded",
+              output: {
+                operation: "restore",
+                files: [
+                  { artifactId: "restored-result", name: "written/result.txt", size: 36, sha256: "a".repeat(64), kind: "text" },
+                  { artifactId: "restore-undo", name: "previous/result.txt", size: 36, sha256: "c".repeat(64), kind: "text" }
+                ]
+              }
+            };
           }
           if (command === "desktop_execute_approved_python_tool") {
             return {
@@ -350,10 +412,12 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
       content: "Python 生成了一个本地产物。\n\n```python\nprint('sandbox')\n```",
       toolArtifacts: [{
         artifactId: "artifact-123",
-        name: "result.txt",
+        name: "previous/result.txt",
         size: 36,
         sha256: "a".repeat(64),
-        kind: "text"
+        kind: "text",
+        agentJobId: "agent-job-artifact",
+        toolRunId: "project-write-artifact"
       }]
     });
     sessionStorage.setItem("__openRosalindDesktopChatLoadOverride", JSON.stringify(saved));
@@ -378,12 +442,16 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   await expect(page.locator(".tool-artifact-card").getByRole("button", { name: "已保存" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
     .filter((item) => item.command === "desktop_export_tool_artifact").length)).toBe(1);
+  await page.locator(".tool-artifact-card").getByRole("button", { name: "恢复此版本" }).click();
+  await expect(page.locator(".tool-artifact-card").first().getByRole("button", { name: "已恢复" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
+    .filter((item) => item.command === "desktop_execute_approved_project_restore").length)).toBe(1);
 
   await page.locator("#closeDetailPanel").click();
   await artifactMessage.getByRole("button", { name: "运行 Python" }).click();
   await expect(page.locator(".message.assistant").last()).toContainText("Python 本地执行结果");
   const approval = await page.evaluate(() => window.__desktopArtifactInvocations
-    .find((item) => item.command === "desktop_decide_tool_run"));
+    .find((item) => item.command === "desktop_decide_tool_run" && item.args.toolRunId === "tool-run-123"));
   expect(approval.args).toEqual({ toolRunId: "tool-run-123", approved: true });
 
   await page.locator("#taskInput").fill("统计 a b c 的单词数");
@@ -399,6 +467,11 @@ test("desktop sidecar opens the shared app without Redis", async ({ browser }) =
   await page.locator("#taskInput").fill("在当前项目创建 notes/agent-result.md");
   await page.locator("#sendButton").click();
   await expect(page.locator(".message.assistant").last()).toContainText("项目文件已由 Desktop Core 写入");
+  await expect(page.locator(".message.assistant").last().getByRole("button", { name: "查看本地 ToolRun 产物" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__desktopConfirmMessages
+    .some((message) => message.includes("变更差异（- 删除，+ 新增）")
+      && message.includes("- # Previous result")
+      && message.includes("+ # Agent result")))).toBe(true);
   await expect.poll(() => page.evaluate(() => window.__desktopArtifactInvocations
     .filter((item) => item.command === "desktop_execute_approved_project_write").length)).toBe(1);
 

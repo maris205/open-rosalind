@@ -393,6 +393,7 @@ pub fn run() {
             core::tools::desktop_decide_tool_run,
             core::tools::desktop_execute_approved_python_tool,
             core::tools::desktop_execute_approved_project_write,
+            core::tools::desktop_execute_approved_project_restore,
             core::tools::desktop_execute_approved_container_tool,
             core::tools::desktop_cancel_tool_run,
             core::tools::desktop_list_tool_artifacts,

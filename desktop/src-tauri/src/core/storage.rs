@@ -2421,7 +2421,10 @@ pub fn desktop_restore_data_backup(
 mod tests {
     use super::*;
     use crate::core::agent::{WorkerJobProgress, WorkerJobStatus};
-    use crate::core::tools::{propose_tool_run, run_low_risk_tool};
+    use crate::core::tools::{
+        execute_approved_project_restore, execute_approved_project_write, propose_tool_run,
+        run_low_risk_tool, ToolManager,
+    };
 
     fn store() -> DesktopStore {
         DesktopStore::from_connection(Connection::open_in_memory().unwrap()).unwrap()
@@ -2877,6 +2880,109 @@ mod tests {
         assert_eq!(proposed.status, "awaiting_approval");
 
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn approved_project_restore_uses_verified_artifact_and_blocks_stale_targets() {
+        let store = store();
+        let root = env::temp_dir().join(format!("openrosalind-project-restore-{}", Uuid::new_v4()));
+        let runs_root = env::temp_dir().join(format!(
+            "openrosalind-project-restore-runs-{}",
+            Uuid::new_v4()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("result.md"), "original").unwrap();
+        store
+            .authorize_project_directory("project-restore", &root)
+            .unwrap();
+        let conversation = store
+            .create_conversation("Restore".into(), Some("project-restore".into()))
+            .unwrap();
+        let job = store
+            .create_agent_job(conversation.id, json!({"mode":"agent"}))
+            .unwrap();
+        let manager = ToolManager::new(PathBuf::from("python3"), runs_root.clone()).unwrap();
+
+        let read = run_low_risk_tool(
+            &store,
+            &job.id,
+            "project.file.read",
+            json!({"path":"result.md"}),
+        )
+        .unwrap();
+        let digest = read.output.unwrap()["sha256"].as_str().unwrap().to_string();
+        let write = propose_tool_run(
+            &store,
+            &job.id,
+            "project.file.write",
+            json!({"path":"result.md","content":"replacement","expectedSha256":digest}),
+            None,
+        )
+        .unwrap();
+        store.decide_tool_run(&write.id, true).unwrap();
+        let written = execute_approved_project_write(&manager, &store, &write.id).unwrap();
+        assert_eq!(written.status, "succeeded");
+        assert_eq!(
+            std::fs::read_to_string(root.join("result.md")).unwrap(),
+            "replacement"
+        );
+        let rollback = store
+            .list_tool_run_artifacts(&write.id)
+            .unwrap()
+            .into_iter()
+            .find(|artifact| artifact.path == "previous/result.md")
+            .unwrap();
+
+        let restore = propose_tool_run(
+            &store,
+            &job.id,
+            "project.file.restore",
+            json!({"artifactId":rollback.id}),
+            None,
+        )
+        .unwrap();
+        assert_eq!(restore.status, "awaiting_approval");
+        assert_eq!(
+            restore.permission_snapshot()["restore"]["path"],
+            "result.md"
+        );
+        store.decide_tool_run(&restore.id, true).unwrap();
+        let restored = execute_approved_project_restore(&manager, &store, &restore.id).unwrap();
+        assert_eq!(restored.status, "succeeded");
+        assert_eq!(restored.output.as_ref().unwrap()["operation"], "restore");
+        assert_eq!(
+            std::fs::read_to_string(root.join("result.md")).unwrap(),
+            "original"
+        );
+        assert_eq!(
+            std::fs::read_to_string(
+                runs_root
+                    .join(&restore.id)
+                    .join("output/previous/result.md")
+            )
+            .unwrap(),
+            "replacement"
+        );
+
+        let stale_restore = propose_tool_run(
+            &store,
+            &job.id,
+            "project.file.restore",
+            json!({"artifactId":rollback.id}),
+            None,
+        )
+        .unwrap();
+        store.decide_tool_run(&stale_restore.id, true).unwrap();
+        let blocked =
+            execute_approved_project_restore(&manager, &store, &stale_restore.id).unwrap();
+        assert_eq!(blocked.status, "failed");
+        assert!(blocked.output.unwrap()["error"]
+            .as_str()
+            .unwrap()
+            .contains("expected digest"));
+
+        std::fs::remove_dir_all(&root).unwrap();
+        std::fs::remove_dir_all(&runs_root).unwrap();
     }
 
     #[cfg(unix)]
